@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,7 @@ import java.util.Map;
 @Service
 public class OccupancyReportService {
 
-    public static final int MAX_PERIOD_DAYS = 366;
+    public static final int MAX_PERIOD_DAYS = ReportPeriod.MAX_DAYS;
 
     private final OccupancyReportRepository repository;
     private final Clock clock;
@@ -59,21 +58,10 @@ public class OccupancyReportService {
      */
     // UC-019 BR-004: The period is at most 366 days long and ends today or earlier.
     private void checkPeriod(LocalDate firstDate, LocalDate lastDate) {
-        if (firstDate == null || lastDate == null) {
-            throw new InvalidReportPeriodException("Enter the first and the last date");
-        }
-        if (lastDate.isBefore(firstDate)) {
-            throw new InvalidReportPeriodException("The last date must be on or after the first date");
-        }
-        if (lastDate.isAfter(today())) {
-            throw new InvalidReportPeriodException("The last date must be today or earlier");
-        }
-        if (periodDays(firstDate, lastDate) > MAX_PERIOD_DAYS) {
-            throw new InvalidReportPeriodException("The period can be at most " + MAX_PERIOD_DAYS + " days long");
-        }
+        ReportPeriod.check(firstDate, lastDate, today());
     }
 
     public static long periodDays(LocalDate firstDate, LocalDate lastDate) {
-        return ChronoUnit.DAYS.between(firstDate, lastDate) + 1;
+        return ReportPeriod.days(firstDate, lastDate);
     }
 }
