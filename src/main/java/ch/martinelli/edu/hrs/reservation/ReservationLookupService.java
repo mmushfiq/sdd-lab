@@ -1,0 +1,70 @@
+package ch.martinelli.edu.hrs.reservation;
+
+import org.springframework.stereotype.Service;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Locale;
+import java.util.Optional;
+
+/**
+ * UC-002 View Own Reservation: finds a reservation by reservation code and email address.
+ */
+@Service
+public class ReservationLookupService {
+
+    public static final LocalTime CHECK_IN_TIME = LocalTime.of(14, 0);
+    public static final int ONLINE_CANCELLATION_HOURS = 24;
+
+    private final ReservationRepository reservationRepository;
+    private final ReservationLookupLock lookupLock;
+    private final Clock clock;
+
+    public ReservationLookupService(ReservationRepository reservationRepository, ReservationLookupLock lookupLock,
+                                    Clock clock) {
+        this.reservationRepository = reservationRepository;
+        this.lookupLock = lookupLock;
+        this.clock = clock;
+    }
+
+    /**
+     * Steps 3 and 4, A2, A3.
+     *
+     * @return the reservation, or empty when no reservation matches the reservation code and email address (A2)
+     * @throws ReservationLookupLockedException when the lookup is locked for the network address (A3)
+     */
+    public Optional<OwnReservation> lookUp(String reservationCode, String email, String networkAddress) {
+        // UC-002 BR-003: A locked address is refused without checking the reservation code.
+        if (lookupLock.isLocked(networkAddress)) {
+            throw new ReservationLookupLockedException();
+        }
+        Optional<OwnReservation> reservation = isBlank(reservationCode) || isBlank(email)
+                ? Optional.empty()
+                : reservationRepository.findOwnReservation(reservationCode, email.strip().toLowerCase(Locale.ROOT));
+        if (reservation.isEmpty()) {
+            // UC-002 BR-003: Count the failed attempt for the network address.
+            lookupLock.countFailedAttempt(networkAddress);
+        }
+        return reservation;
+    }
+
+    /**
+     * UC-002 A4: a Confirmed reservation can be cancelled online while the online cancellation deadline has not
+     * passed.
+     */
+    public boolean canBeCancelledOnline(OwnReservation reservation) {
+        // UC-003 BR-002: Only a reservation with status Confirmed can be cancelled.
+        // UC-003 BR-001: Online until 24 hours before the check-in time (14:00) on the arrival date, local time.
+        return reservation.status() == ReservationStatus.CONFIRMED
+                && LocalDateTime.now(clock).isBefore(onlineCancellationDeadline(reservation));
+    }
+
+    public static LocalDateTime onlineCancellationDeadline(OwnReservation reservation) {
+        return reservation.arrivalDate().atTime(CHECK_IN_TIME).minusHours(ONLINE_CANCELLATION_HOURS);
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+}

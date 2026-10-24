@@ -13,6 +13,12 @@ import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 @Repository
 public class GuestRepository {
 
+    /**
+     * Domain of the replacement email addresses of erased guests (UC-024 BR-001). The domain .invalid can never
+     * receive email.
+     */
+    public static final String ERASED_EMAIL_DOMAIN = "erased.invalid";
+
     private final DSLContext ctx;
 
     public GuestRepository(DSLContext ctx) {
