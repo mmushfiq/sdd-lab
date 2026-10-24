@@ -98,7 +98,7 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
         List<ReservationAction> actions = ReservationAction.allowedFor(reservation.status());
         HorizontalLayout actionButtons = new HorizontalLayout();
         actionButtons.setId("actions");
-        actions.forEach(action -> actionButtons.add(actionButton(action)));
+        actions.forEach(action -> actionButtons.add(actionButton(action, reservation.reservationCode())));
         if (!actions.isEmpty()) {
             content.add(new H2("Actions"), actionButtons);
         }
@@ -107,7 +107,7 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
     /**
      * The button of an action. Actions whose use case is not implemented yet are shown disabled.
      */
-    private static Button actionButton(ReservationAction action) {
+    private static Button actionButton(ReservationAction action, String reservationCode) {
         Button button = new Button(switch (action) {
             case CHANGE -> "Change";
             case CANCEL -> "Cancel reservation";
@@ -115,7 +115,12 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
             case CHECK_OUT -> "Check out";
             case RECORD_NO_SHOW -> "Record no-show";
         });
-        button.setEnabled(false);
+        switch (action) {
+            // UC-005 step 1
+            case CHANGE -> button.addClickListener(
+                    _ -> button.getUI().ifPresent(ui -> ui.navigate(ChangeReservationView.class, reservationCode)));
+            default -> button.setEnabled(false);
+        }
         return button;
     }
 

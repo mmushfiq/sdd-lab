@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import org.jooq.DSLContext;
+import org.jooq.Record12;
 import org.jooq.Record7;
 import org.jooq.Records;
 import org.jooq.SelectConditionStep;
@@ -13,11 +14,12 @@ import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
 /**
- * Records reservations (UC-001 step 9) and finds and cancels a guest's own reservation (UC-002 step 3,
- * UC-003 step 9).
+ * Records reservations (UC-001 step 9), finds and cancels a guest's own reservation (UC-002 step 3,
+ * UC-003 step 9), and changes a reservation (UC-005 steps 2 and 7).
  */
 @Repository
 public class ReservationRepository {
@@ -91,6 +93,51 @@ public class ReservationRepository {
                 .set(RESERVATION.STATUS, ReservationStatus.CANCELLED.name())
                 .set(RESERVATION.CANCELLED_AT, cancelledAt)
                 .where(RESERVATION.RESERVATION_CODE.eq(reservationCode))
+                .execute();
+    }
+
+    /**
+     * Finds the reservation with this code as the receptionist changes it (UC-005 step 2).
+     */
+    public Optional<ChangeableReservation> findChangeable(String reservationCode) {
+        return changeableQuery(reservationCode).fetchOptional(Records.mapping(ChangeableReservation::new));
+    }
+
+    /**
+     * Like {@link #findChangeable(String)}, and locks the reservation until the transaction ends (UC-005 step 7).
+     */
+    public Optional<ChangeableReservation> findChangeableForUpdate(String reservationCode) {
+        return changeableQuery(reservationCode).forUpdate().of(RESERVATION)
+                .fetchOptional(Records.mapping(ChangeableReservation::new));
+    }
+
+    private SelectConditionStep<Record12<Long, String, ReservationStatus, LocalDate, LocalDate, Long,
+            String, Integer, BigDecimal, Long, String, String>> changeableQuery(String reservationCode) {
+        return ctx.select(RESERVATION.ID, RESERVATION.RESERVATION_CODE,
+                        RESERVATION.STATUS.convertFrom(ReservationStatus::valueOf), RESERVATION.ARRIVAL_DATE,
+                        RESERVATION.DEPARTURE_DATE, RESERVATION.ROOM_TYPE_ID, ROOM_TYPE.NAME,
+                        RESERVATION.NUMBER_OF_GUESTS, RESERVATION.TOTAL_PRICE, RESERVATION.ROOM_ID, ROOM.ROOM_NUMBER,
+                        GUEST.EMAIL)
+                .from(RESERVATION)
+                .join(GUEST).on(GUEST.ID.eq(RESERVATION.GUEST_ID))
+                .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(RESERVATION.ROOM_TYPE_ID))
+                .leftJoin(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode));
+    }
+
+    /**
+     * Records the new dates, room type, number of guests and total price; code, guest, channel and assigned room stay
+     * (UC-005 step 7).
+     */
+    public void change(Long reservationId, LocalDate arrivalDate, LocalDate departureDate, Long roomTypeId,
+                       int numberOfGuests, BigDecimal totalPrice) {
+        ctx.update(RESERVATION)
+                .set(RESERVATION.ARRIVAL_DATE, arrivalDate)
+                .set(RESERVATION.DEPARTURE_DATE, departureDate)
+                .set(RESERVATION.ROOM_TYPE_ID, roomTypeId)
+                .set(RESERVATION.NUMBER_OF_GUESTS, numberOfGuests)
+                .set(RESERVATION.TOTAL_PRICE, totalPrice)
+                .where(RESERVATION.ID.eq(reservationId))
                 .execute();
     }
 }

@@ -5,6 +5,7 @@ import org.jooq.Records;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,7 +16,8 @@ import static ch.martinelli.edu.hrs.db.Tables.*;
 import static org.jooq.impl.DSL.noCondition;
 
 /**
- * Availability of room types for a date range (UC-001 step 3 and step 8, UC-004 steps 3 and 9).
+ * Availability of room types for a date range (UC-001 step 3 and step 8, UC-004 steps 3 and 9, UC-005 steps 4
+ * and 7).
  */
 @Repository
 public class RoomTypeAvailabilityRepository {
@@ -68,6 +70,102 @@ public class RoomTypeAvailabilityRepository {
                 .where(ROOM_TYPE.ID.eq(roomTypeId))
                 .forUpdate()
                 .fetchOptional();
+    }
+
+    /**
+     * The room types a reservation can be changed to: every active room type and the reservation's own room type,
+     * also when it is inactive (UC-005 step 3).
+     */
+    // UC-005 BR-004: A reservation can be moved only to an active room type, but can keep an inactive one.
+    public List<RoomTypeChoice> findRoomTypesForChange(Long currentRoomTypeId) {
+        return ctx.select(ROOM_TYPE.ID, ROOM_TYPE.NAME, ROOM_TYPE.MAX_GUESTS, ROOM_TYPE.NIGHTLY_RATE,
+                        ROOM_TYPE.ACTIVE)
+                .from(ROOM_TYPE)
+                .where(ROOM_TYPE.ACTIVE.isTrue().or(ROOM_TYPE.ID.eq(currentRoomTypeId)))
+                .orderBy(ROOM_TYPE.NIGHTLY_RATE, ROOM_TYPE.NAME)
+                .fetch(Records.mapping(RoomTypeChoice::new));
+    }
+
+    public Optional<RoomTypeChoice> findRoomType(Long roomTypeId) {
+        return ctx.select(ROOM_TYPE.ID, ROOM_TYPE.NAME, ROOM_TYPE.MAX_GUESTS, ROOM_TYPE.NIGHTLY_RATE,
+                        ROOM_TYPE.ACTIVE)
+                .from(ROOM_TYPE)
+                .where(ROOM_TYPE.ID.eq(roomTypeId))
+                .fetchOptional(Records.mapping(RoomTypeChoice::new));
+    }
+
+    /**
+     * The nights from {@code from} to the night before {@code to} on which no room of the room type is free, not
+     * counting the reservation {@code excludedReservationId} (UC-005 step 4).
+     */
+    // UC-005 BR-004: The availability is calculated as if the reservation being changed did not exist.
+    public List<LocalDate> findUnavailableNights(Long roomTypeId, LocalDate from, LocalDate to,
+                                                 Long excludedReservationId) {
+        if (!from.isBefore(to)) {
+            return List.of();
+        }
+        LocalDate lastNight = to.minusDays(1);
+        // UC-001 BR-002: Only active rooms count for availability.
+        List<Long> roomIds = ctx.select(ROOM.ID)
+                .from(ROOM)
+                .where(ROOM.ACTIVE.isTrue())
+                .and(ROOM.ROOM_TYPE_ID.eq(roomTypeId))
+                .fetch(ROOM.ID);
+        List<DateRange> blocks = ctx
+                .select(ROOM_BLOCK.ROOM_ID, ROOM_BLOCK.START_DATE, ROOM_BLOCK.END_DATE)
+                .from(ROOM_BLOCK)
+                .where(ROOM_BLOCK.ROOM_ID.in(roomIds))
+                .and(ROOM_BLOCK.START_DATE.le(lastNight))
+                .and(ROOM_BLOCK.END_DATE.ge(from))
+                .fetch(Records.mapping(DateRange::new));
+        List<DateRange> reservations = ctx
+                .select(RESERVATION.ROOM_TYPE_ID, RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE)
+                .from(RESERVATION)
+                .where(RESERVATION.ROOM_TYPE_ID.eq(roomTypeId))
+                .and(RESERVATION.ID.ne(excludedReservationId))
+                // UC-001 BR-002: Confirmed and Checked In reservations take a room of their room type.
+                .and(RESERVATION.STATUS.in(ReservationStatus.CONFIRMED.name(), ReservationStatus.CHECKED_IN.name()))
+                .and(RESERVATION.ARRIVAL_DATE.lt(to))
+                .and(RESERVATION.DEPARTURE_DATE.gt(from))
+                .fetch(Records.mapping(DateRange::new));
+
+        List<LocalDate> unavailable = new ArrayList<>();
+        for (LocalDate night = from; night.isBefore(to); night = night.plusDays(1)) {
+            LocalDate n = night;
+            long blockedRooms = blocks.stream()
+                    .filter(block -> !n.isBefore(block.from()) && !n.isAfter(block.to()))
+                    .map(DateRange::key)
+                    .distinct()
+                    .count();
+            long reservedRooms = reservations.stream()
+                    .filter(reservation -> !n.isBefore(reservation.from()) && n.isBefore(reservation.to()))
+                    .count();
+            if (roomIds.size() - blockedRooms <= reservedRooms) {
+                unavailable.add(night);
+            }
+        }
+        return unavailable;
+    }
+
+    /**
+     * The nights from {@code from} to the night before {@code to} on which the room is blocked (UC-005 A2).
+     */
+    // UC-005 BR-003: The assigned room of a checked-in guest must not be blocked on an added night.
+    public List<LocalDate> findBlockedNights(Long roomId, LocalDate from, LocalDate to) {
+        if (!from.isBefore(to)) {
+            return List.of();
+        }
+        List<DateRange> blocks = ctx
+                .select(ROOM_BLOCK.ROOM_ID, ROOM_BLOCK.START_DATE, ROOM_BLOCK.END_DATE)
+                .from(ROOM_BLOCK)
+                .where(ROOM_BLOCK.ROOM_ID.eq(roomId))
+                .and(ROOM_BLOCK.START_DATE.le(to.minusDays(1)))
+                .and(ROOM_BLOCK.END_DATE.ge(from))
+                .fetch(Records.mapping(DateRange::new));
+        return from.datesUntil(to)
+                .filter(night -> blocks.stream()
+                        .anyMatch(block -> !night.isBefore(block.from()) && !night.isAfter(block.to())))
+                .toList();
     }
 
     private List<RoomTypeOffer> findAvailable(LocalDate arrivalDate, LocalDate departureDate, int numberOfGuests,
