@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.staff.ui;
 
 import ch.martinelli.edu.hrs.reception.ui.ArrivalsAndDeparturesView;
 import ch.martinelli.edu.hrs.reception.ui.CreateReservationView;
+import ch.martinelli.edu.hrs.reception.ui.RoomStatusBoardView;
 import ch.martinelli.edu.hrs.reception.ui.SearchReservationsView;
 import ch.martinelli.edu.hrs.security.LogoutService;
 import ch.martinelli.edu.hrs.staff.StaffRole;
@@ -41,10 +42,14 @@ public class StaffLayout extends AppLayout {
                     // UC-007 step 1
                     new RouterLink("Reservations", SearchReservationsView.class),
                     // UC-004 step 1
-                    new RouterLink("New reservation", CreateReservationView.class));
+                    new RouterLink("New reservation", CreateReservationView.class),
+                    // UC-011 step 1
+                    new RouterLink("Room status", RoomStatusBoardView.class));
         }
         header.add(staffMember, logOut);
         header.setWidthFull();
+        // NFR-007: The header wraps instead of scrolling horizontally on a 768 px tablet.
+        header.setWrap(true);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
         header.expand(title);
         header.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM);
