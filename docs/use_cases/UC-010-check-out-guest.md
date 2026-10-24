@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist checks out a guest and sees the total price of the stay, so that the room is released and marked dirty for housekeeping.  
 **Trigger:** A checked-in guest asks to check out at the front desk  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-012, NFR-006, NFR-009, C-007](../requirements.md)
 

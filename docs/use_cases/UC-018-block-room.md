@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager blocks a room for a date range, so that a room under repair is neither reserved nor assigned.  
 **Trigger:** Manager learns that a room will be out of service  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-020, NFR-004, NFR-009](../requirements.md)
 

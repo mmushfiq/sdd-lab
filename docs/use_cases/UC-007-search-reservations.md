@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist finds a reservation by guest name, reservation code or date, so that they can answer a guest's question about it while the guest waits.  
 **Trigger:** A guest asks the receptionist about a reservation  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-009, NFR-002, NFR-009](../requirements.md)
 

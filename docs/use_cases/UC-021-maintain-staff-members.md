@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager creates, edits and deactivates staff members with their role, so that only current employees can use the staff functions.  
 **Trigger:** An employee joins, changes role or leaves the hotel  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-023, NFR-009, NFR-010](../requirements.md)
 

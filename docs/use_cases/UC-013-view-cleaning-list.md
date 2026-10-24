@@ -7,7 +7,7 @@
 **Primary Actor:** Housekeeper  
 **Goal:** The housekeeper sees all dirty rooms with departures first, so that they know which rooms to clean and in which order.  
 **Trigger:** Housekeeper asks for the cleaning list  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-015, NFR-002, NFR-007, NFR-009](../requirements.md)
 

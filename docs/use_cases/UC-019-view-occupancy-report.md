@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager sees the occupancy rate per day and per month for a chosen period, so that they understand how well the hotel is used.  
 **Trigger:** Manager asks for the occupancy report  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-021, NFR-002, NFR-009](../requirements.md)
 

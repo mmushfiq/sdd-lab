@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager creates and edits room types with name, description, maximum number of guests and nightly rate, so that guests see correct offers and prices.  
 **Trigger:** Manager wants to add a room type or change an existing one  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-018, NFR-009](../requirements.md)
 

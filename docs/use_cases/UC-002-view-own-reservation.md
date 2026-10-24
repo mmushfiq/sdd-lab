@@ -7,7 +7,7 @@
 **Primary Actor:** Guest  
 **Goal:** The guest sees the current details of their reservation, so that they can check their dates, room type and total price without calling the hotel.  
 **Trigger:** A guest asks to view their reservation on the hotel's website  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-004, NFR-002, NFR-008, NFR-011, NFR-012](../requirements.md)
 

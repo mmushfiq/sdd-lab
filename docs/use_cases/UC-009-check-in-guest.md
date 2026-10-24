@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist checks in an arriving guest by assigning a clean, free room of the reserved room type, so that the guest gets a room that is ready for them.  
 **Trigger:** A guest with a reservation arrives at the front desk  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-011, NFR-006, NFR-009](../requirements.md)
 

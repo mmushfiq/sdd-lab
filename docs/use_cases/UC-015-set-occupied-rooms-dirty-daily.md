@@ -7,7 +7,7 @@
 **Primary Actor:** Scheduler  
 **Goal:** Every occupied room is set to dirty at the start of each day, so that staying guests get their room cleaned daily.  
 **Trigger:** Start of each day at 00:00 hotel local time  
-**Status:** Approved  
+**Status:** Tested  
 
 **Requirements:** [FR-017](../requirements.md)
 

@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager erases a guest's personal data on the guest's request, so that the hotel meets the right to erasure within 30 days.  
 **Trigger:** A guest asks the hotel to erase their personal data  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-026, C-008, C-010, NFR-009](../requirements.md)
 

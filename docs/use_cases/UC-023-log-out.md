@@ -7,7 +7,7 @@
 **Primary Actor:** Staff Member  
 **Goal:** The staff member ends their session, so that nobody else can use it at a shared reception desk or tablet.  
 **Trigger:** Staff member asks to log out  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-025, NFR-009, NFR-013](../requirements.md)
 

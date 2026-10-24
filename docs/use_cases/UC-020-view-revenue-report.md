@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager sees the revenue per month and per room type for a chosen period, so that they can run the business without manual spreadsheet work.  
 **Trigger:** Manager asks for the revenue report  
-**Status:** Approved  
+**Status:** Implemented  
 
 **Requirements:** [FR-022, NFR-002, NFR-009, C-007](../requirements.md)
 
