@@ -50,6 +50,14 @@ public class ReservationLookupService {
     }
 
     /**
+     * Reads the reservation again for a guest who already found it in this view, e.g. after a refused cancellation
+     * (UC-003 A7). This is not a new lookup and does not count towards the lookup lock.
+     */
+    public Optional<OwnReservation> reload(String reservationCode, String email) {
+        return reservationRepository.findOwnReservation(reservationCode, email.strip().toLowerCase(Locale.ROOT));
+    }
+
+    /**
      * UC-002 A4: a Confirmed reservation can be cancelled online while the online cancellation deadline has not
      * passed.
      */

@@ -1,7 +1,9 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import org.jooq.DSLContext;
+import org.jooq.Record7;
 import org.jooq.Records;
+import org.jooq.SelectConditionStep;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -14,7 +16,8 @@ import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
 /**
- * Records reservations (UC-001 step 9) and finds a guest's own reservation (UC-002 step 3).
+ * Records reservations (UC-001 step 9) and finds and cancels a guest's own reservation (UC-002 step 3,
+ * UC-003 step 9).
  */
 @Repository
 public class ReservationRepository {
@@ -51,6 +54,21 @@ public class ReservationRepository {
      * already be normalised to lower case.
      */
     public Optional<OwnReservation> findOwnReservation(String reservationCode, String normalisedEmail) {
+        return ownReservationQuery(reservationCode, normalisedEmail)
+                .fetchOptional(Records.mapping(OwnReservation::new));
+    }
+
+    /**
+     * Like {@link #findOwnReservation(String, String)}, and locks the reservation until the transaction ends.
+     */
+    public Optional<OwnReservation> findOwnReservationForUpdate(String reservationCode, String normalisedEmail) {
+        return ownReservationQuery(reservationCode, normalisedEmail)
+                .forUpdate().of(RESERVATION)
+                .fetchOptional(Records.mapping(OwnReservation::new));
+    }
+
+    private SelectConditionStep<Record7<String, ReservationStatus, LocalDate, LocalDate, String, Integer,
+            BigDecimal>> ownReservationQuery(String reservationCode, String normalisedEmail) {
         return ctx.select(RESERVATION.RESERVATION_CODE, RESERVATION.STATUS.convertFrom(ReservationStatus::valueOf),
                         RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE, ROOM_TYPE.NAME,
                         RESERVATION.NUMBER_OF_GUESTS, RESERVATION.TOTAL_PRICE)
@@ -62,7 +80,17 @@ public class ReservationRepository {
                 // UC-002 BR-001: The email address matches the guest's, case-insensitively (stored in lower case).
                 .and(GUEST.EMAIL.eq(normalisedEmail))
                 // UC-002 BR-004: A guest whose data was erased can no longer be found.
-                .and(GUEST.EMAIL.notLike("%@" + GuestRepository.ERASED_EMAIL_DOMAIN))
-                .fetchOptional(Records.mapping(OwnReservation::new));
+                .and(GUEST.EMAIL.notLike("%@" + GuestRepository.ERASED_EMAIL_DOMAIN));
+    }
+
+    /**
+     * Records the reservation with status Cancelled and the time of cancellation (UC-003 step 9).
+     */
+    public void cancel(String reservationCode, LocalDateTime cancelledAt) {
+        ctx.update(RESERVATION)
+                .set(RESERVATION.STATUS, ReservationStatus.CANCELLED.name())
+                .set(RESERVATION.CANCELLED_AT, cancelledAt)
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode))
+                .execute();
     }
 }

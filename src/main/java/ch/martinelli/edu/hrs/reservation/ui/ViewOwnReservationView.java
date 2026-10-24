@@ -1,12 +1,16 @@
 package ch.martinelli.edu.hrs.reservation.ui;
 
+import ch.martinelli.edu.hrs.reservation.OnlineCancellation;
+import ch.martinelli.edu.hrs.reservation.OnlineCancellationService;
 import ch.martinelli.edu.hrs.reservation.OwnReservation;
+import ch.martinelli.edu.hrs.reservation.ReservationNotCancellableException;
 import ch.martinelli.edu.hrs.reservation.ReservationLookupLockedException;
 import ch.martinelli.edu.hrs.reservation.ReservationLookupService;
 import ch.martinelli.edu.hrs.reservation.ReservationStatus;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
@@ -29,7 +33,9 @@ import java.util.Optional;
 
 /**
  * UC-002 View Own Reservation: the guest looks up their reservation with the reservation code and email address.
- * Nothing is changed by this view except the count of failed lookup attempts.
+ * <p>
+ * UC-003 Cancel Own Reservation: from the displayed reservation the guest cancels it online. Apart from that, the
+ * view changes nothing except the count of failed lookup attempts.
  */
 @Route("reservation")
 @PageTitle("My Reservation")
@@ -39,8 +45,14 @@ public class ViewOwnReservationView extends VerticalLayout {
             "No reservation matches this reservation code and email address. Please check your input.";
     static final String LOCKED =
             "Too many failed lookups. The reservation lookup is locked for 15 minutes. Please try again later.";
+    static final String CANCELLATION_CANNOT_BE_UNDONE = "The cancellation cannot be undone.";
+    static final String CANCELLED = "Your reservation is cancelled. We have sent you a cancellation email.";
+    static final String CANCELLED_EMAIL_DELAYED = "Your reservation is cancelled. The cancellation email may be delayed.";
+    static final String DEADLINE_PASSED = "This reservation can no longer be cancelled online. "
+            + "The hotel's reception can still cancel it.";
 
     private final ReservationLookupService lookupService;
+    private final OnlineCancellationService cancellationService;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
 
     private final TextField reservationCode = new TextField("Reservation code");
@@ -52,8 +64,14 @@ public class ViewOwnReservationView extends VerticalLayout {
     private final Div message = new Div();
     private final Div reservationDetails = new Div();
 
-    public ViewOwnReservationView(ReservationLookupService lookupService) {
+    /** Reservation code and email address of the reservation currently displayed. */
+    private String foundReservationCode;
+    private String foundEmail;
+
+    public ViewOwnReservationView(ReservationLookupService lookupService,
+                                  OnlineCancellationService cancellationService) {
         this.lookupService = lookupService;
+        this.cancellationService = cancellationService;
 
         setMaxWidth("60rem");
         getStyle().set("margin", "0 auto");
@@ -110,6 +128,10 @@ public class ViewOwnReservationView extends VerticalLayout {
         try {
             Optional<OwnReservation> reservation = lookupService.lookUp(lookupInput.getReservationCode(),
                     lookupInput.getEmail(), networkAddress());
+            reservation.ifPresent(_ -> {
+                foundReservationCode = lookupInput.getReservationCode();
+                foundEmail = lookupInput.getEmail();
+            });
             reservation.ifPresentOrElse(this::showReservation,
                     // UC-002 BR-002: The same answer whether the code, the email address or both are wrong.
                     () -> message.add(errorMessage(NOT_FOUND)));
@@ -119,6 +141,7 @@ public class ViewOwnReservationView extends VerticalLayout {
     }
 
     private void showReservation(OwnReservation reservation) {
+        reservationDetails.removeAll();
         reservationDetails.add(new H2("Your reservation"));
         Paragraph code = new Paragraph("Reservation code: " + reservation.reservationCode());
         code.setId("reservation-code");
@@ -131,13 +154,81 @@ public class ViewOwnReservationView extends VerticalLayout {
                 new Paragraph("Number of guests: " + reservation.numberOfGuests()),
                 new Paragraph("Total price: " + chf(reservation.totalPrice())));
 
-        // A4: offer the online cancellation (UC-003)
+        // UC-002 A4: offer the online cancellation (UC-003)
         if (lookupService.canBeCancelledOnline(reservation)) {
             Button cancel = new Button("Cancel reservation");
             cancel.setId("cancel-reservation");
             cancel.addThemeVariants(ButtonVariant.ERROR);
+            cancel.addClickListener(_ -> requestCancellation(reservation));
             reservationDetails.add(cancel);
+        } else {
+            showWhyNotCancellable(reservation);
         }
+    }
+
+    /**
+     * UC-003 steps 5 to 7.
+     */
+    private void requestCancellation(OwnReservation reservation) {
+        message.removeAll();
+        try {
+            // UC-003 step 6
+            cancellationService.checkCancellable(reservation);
+        } catch (ReservationNotCancellableException _) {
+            showReservation(reservation);
+            return;
+        }
+        // UC-003 step 7: confirm and state that the cancellation cannot be undone
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Cancel reservation " + reservation.reservationCode() + "?");
+        dialog.setText(CANCELLATION_CANNOT_BE_UNDONE);
+        dialog.setConfirmText("Cancel reservation");
+        dialog.setConfirmButtonTheme("error primary");
+        // UC-003 A6: the guest keeps the reservation, which stays displayed unchanged
+        dialog.setCancelable(true);
+        dialog.setCancelText("Keep reservation");
+        dialog.addConfirmListener(_ -> confirmCancellation());
+        dialog.open();
+    }
+
+    /**
+     * UC-003 steps 8 to 11, A7, A8.
+     */
+    private void confirmCancellation() {
+        message.removeAll();
+        try {
+            OnlineCancellation cancellation = cancellationService.cancel(foundReservationCode, foundEmail);
+            showReservation(cancellation.reservation());
+            Paragraph cancelled = new Paragraph(cancellation.cancellationEmailAccepted()
+                    ? CANCELLED : CANCELLED_EMAIL_DELAYED);
+            cancelled.setId("cancelled-message");
+            cancelled.getElement().setAttribute("role", "status");
+            message.add(cancelled);
+        } catch (ReservationNotCancellableException _) {
+            // UC-003 A7: refused; continue at step 6 with the current data of the reservation
+            lookupService.reload(foundReservationCode, foundEmail)
+                    .ifPresentOrElse(this::showReservation, this::reservationGone);
+        } catch (IllegalArgumentException _) {
+            reservationGone();
+        }
+    }
+
+    private void reservationGone() {
+        reservationDetails.removeAll();
+        message.add(errorMessage(NOT_FOUND));
+    }
+
+    // UC-003 A4, A5: tell the guest why the reservation cannot be cancelled online
+    private void showWhyNotCancellable(OwnReservation reservation) {
+        Paragraph reason = new Paragraph(reservation.status() == ReservationStatus.CONFIRMED
+                ? DEADLINE_PASSED
+                : notConfirmedMessage(reservation.status()));
+        reason.setId("not-cancellable");
+        reservationDetails.add(reason);
+    }
+
+    static String notConfirmedMessage(ReservationStatus status) {
+        return "A reservation with status " + statusText(status) + " cannot be cancelled.";
     }
 
     private static String networkAddress() {
