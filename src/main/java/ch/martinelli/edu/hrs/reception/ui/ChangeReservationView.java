@@ -79,6 +79,8 @@ public class ChangeReservationView extends VerticalLayout implements HasUrlParam
     @Override
     public void setParameter(BeforeEvent event, String reservationCode) {
         removeAll();
+        message.removeAll();
+        preview.removeAll();
         changeService.findReservation(reservationCode).ifPresentOrElse(this::show, () -> {
             Paragraph notFound = new Paragraph(ReservationView.NOT_FOUND);
             notFound.setId("reservation-not-found");
