@@ -54,7 +54,9 @@ public class StaffLayout extends AppLayout {
                     new RouterLink("Missed arrivals", MissedArrivalsView.class));
         }
         if (authenticationContext.hasRole(StaffRole.MANAGER_ROLE)) {
-            header.add(new RouterLink("Occupancy report", OccupancyReportView.class),
+            header.add(
+                    // UC-019 step 1
+                    new RouterLink("Occupancy report", OccupancyReportView.class),
                     // UC-016 step 1
                     new RouterLink("Room types", RoomTypesView.class),
                     // UC-017 step 1
