@@ -19,7 +19,8 @@ import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
 /**
  * Records reservations (UC-001 step 9), finds and cancels a guest's own reservation (UC-002 step 3,
- * UC-003 step 9), changes a reservation (UC-005 steps 2 and 7) and checks it in (UC-009 step 7).
+ * UC-003 step 9), changes a reservation (UC-005 steps 2 and 7), checks it in (UC-009 step 7) and checks it out
+ * (UC-010 step 6).
  */
 @Repository
 public class ReservationRepository {
@@ -149,6 +150,21 @@ public class ReservationRepository {
                 .set(RESERVATION.STATUS, ReservationStatus.CHECKED_IN.name())
                 .set(RESERVATION.ROOM_ID, roomId)
                 .set(RESERVATION.CHECKED_IN_AT, checkedInAt)
+                .where(RESERVATION.ID.eq(reservationId))
+                .execute();
+    }
+
+    /**
+     * Records the reservation with status Checked Out, the time of check-out and the final departure date and total
+     * price; the assigned room stays recorded (UC-010 step 6).
+     */
+    public void checkOut(Long reservationId, LocalDate departureDate, BigDecimal totalPrice,
+                         LocalDateTime checkedOutAt) {
+        ctx.update(RESERVATION)
+                .set(RESERVATION.STATUS, ReservationStatus.CHECKED_OUT.name())
+                .set(RESERVATION.DEPARTURE_DATE, departureDate)
+                .set(RESERVATION.TOTAL_PRICE, totalPrice)
+                .set(RESERVATION.CHECKED_OUT_AT, checkedOutAt)
                 .where(RESERVATION.ID.eq(reservationId))
                 .execute();
     }

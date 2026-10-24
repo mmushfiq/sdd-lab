@@ -145,6 +145,9 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
             // UC-009 step 2
             case CHECK_IN -> button.addClickListener(
                     _ -> button.getUI().ifPresent(ui -> ui.navigate(CheckInView.class, reservationCode)));
+            // UC-010 step 2
+            case CHECK_OUT -> button.addClickListener(
+                    _ -> button.getUI().ifPresent(ui -> ui.navigate(CheckOutView.class, reservationCode)));
             default -> button.setEnabled(false);
         }
         return button;

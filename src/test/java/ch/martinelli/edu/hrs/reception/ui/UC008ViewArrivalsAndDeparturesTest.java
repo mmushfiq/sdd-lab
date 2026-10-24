@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Use case test for UC-008 "View Arrivals and Departures". Test data: V108__uc008_test_data.sql; staff members from
  * V103__uc022_test_data.sql (password Secret-123). Today is 20 July 2031, a date only this test uses; on that date the
- * checked-in reservations SEARCH0003 (V105) and CHANGE0010 (V106) are overdue as well.
+ * checked-in reservations of other use cases' test data (e.g. SEARCH0003 from V105) are overdue as well.
  */
 @WithAnonymousUser
 class UC008ViewArrivalsAndDeparturesTest extends HrsBrowserlessTest {
@@ -102,13 +102,19 @@ class UC008ViewArrivalsAndDeparturesTest extends HrsBrowserlessTest {
         Grid<Departure> departures = departuresGrid();
         assertThat(departures.getColumns()).extracting(Grid.Column::getHeaderText).containsExactly(
                 "Reservation code", "Guest", "Room", "Total price", "Status");
-        assertThat(rows(departures)).containsExactly(
-                List.of("SEARCH0003", "Sophie Suchmann", "401", "CHF 800.00", "Checked In (overdue)"),
-                List.of("CHANGE0010", "Clemens Change", "501", "CHF 480.00", "Checked In (overdue)"),
+        // Every checked-in test reservation of other use cases with a departure date before today is overdue on
+        // 20 July 2031 as well; this test checks its own reservations and one of the others
+        List<List<String>> rows = rows(departures);
+        assertThat(rows).filteredOn(row -> row.getFirst().startsWith("DEPART")).containsExactly(
                 List.of("DEPART0002", "Bruno Weg", "602", "CHF 320.00", "Checked Out (done)"),
                 List.of("DEPART0001", "Doris Abreise", "603", "CHF 480.00", "Checked In"),
                 // A2: departure date 19 July, still checked in
                 List.of("DEPART0003", "Otto Spaet", "604", "CHF 640.00", "Checked In (overdue)"));
+        assertThat(rows).contains(
+                List.of("SEARCH0003", "Sophie Suchmann", "401", "CHF 800.00", "Checked In (overdue)"));
+        // Ordered by room number
+        List<String> roomNumbers = rows.stream().map(row -> row.get(2)).toList();
+        assertThat(roomNumbers).isSorted();
     }
 
     @Test
@@ -130,7 +136,11 @@ class UC008ViewArrivalsAndDeparturesTest extends HrsBrowserlessTest {
     void selecting_a_departure_shows_the_reservation_with_check_out() {
         logIn("rita");
 
-        test(departuresGrid()).select(3);
+        Grid<Departure> departures = departuresGrid();
+        int row = IntStream.range(0, test(departures).size())
+                .filter(index -> test(departures).getRow(index).reservationCode().equals("DEPART0001"))
+                .findFirst().orElseThrow();
+        test(departures).select(row);
 
         assertThat($(H1.class).single().getText()).isEqualTo("Reservation DEPART0001");
         assertThat($(Paragraph.class).withId("room").single().getText()).isEqualTo("Room: 603");
