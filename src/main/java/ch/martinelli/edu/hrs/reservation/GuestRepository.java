@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import org.jooq.DSLContext;
+import org.jooq.Records;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -8,7 +9,7 @@ import java.util.Optional;
 import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 
 /**
- * Stores the guests who reserve online (UC-001 step 9 and A7).
+ * Stores the guests who reserve online (UC-001 step 9 and A7) or at the reception (UC-004 steps 6 and 10).
  */
 @Repository
 public class GuestRepository {
@@ -34,6 +35,18 @@ public class GuestRepository {
                 .where(GUEST.EMAIL.eq(normalisedEmail))
                 .forUpdate()
                 .fetchOptional(GUEST.ID);
+    }
+
+    /**
+     * Finds the stored details of the guest with this email address, without locking (UC-004 step 6). The email
+     * address must already be normalised to lower case.
+     */
+    // UC-004 BR-005: A guest is identified by their email address, compared case-insensitively (stored in lower case).
+    public Optional<GuestDetails> findDetailsByEmail(String normalisedEmail) {
+        return ctx.select(GUEST.FIRST_NAME, GUEST.LAST_NAME, GUEST.EMAIL, GUEST.PHONE)
+                .from(GUEST)
+                .where(GUEST.EMAIL.eq(normalisedEmail))
+                .fetchOptional(Records.mapping(GuestDetails::new));
     }
 
     public Long insert(String firstName, String lastName, String normalisedEmail, String phone) {

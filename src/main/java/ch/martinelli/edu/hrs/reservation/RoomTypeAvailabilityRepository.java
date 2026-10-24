@@ -15,7 +15,7 @@ import static ch.martinelli.edu.hrs.db.Tables.*;
 import static org.jooq.impl.DSL.noCondition;
 
 /**
- * Availability of room types for a date range (UC-001 step 3 and step 8).
+ * Availability of room types for a date range (UC-001 step 3 and step 8, UC-004 steps 3 and 9).
  */
 @Repository
 public class RoomTypeAvailabilityRepository {
@@ -45,6 +45,19 @@ public class RoomTypeAvailabilityRepository {
     }
 
     /**
+     * Like {@link #findAvailableRoomTypes(LocalDate, LocalDate, int)}, with the number of rooms of each room type
+     * that are still available on every night of the date range (UC-004 step 3).
+     */
+    // UC-004 BR-002: A room type is offered under the same availability and number-of-guests rules as online.
+    public List<RoomTypeAvailability> findAvailableRoomTypesWithRoomCount(LocalDate arrivalDate,
+                                                                          LocalDate departureDate,
+                                                                          int numberOfGuests) {
+        return availability(arrivalDate, departureDate, numberOfGuests, null).stream()
+                .filter(roomType -> roomType.availableRooms() > 0)
+                .toList();
+    }
+
+    /**
      * Locks the room type row until the end of the current transaction, so that concurrent reservations of the same
      * room type check and record one after the other.
      */
@@ -59,6 +72,14 @@ public class RoomTypeAvailabilityRepository {
 
     private List<RoomTypeOffer> findAvailable(LocalDate arrivalDate, LocalDate departureDate, int numberOfGuests,
                                               Long roomTypeId) {
+        return availability(arrivalDate, departureDate, numberOfGuests, roomTypeId).stream()
+                .filter(roomType -> roomType.availableRooms() > 0)
+                .map(RoomTypeAvailability::roomType)
+                .toList();
+    }
+
+    private List<RoomTypeAvailability> availability(LocalDate arrivalDate, LocalDate departureDate,
+                                                    int numberOfGuests, Long roomTypeId) {
         LocalDate lastNight = departureDate.minusDays(1);
 
         List<RoomTypeOffer> candidates = ctx
@@ -104,13 +125,15 @@ public class RoomTypeAvailabilityRepository {
                 .fetch(Records.mapping(DateRange::new));
 
         return candidates.stream()
-                .filter(candidate -> isAvailableEveryNight(candidate.roomTypeId(), arrivalDate, departureDate,
-                        roomTypeIdByRoomId, blocks, reservations))
+                .map(candidate -> new RoomTypeAvailability(candidate, availableRoomsEveryNight(
+                        candidate.roomTypeId(), arrivalDate, departureDate, roomTypeIdByRoomId, blocks,
+                        reservations)))
                 .toList();
     }
 
     // UC-001 BR-002: For every night, the active rooms not blocked that night outnumber the Confirmed and Checked In reservations.
-    private static boolean isAvailableEveryNight(Long roomTypeId, LocalDate arrivalDate, LocalDate departureDate,
+    // Returns the smallest number of rooms still free over all nights; the room type is available when it is above 0.
+    private static long availableRoomsEveryNight(Long roomTypeId, LocalDate arrivalDate, LocalDate departureDate,
                                                  Map<Long, Long> roomTypeIdByRoomId, List<DateRange> blocks,
                                                  List<DateRange> reservations) {
         List<Long> roomIds = roomTypeIdByRoomId.entrySet().stream()
@@ -122,6 +145,7 @@ public class RoomTypeAvailabilityRepository {
                 .filter(reservation -> reservation.key().equals(roomTypeId))
                 .toList();
 
+        long availableRooms = Long.MAX_VALUE;
         for (LocalDate night = arrivalDate; night.isBefore(departureDate); night = night.plusDays(1)) {
             LocalDate n = night;
             long blockedRooms = blocksOfType.stream()
@@ -135,11 +159,9 @@ public class RoomTypeAvailabilityRepository {
                     // A reservation covers its arrival date to the night before its departure date
                     .filter(reservation -> !n.isBefore(reservation.from()) && n.isBefore(reservation.to()))
                     .count();
-            if (freeRooms <= reservedRooms) {
-                return false;
-            }
+            availableRooms = Math.min(availableRooms, freeRooms - reservedRooms);
         }
-        return true;
+        return Math.max(availableRooms, 0);
     }
 
     private record DateRange(Long key, LocalDate from, LocalDate to) {
