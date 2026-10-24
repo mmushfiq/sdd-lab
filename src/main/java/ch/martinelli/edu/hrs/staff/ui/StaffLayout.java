@@ -65,7 +65,9 @@ public class StaffLayout extends AppLayout {
                     // UC-017 step 1
                     new RouterLink("Rooms", RoomsView.class),
                     // UC-018 step 1
-                    new RouterLink("Room blocks", RoomBlocksView.class));
+                    new RouterLink("Room blocks", RoomBlocksView.class),
+                    // UC-021 step 1
+                    new RouterLink("Staff members", StaffMembersView.class));
         }
         header.add(staffMember, logOut);
         header.setWidthFull();

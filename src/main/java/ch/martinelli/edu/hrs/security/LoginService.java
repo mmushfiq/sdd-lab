@@ -25,11 +25,14 @@ public class LoginService {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
+    private final StaffSessionRegistry staffSessionRegistry;
 
     public LoginService(AuthenticationManager authenticationManager,
-                        SecurityContextRepository securityContextRepository) {
+                        SecurityContextRepository securityContextRepository,
+                        StaffSessionRegistry staffSessionRegistry) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
+        this.staffSessionRegistry = staffSessionRegistry;
     }
 
     /**
@@ -58,6 +61,8 @@ public class LoginService {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+        // UC-021 A5: The session is known, so it can be ended when the staff member is deactivated.
+        staffSessionRegistry.register(authentication.getName(), request.getSession());
 
         return roleOf(authentication);
     }
