@@ -23,6 +23,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -39,6 +40,8 @@ import java.util.Optional;
  */
 @Route("reservation")
 @PageTitle("My Reservation")
+// UC-022 BR-003: Guest functions stay reachable without login.
+@AnonymousAllowed
 public class ViewOwnReservationView extends VerticalLayout {
 
     static final String NOT_FOUND =

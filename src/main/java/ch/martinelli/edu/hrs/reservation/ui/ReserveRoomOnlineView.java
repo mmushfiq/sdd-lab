@@ -26,6 +26,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.validator.EmailValidator;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -45,6 +46,8 @@ import java.util.List;
 @Route("reserve")
 @RouteAlias("")
 @PageTitle("Reserve a Room")
+// UC-022 BR-003: Guest functions stay reachable without login.
+@AnonymousAllowed
 public class ReserveRoomOnlineView extends VerticalLayout {
 
     static final String NO_ROOM_AVAILABLE =
