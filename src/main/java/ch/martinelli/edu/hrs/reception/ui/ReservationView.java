@@ -1,12 +1,15 @@
 package ch.martinelli.edu.hrs.reception.ui;
 
+import ch.martinelli.edu.hrs.reservation.ReceptionCancellationService;
 import ch.martinelli.edu.hrs.reservation.ReservationAction;
 import ch.martinelli.edu.hrs.reservation.ReservationDetail;
+import ch.martinelli.edu.hrs.reservation.ReservationNotCancellableException;
 import ch.martinelli.edu.hrs.reservation.ReservationSearchService;
 import ch.martinelli.edu.hrs.reservation.ReservationStatus;
 import ch.martinelli.edu.hrs.staff.StaffRole;
 import ch.martinelli.edu.hrs.staff.ui.StaffLayout;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
@@ -18,6 +21,7 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.math.BigDecimal;
@@ -29,6 +33,8 @@ import java.util.List;
 /**
  * UC-007 step 5: displays a reservation with all its data, the guest's contact data, the assigned room and the
  * actions its status allows. The actions are the entry points of UC-005, UC-006, UC-009, UC-010 and UC-012.
+ * <p>
+ * UC-006 Cancel Reservation: the receptionist cancels a Confirmed reservation from here.
  */
 @Route(value = "reservation-details", layout = StaffLayout.class)
 @PageTitle("Reservation")
@@ -37,22 +43,37 @@ import java.util.List;
 public class ReservationView extends VerticalLayout implements HasUrlParameter<String> {
 
     static final String NOT_FOUND = "No reservation has this reservation code.";
+    static final String CANCELLATION_CANNOT_BE_UNDONE = "The cancellation cannot be undone.";
+    static final String CANCELLED = "The reservation is cancelled.";
+    static final String NOT_CANCELLABLE = "A reservation with status %s cannot be cancelled.";
 
     private final ReservationSearchService searchService;
+    private final ReceptionCancellationService cancellationService;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM,
             FormatStyle.SHORT);
     private final Div content = new Div();
 
-    public ReservationView(ReservationSearchService searchService) {
+    private final Div message = new Div();
+
+    public ReservationView(ReservationSearchService searchService,
+                           ReceptionCancellationService cancellationService) {
         this.searchService = searchService;
+        this.cancellationService = cancellationService;
         add(new RouterLink("Back to reservation search", SearchReservationsView.class));
+        message.setWidthFull();
+        message.getElement().setAttribute("aria-live", "polite");
         content.setWidthFull();
-        add(content);
+        add(message, content);
     }
 
     @Override
     public void setParameter(BeforeEvent event, String reservationCode) {
+        message.removeAll();
+        display(reservationCode);
+    }
+
+    private void display(String reservationCode) {
         content.removeAll();
         searchService.findReservation(reservationCode).ifPresentOrElse(this::show, () -> {
             Paragraph notFound = new Paragraph(NOT_FOUND);
@@ -107,7 +128,7 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
     /**
      * The button of an action. Actions whose use case is not implemented yet are shown disabled.
      */
-    private static Button actionButton(ReservationAction action, String reservationCode) {
+    private Button actionButton(ReservationAction action, String reservationCode) {
         Button button = new Button(switch (action) {
             case CHANGE -> "Change";
             case CANCEL -> "Cancel reservation";
@@ -119,9 +140,66 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
             // UC-005 step 1
             case CHANGE -> button.addClickListener(
                     _ -> button.getUI().ifPresent(ui -> ui.navigate(ChangeReservationView.class, reservationCode)));
+            // UC-006 step 3
+            case CANCEL -> button.addClickListener(_ -> requestCancellation(reservationCode));
             default -> button.setEnabled(false);
         }
         return button;
+    }
+
+    /**
+     * UC-006 steps 4 and 5, A1.
+     */
+    private void requestCancellation(String reservationCode) {
+        message.removeAll();
+        try {
+            cancellationService.checkCancellable(reservationCode);
+        } catch (ReservationNotCancellableException _) {
+            // A1: the current status does not allow the cancellation
+            showNotCancellable(reservationCode);
+            return;
+        }
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Cancel reservation " + reservationCode + "?");
+        dialog.setText(CANCELLATION_CANNOT_BE_UNDONE);
+        dialog.setConfirmText("Cancel reservation");
+        dialog.setConfirmButtonTheme("error primary");
+        // A2: the receptionist keeps the reservation, which stays displayed unchanged
+        dialog.setCancelable(true);
+        dialog.setCancelText("Keep reservation");
+        dialog.addConfirmListener(_ -> confirmCancellation(reservationCode));
+        dialog.open();
+    }
+
+    /**
+     * UC-006 steps 6 to 9, A3, A4.
+     */
+    private void confirmCancellation(String reservationCode) {
+        try {
+            cancellationService.cancel(reservationCode);
+            display(reservationCode);
+            // Step 9; with A4 the email is retried and the use case continues here
+            message.add(info(CANCELLED));
+        } catch (ReservationNotCancellableException _) {
+            // A3: refuse and display the current status
+            showNotCancellable(reservationCode);
+        }
+    }
+
+    private void showNotCancellable(String reservationCode) {
+        display(reservationCode);
+        searchService.findReservation(reservationCode).ifPresent(current -> {
+            Paragraph error = info(NOT_CANCELLABLE.formatted(statusText(current.status())));
+            error.getElement().setAttribute("role", "alert");
+            error.addClassNames(LumoUtility.TextColor.ERROR);
+            message.add(error);
+        });
+    }
+
+    private static Paragraph info(String text) {
+        Paragraph paragraph = new Paragraph(text);
+        paragraph.setId("reservation-message");
+        return paragraph;
     }
 
     static String statusText(ReservationStatus status) {

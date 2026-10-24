@@ -1,7 +1,8 @@
 package ch.martinelli.edu.hrs.reservation;
 
 /**
- * Thrown when a guest may not cancel a reservation online (UC-003 A4, A5 and A7).
+ * Thrown when a guest may not cancel a reservation online (UC-003 A4, A5 and A7) or the receptionist may not
+ * cancel it (UC-006 A1 and A3).
  */
 public class ReservationNotCancellableException extends RuntimeException {
 
