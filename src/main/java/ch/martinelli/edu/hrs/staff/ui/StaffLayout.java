@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.staff.ui;
 
 import ch.martinelli.edu.hrs.reception.ui.ArrivalsAndDeparturesView;
 import ch.martinelli.edu.hrs.reception.ui.CreateReservationView;
+import ch.martinelli.edu.hrs.reception.ui.SearchReservationsView;
 import ch.martinelli.edu.hrs.security.LogoutService;
 import ch.martinelli.edu.hrs.staff.StaffRole;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -37,6 +38,8 @@ public class StaffLayout extends AppLayout {
         // NFR-009: Each role sees only the screens it may use.
         if (authenticationContext.hasRole(StaffRole.RECEPTIONIST_ROLE)) {
             header.add(new RouterLink("Arrivals and Departures", ArrivalsAndDeparturesView.class),
+                    // UC-007 step 1
+                    new RouterLink("Reservations", SearchReservationsView.class),
                     // UC-004 step 1
                     new RouterLink("New reservation", CreateReservationView.class));
         }
