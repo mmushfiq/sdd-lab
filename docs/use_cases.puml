@@ -5,6 +5,7 @@ actor "Guest" as guest
 actor "Receptionist" as receptionist
 actor "Housekeeper" as housekeeper
 actor "Manager" as manager
+actor "Staff Member" as staff
 actor "Scheduler" as scheduler
 actor "Email Service" as email
 
@@ -37,6 +38,11 @@ rectangle "Hotel Reservation System" {
     usecase "UC-019\nView Occupancy Report" as UC019
     usecase "UC-020\nView Revenue Report" as UC020
     usecase "UC-021\nMaintain Staff Members" as UC021
+    usecase "UC-024\nErase Guest Data" as UC024
+
+    ' Every staff member
+    usecase "UC-022\nLog In" as UC022
+    usecase "UC-023\nLog Out" as UC023
 }
 
 guest --> UC001
@@ -64,14 +70,25 @@ manager --> UC018
 manager --> UC019
 manager --> UC020
 manager --> UC021
+manager --> UC024
+
+receptionist -up-|> staff
+housekeeper -up-|> staff
+manager -up-|> staff
+staff --> UC022
+staff --> UC023
 
 UC001 --> email
+UC003 --> email
+UC004 --> email
+UC005 --> email
+UC006 --> email
 
 note right of receptionist
   All receptionist, housekeeper and
-  manager use cases require a logged-in
-  staff member with the matching role
-  (FR-024, FR-025).
+  manager use cases require a staff member
+  with the matching role who is logged in
+  (UC-022 Log In).
 end note
 
 @enduml

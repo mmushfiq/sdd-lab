@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The guest reserves an available room type for their dates and receives a reservation code, so that they have a guaranteed room without calling the hotel.  
 **Trigger:** A guest asks to reserve a room on the hotel's website  
-**Status:** Draft  
+**Status:** Reviewed  
 
 **Requirements:** [FR-001, FR-002, FR-003, NFR-001, NFR-003, NFR-004, NFR-005, NFR-008, NFR-011, C-007, C-008, C-009](../requirements.md)
 

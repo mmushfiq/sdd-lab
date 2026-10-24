@@ -32,3 +32,4 @@
 | Room Status Board  | The screen showing every room with its occupancy (free, occupied, blocked) and its cleaning status.                                           | Dashboard                   |
 | Occupancy Rate     | The number of occupied room nights divided by the number of available room nights (rooms not blocked) in a period, in percent.               | Utilisation, Load           |
 | Revenue            | The sum of the total prices of all checked-out reservations in a period.                                                                       | Income, Turnover            |
+| Erasure            | Removing a guest's personal data (name, email address, phone number) on the guest's request, or replacing it with values that no longer identify the guest. Reservations of the guest are kept without identifying them, so reports stay correct. |                             |

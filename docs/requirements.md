@@ -21,7 +21,7 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | FR-006 | Create Reservation          | As a receptionist, I want to create a reservation for a guest who calls or walks in so that phone and walk-in guests are recorded in the same system as online reservations.                    | High     | Open   |
 | FR-007 | Change Reservation          | As a receptionist, I want to change the dates, room type or number of guests of a reservation so that I can handle a guest's change request without cancelling and re-creating it.             | High     | Open   |
 | FR-008 | Cancel Reservation          | As a receptionist, I want to cancel any reservation before check-in so that the room type becomes available again for other guests.                                                          | High     | Open   |
-| FR-009 | Search Reservations         | As a receptionist, I want to search reservations by guest name, reservation code or date so that I can find a reservation quickly when a guest asks about it.                                  | High     | Open   |
+| FR-009 | Search Reservations         | As a receptionist, I want to search reservations by guest name, reservation code or date so that I can answer a guest's question about their reservation while they wait.                                  | High     | Open   |
 | FR-010 | View Arrivals and Departures | As a receptionist, I want to see the list of today's arrivals and departures so that I can prepare check-ins and check-outs.                                                                    | High     | Open   |
 | FR-011 | Check In Guest              | As a receptionist, I want to check in a guest by assigning a clean, free room of the reserved room type so that the guest gets a room that is ready for them.                                 | High     | Open   |
 | FR-012 | Check Out Guest             | As a receptionist, I want to check out a guest and see the total price of the stay so that the room is released and its cleaning status is set to dirty for housekeeping.                     | High     | Open   |
@@ -46,6 +46,7 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | FR-021 | View Occupancy Report  | As a manager, I want to see the occupancy rate per day and per month for a chosen period so that I can understand how well the hotel is used.                          | High     | Open   |
 | FR-022 | View Revenue Report    | As a manager, I want to see the revenue per month and per room type for a chosen period so that I can run the business without manual spreadsheet work.                | High     | Open   |
 | FR-023 | Maintain Staff Members | As a manager, I want to create, edit and deactivate staff members with their role so that only current employees can use the staff functions.                         | High     | Open   |
+| FR-026 | Erase Guest Data       | As a manager, I want to erase or anonymise a guest's personal data on the guest's request so that the hotel meets its obligation under the right to erasure within 30 days. | High     | Open   |
 
 ### Staff member
 
@@ -59,9 +60,9 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | ID      | Title                         | Requirement                                                                                                                                       | Category        | Priority | Status |
 |---------|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|----------|--------|
 | NFR-001 | Availability Search Time      | 95% of availability searches return results within 1 second.                                                                                      | Performance     | High     | Open   |
-| NFR-002 | Page Load Time                | 95% of page loads complete within 2 seconds.                                                                                                      | Performance     | High     | Open   |
+| NFR-002 | Page Display Time             | 95% of pages are fully displayed within 2 seconds.                                                                                                     | Performance     | High     | Open   |
 | NFR-003 | Confirmation Email Delay      | The reservation confirmation email is sent within 1 minute after the reservation is created.                                                     | Performance     | Medium   | Open   |
-| NFR-004 | No Overbooking Under Load     | When 10 reservation requests for the last available room of a room type arrive at the same time, exactly one succeeds and the others are refused. | Scalability     | High     | Open   |
+| NFR-004 | No Concurrent Overbooking     | When 10 reservation requests for the last available room of a room type arrive at the same time, exactly one succeeds and the others are refused. | Scalability     | High     | Open   |
 | NFR-005 | Online Reservation Duration   | A first-time guest completes an online reservation in under 3 minutes in a usability test with 5 participants.                                   | Usability       | High     | Open   |
 | NFR-006 | Check-in and Check-out Duration | A trained receptionist completes a check-in or a check-out in under 1 minute.                                                                   | Usability       | High     | Open   |
 | NFR-007 | Tablet Layout                 | Cleaning list and room status screens are fully usable without horizontal scrolling on a tablet with a screen width of 768 px.                   | Usability       | High     | Open   |
