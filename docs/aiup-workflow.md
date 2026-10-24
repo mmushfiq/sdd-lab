@@ -14,11 +14,11 @@ Every step writes plain files under `docs/` (or `src/`) that are reviewed and co
 | 0    | Install stack plugin              | `/plugin install aiup-vaadin-jooq`       | Open    |
 | 1    | Vision                            | written by hand                          | Done    |
 | 2    | Requirements and glossary         | `/requirements`                          | Done    |
-| 3    | Entity model                      | `/entity-model`                          | Open    |
-| 4    | Use case diagram                  | `/use-case-diagram`                      | Open    |
-| 5    | Use case specifications           | `/use-case-spec UC-XXX`                  | Open    |
+| 3    | Entity model                      | `/entity-model`                          | Done    |
+| 4    | Use case diagram                  | `/use-case-diagram`                      | Done    |
+| 5    | Use case specifications           | `/use-case-spec UC-XXX`                  | Done    |
 | 6    | Business process and test cases   | `/business-process`, `/test-case BP-XXX` | Open    |
-| 7    | Spec review                       | `/spec-review`                           | Open    |
+| 7    | Spec review                       | `/spec-review`                           | Done    |
 | 8    | Database migration                | `/flyway-migration`                      | Open    |
 | 9    | Implementation                    | `/implement UC-XXX`                      | Open    |
 | 10   | Tests                             | `/karibu-test`, `/playwright-test`       | Open    |
