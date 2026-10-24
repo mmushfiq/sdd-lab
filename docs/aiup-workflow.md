@@ -11,7 +11,7 @@ Every step writes plain files under `docs/` (or `src/`) that are reviewed and co
 
 | Step | Name                              | Command                                  | Status  |
 |------|-----------------------------------|------------------------------------------|---------|
-| 0    | Install stack plugin              | `/plugin install aiup-vaadin-jooq`       | Open    |
+| 0    | Install stack plugin              | `/plugin install aiup-vaadin-jooq`       | Done    |
 | 1    | Vision                            | written by hand                          | Done    |
 | 2    | Requirements and glossary         | `/requirements`                          | Done    |
 | 3    | Entity model                      | `/entity-model`                          | Done    |
@@ -19,7 +19,7 @@ Every step writes plain files under `docs/` (or `src/`) that are reviewed and co
 | 5    | Use case specifications           | `/use-case-spec UC-XXX`                  | Done    |
 | 6    | Business process and test cases   | `/business-process`, `/test-case BP-XXX` | Open    |
 | 7    | Spec review                       | `/spec-review`                           | Done    |
-| 8    | Database migration                | `/flyway-migration`                      | Open    |
+| 8    | Database migration                | `/flyway-migration`                      | Done    |
 | 9    | Implementation                    | `/implement UC-XXX`                      | Open    |
 | 10   | Tests                             | `/karibu-test`, `/playwright-test`       | Open    |
 | 11   | Coverage check                    | `/coverage-check UC-XXX`                 | Open    |
