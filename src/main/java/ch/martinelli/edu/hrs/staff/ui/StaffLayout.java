@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.staff.ui;
 
 import ch.martinelli.edu.hrs.management.ui.RoomTypesView;
+import ch.martinelli.edu.hrs.management.ui.RoomsView;
 import ch.martinelli.edu.hrs.reception.ui.ArrivalsAndDeparturesView;
 import ch.martinelli.edu.hrs.reception.ui.CreateReservationView;
 import ch.martinelli.edu.hrs.reception.ui.MissedArrivalsView;
@@ -54,7 +55,9 @@ public class StaffLayout extends AppLayout {
         if (authenticationContext.hasRole(StaffRole.MANAGER_ROLE)) {
             header.add(new RouterLink("Occupancy report", OccupancyReportView.class),
                     // UC-016 step 1
-                    new RouterLink("Room types", RoomTypesView.class));
+                    new RouterLink("Room types", RoomTypesView.class),
+                    // UC-017 step 1
+                    new RouterLink("Rooms", RoomsView.class));
         }
         header.add(staffMember, logOut);
         header.setWidthFull();
