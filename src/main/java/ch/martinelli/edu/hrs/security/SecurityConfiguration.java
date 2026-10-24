@@ -27,7 +27,9 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.with(VaadinSecurityConfigurer.vaadin(), configurer -> configurer.loginView(LoginView.class));
+        // UC-023 step 3: after logging out the staff login is displayed
+        http.with(VaadinSecurityConfigurer.vaadin(),
+                configurer -> configurer.loginView(LoginView.class, "/" + LoginView.ROUTE));
         return http.build();
     }
 

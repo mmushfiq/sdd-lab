@@ -23,11 +23,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 /**
  * UC-022 Log In: the staff member logs in with username and password and gets the start screen of their role.
  */
-@Route("login")
+@Route(LoginView.ROUTE)
 @PageTitle("Staff Login")
 @AnonymousAllowed
 public class LoginView extends VerticalLayout {
 
+    public static final String ROUTE = "login";
     static final String LOGIN_REFUSED = "The username or password is wrong.";
 
     private final LoginService loginService;
