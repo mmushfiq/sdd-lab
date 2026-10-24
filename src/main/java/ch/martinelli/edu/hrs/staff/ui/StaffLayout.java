@@ -1,5 +1,6 @@
 package ch.martinelli.edu.hrs.staff.ui;
 
+import ch.martinelli.edu.hrs.management.ui.GuestErasureView;
 import ch.martinelli.edu.hrs.management.ui.RoomBlocksView;
 import ch.martinelli.edu.hrs.management.ui.RoomTypesView;
 import ch.martinelli.edu.hrs.management.ui.RoomsView;
@@ -67,7 +68,9 @@ public class StaffLayout extends AppLayout {
                     // UC-018 step 1
                     new RouterLink("Room blocks", RoomBlocksView.class),
                     // UC-021 step 1
-                    new RouterLink("Staff members", StaffMembersView.class));
+                    new RouterLink("Staff members", StaffMembersView.class),
+                    // UC-024 step 1
+                    new RouterLink("Guest erasure", GuestErasureView.class));
         }
         header.add(staffMember, logOut);
         header.setWidthFull();
