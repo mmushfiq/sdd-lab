@@ -126,7 +126,7 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
     }
 
     /**
-     * The button of an action. Actions whose use case is not implemented yet are shown disabled.
+     * The button of an action; each one opens its use case.
      */
     private Button actionButton(ReservationAction action, String reservationCode) {
         Button button = new Button(switch (action) {
@@ -148,7 +148,9 @@ public class ReservationView extends VerticalLayout implements HasUrlParameter<S
             // UC-010 step 2
             case CHECK_OUT -> button.addClickListener(
                     _ -> button.getUI().ifPresent(ui -> ui.navigate(CheckOutView.class, reservationCode)));
-            default -> button.setEnabled(false);
+            // UC-012 step 1: the no-show is recorded from the list of missed arrivals
+            case RECORD_NO_SHOW -> button.addClickListener(
+                    _ -> button.getUI().ifPresent(ui -> ui.navigate(MissedArrivalsView.class)));
         }
         return button;
     }

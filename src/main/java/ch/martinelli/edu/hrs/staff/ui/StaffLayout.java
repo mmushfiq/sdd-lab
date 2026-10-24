@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.staff.ui;
 
 import ch.martinelli.edu.hrs.reception.ui.ArrivalsAndDeparturesView;
 import ch.martinelli.edu.hrs.reception.ui.CreateReservationView;
+import ch.martinelli.edu.hrs.reception.ui.MissedArrivalsView;
 import ch.martinelli.edu.hrs.reception.ui.RoomStatusBoardView;
 import ch.martinelli.edu.hrs.reception.ui.SearchReservationsView;
 import ch.martinelli.edu.hrs.security.LogoutService;
@@ -44,7 +45,9 @@ public class StaffLayout extends AppLayout {
                     // UC-004 step 1
                     new RouterLink("New reservation", CreateReservationView.class),
                     // UC-011 step 1
-                    new RouterLink("Room status", RoomStatusBoardView.class));
+                    new RouterLink("Room status", RoomStatusBoardView.class),
+                    // UC-012 step 1
+                    new RouterLink("Missed arrivals", MissedArrivalsView.class));
         }
         header.add(staffMember, logOut);
         header.setWidthFull();
