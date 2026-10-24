@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist sees every room with its occupancy and cleaning status on one screen, so that they know at a glance which rooms they can assign.  
 **Trigger:** Receptionist asks for the room status board  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-013, NFR-002, NFR-007, NFR-009](../requirements.md)
 

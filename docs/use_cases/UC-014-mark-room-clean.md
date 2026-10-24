@@ -7,7 +7,7 @@
 **Primary Actor:** Housekeeper  
 **Goal:** The housekeeper marks a room as clean after cleaning it, so that reception can assign it to the next guest.  
 **Trigger:** Housekeeper has finished cleaning a room  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-016, NFR-007, NFR-009](../requirements.md)
 

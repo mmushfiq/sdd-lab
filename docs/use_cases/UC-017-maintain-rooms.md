@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager creates and edits rooms with room number and room type, so that availability is calculated from the rooms the hotel really has.  
 **Trigger:** Manager wants to add a room or change an existing one  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-019, NFR-004, NFR-009, C-006](../requirements.md)
 

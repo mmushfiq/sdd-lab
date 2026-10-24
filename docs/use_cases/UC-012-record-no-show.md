@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist marks a reservation whose guest did not check in by the end of the arrival date as a no-show, so that the room type becomes available again.  
 **Trigger:** Receptionist reviews the reservations of guests who did not arrive  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-014, NFR-009, C-007](../requirements.md)
 

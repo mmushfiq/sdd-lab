@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The receptionist cancels a reservation before check-in, so that the room type becomes available again for other guests.  
 **Trigger:** A guest asks the receptionist to cancel their reservation  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-008, NFR-003, NFR-009](../requirements.md)
 

@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist sees today's arrivals and departures, so that they can prepare check-ins and check-outs.  
 **Trigger:** Receptionist asks for today's arrivals and departures  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-010, NFR-002, NFR-009](../requirements.md)
 

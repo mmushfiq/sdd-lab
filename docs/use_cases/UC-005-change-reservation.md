@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The receptionist changes the dates, room type or number of guests of a reservation, so that a guest's change request is handled without cancelling and re-creating the reservation.  
 **Trigger:** A guest asks the receptionist to change their reservation  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-007, NFR-003, NFR-004, NFR-009](../requirements.md)
 

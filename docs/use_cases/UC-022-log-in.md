@@ -7,7 +7,7 @@
 **Primary Actor:** Staff Member  
 **Goal:** The staff member logs in with their username and password, so that they can use the functions of their role while guests' data stays protected.  
 **Trigger:** A staff member starts work at a reception desk, tablet or office computer  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-024, NFR-009, NFR-010, NFR-012, NFR-013](../requirements.md)
 

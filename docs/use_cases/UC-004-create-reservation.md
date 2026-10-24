@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The receptionist records a reservation for a guest who calls or walks in, so that phone and walk-in guests are in the same system as online reservations.  
 **Trigger:** A guest asks the receptionist by phone or at the front desk for a room  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-006, FR-001, NFR-001, NFR-003, NFR-004, NFR-009, C-007, C-008](../requirements.md)
 

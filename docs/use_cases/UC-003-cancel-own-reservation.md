@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The guest cancels their reservation online before the cancellation deadline, so that they do not have to call the hotel when their plans change.  
 **Trigger:** A guest asks to cancel their reservation on the hotel's website  
-**Status:** Reviewed  
+**Status:** Approved  
 
 **Requirements:** [FR-005, NFR-002, NFR-003, NFR-008, NFR-011, NFR-012, C-007](../requirements.md)
 
