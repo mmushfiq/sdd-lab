@@ -1,0 +1,77 @@
+@startuml Use Cases Overview
+left to right direction
+
+actor "Guest" as guest
+actor "Receptionist" as receptionist
+actor "Housekeeper" as housekeeper
+actor "Manager" as manager
+actor "Scheduler" as scheduler
+actor "Email Service" as email
+
+rectangle "Hotel Reservation System" {
+    ' Guest (online, no login)
+    usecase "UC-001\nReserve Room Online" as UC001
+    usecase "UC-002\nView Own Reservation" as UC002
+    usecase "UC-003\nCancel Own Reservation" as UC003
+
+    ' Receptionist
+    usecase "UC-004\nCreate Reservation" as UC004
+    usecase "UC-005\nChange Reservation" as UC005
+    usecase "UC-006\nCancel Reservation" as UC006
+    usecase "UC-007\nSearch Reservations" as UC007
+    usecase "UC-008\nView Arrivals and Departures" as UC008
+    usecase "UC-009\nCheck In Guest" as UC009
+    usecase "UC-010\nCheck Out Guest" as UC010
+    usecase "UC-011\nView Room Status Board" as UC011
+    usecase "UC-012\nRecord No-Show" as UC012
+
+    ' Housekeeper
+    usecase "UC-013\nView Cleaning List" as UC013
+    usecase "UC-014\nMark Room Clean" as UC014
+    usecase "UC-015\nSet Occupied Rooms Dirty Daily" as UC015
+
+    ' Manager
+    usecase "UC-016\nMaintain Room Types" as UC016
+    usecase "UC-017\nMaintain Rooms" as UC017
+    usecase "UC-018\nBlock Room" as UC018
+    usecase "UC-019\nView Occupancy Report" as UC019
+    usecase "UC-020\nView Revenue Report" as UC020
+    usecase "UC-021\nMaintain Staff Members" as UC021
+}
+
+guest --> UC001
+guest --> UC002
+guest --> UC003
+
+receptionist --> UC004
+receptionist --> UC005
+receptionist --> UC006
+receptionist --> UC007
+receptionist --> UC008
+receptionist --> UC009
+receptionist --> UC010
+receptionist --> UC011
+receptionist --> UC012
+
+housekeeper --> UC013
+housekeeper --> UC014
+
+scheduler --> UC015
+
+manager --> UC016
+manager --> UC017
+manager --> UC018
+manager --> UC019
+manager --> UC020
+manager --> UC021
+
+UC001 --> email
+
+note right of receptionist
+  All receptionist, housekeeper and
+  manager use cases require a logged-in
+  staff member with the matching role
+  (FR-024, FR-025).
+end note
+
+@enduml
