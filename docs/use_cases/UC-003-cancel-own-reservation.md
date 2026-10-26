@@ -21,7 +21,7 @@
 1. Guest opens the reservation lookup.
 2. Guest enters the reservation code and the email address.
 3. System checks that a reservation with this reservation code exists and belongs to a guest with this email address.
-4. System displays the reservation with its status, dates, room type, number of guests and total price.
+4. System displays the reservation with its status, dates, room type, number of guests, total price and online cancellation deadline (BR-006).
 5. Guest requests the cancellation of the reservation.
 6. System checks that the reservation has status Confirmed and that the online cancellation deadline has not passed.
 7. System asks the guest to confirm the cancellation and states that it cannot be undone.
@@ -66,7 +66,7 @@
 
 ### A5: Cancellation Deadline Passed
 
-**Trigger:** Less than 24 hours remain until the check-in time on the arrival date (step 6)  
+**Trigger:** The online cancellation deadline of the reservation has passed (step 6)  
 **Flow:**
 
 1. System informs the guest that the reservation can no longer be cancelled online and that the hotel's reception can still cancel it (BR-001).
@@ -114,7 +114,11 @@
 
 ### BR-001: Online Cancellation Deadline
 
-A guest can cancel online until 24 hours before the check-in time (14:00) on the arrival date, in the hotel's local time. Example: for an arrival on 10 May, the last online cancellation is on 9 May at 13:59. Later cancellations are only possible at reception (UC-006).
+A guest can cancel online until the online cancellation deadline of the reservation, in the hotel's local time. The deadline is fixed when the reservation is recorded (UC-001, UC-004) and set again when its arrival date is changed (UC-005 BR-007): 48 hours before the check-in time (14:00) on the arrival date. Example: for an arrival on 10 May, the deadline is 8 May at 14:00, so the last online cancellation is on 8 May at 13:59.
+
+A reservation recorded before the 48-hour deadline took effect keeps the deadline it was given, 24 hours before the check-in time on the arrival date (for an arrival on 10 May: 9 May at 14:00), until its arrival date is changed.
+
+Cancellations after the deadline are only possible at reception (UC-006).
 
 ### BR-002: Cancellable Status
 
@@ -131,3 +135,7 @@ While the Email Service accepts emails, the cancellation email is sent within 1 
 ### BR-005: Lookup Rules
 
 The reservation is found and the lookup is locked under the same rules as in UC-002 (UC-002 BR-001 to UC-002 BR-004).
+
+### BR-006: Shown Online Cancellation Deadline
+
+Wherever the guest is shown a reservation with status Confirmed or receives a confirmation email for it (UC-001, UC-002, UC-004, UC-005), the online cancellation deadline is shown as a date and time in the hotel's local time, stating that online cancellation is possible before it (example: "Free online cancellation before 8 May 2031, 14:00"). When the deadline has already passed, the guest is told instead that the reservation can no longer be cancelled online and that the hotel's reception can still cancel it.

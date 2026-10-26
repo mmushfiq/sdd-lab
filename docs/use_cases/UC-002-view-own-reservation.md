@@ -7,7 +7,7 @@
 **Primary Actor:** Guest  
 **Goal:** The guest sees the current details of their reservation, so that they can check their dates, room type and total price without calling the hotel.  
 **Trigger:** A guest asks to view their reservation on the hotel's website  
-**Status:** Implemented  
+**Status:** Approved  
 
 **Requirements:** [FR-004, NFR-002, NFR-008, NFR-011, NFR-012](../requirements.md)
 
@@ -20,7 +20,7 @@
 1. Guest opens the reservation lookup.
 2. Guest enters the reservation code and the email address.
 3. System checks that a reservation with this reservation code exists and belongs to a guest with this email address.
-4. System displays the reservation with its reservation code, status, arrival date, departure date, number of nights, room type, number of guests and total price; the guest sees their reservation.
+4. System displays the reservation with its reservation code, status, arrival date, departure date, number of nights, room type, number of guests and total price, and for a reservation with status Confirmed its online cancellation deadline (UC-003 BR-006); the guest sees their reservation.
 
 ## Alternative Flows
 

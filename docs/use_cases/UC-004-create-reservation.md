@@ -8,7 +8,7 @@
 **Secondary Actors:** Email Service  
 **Goal:** The receptionist records a reservation for a guest who calls or walks in, so that phone and walk-in guests are in the same system as online reservations.  
 **Trigger:** A guest asks the receptionist by phone or at the front desk for a room  
-**Status:** Implemented  
+**Status:** Approved  
 
 **Requirements:** [FR-006, FR-001, NFR-001, NFR-003, NFR-004, NFR-009, C-007, C-008](../requirements.md)
 
@@ -28,8 +28,8 @@
 7. Receptionist enters or corrects the first name, last name and phone number.
 8. Receptionist confirms the reservation.
 9. System checks the guest details and that the selected room type is still available for every night of the date range.
-10. System records the guest and the reservation for the selected room type with status Confirmed, channel Reception and a new reservation code.
-11. System sends a confirmation email with the reservation code, dates, room type, number of guests and total price to the guest through the Email Service.
+10. System records the guest and the reservation for the selected room type with status Confirmed, channel Reception, a new reservation code and its online cancellation deadline (UC-003 BR-001).
+11. System sends a confirmation email with the reservation code, dates, room type, number of guests, total price and online cancellation deadline (UC-003 BR-006) to the guest through the Email Service.
 12. System displays the reservation code and the total price; the guest has a reserved room type.
 
 ## Alternative Flows

@@ -22,7 +22,8 @@
 | Check-in Time      | The time of day from which a guest can check in on the arrival date (14:00).                                                                   |                             |
 | Check-out Time     | The time of day by which a guest must check out on the departure date (11:00).                                                                 |                             |
 | Stay               | The period during which a checked-in guest occupies a room, from check-in to check-out.                                                       | Visit                       |
-| Cancellation       | Ending a reservation before check-in. A guest can cancel online until 24 hours before the check-in time on the arrival date; a receptionist can cancel at any time before check-in. | Storno |
+| Cancellation       | Ending a reservation before check-in. A guest can cancel online until the online cancellation deadline of the reservation; a receptionist can cancel at any time before check-in. | Storno |
+| Online Cancellation Deadline | The moment from which a guest can no longer cancel a reservation online. It is fixed when the reservation is recorded: 48 hours before the check-in time on the arrival date. Reservations recorded before this rule took effect keep 24 hours until their arrival date is changed. | Cancellation Period, Cutoff, Storno Deadline |
 | No-Show            | A reservation whose guest did not check in by the end of the arrival date.                                                                     |                             |
 | Cleaning Status    | The state of a room regarding cleaning: clean or dirty.                                                                                         | Housekeeping Status         |
 | Clean              | Cleaning status of a room that is ready to be assigned to a guest.                                                                             |                             |

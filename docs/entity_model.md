@@ -73,6 +73,7 @@ A guest's claim on one room type for a date range, made online or by a reception
 | status           | Current status of the reservation                            | String    | 20               | Not Null, Values: Confirmed, Checked In, Checked Out, Cancelled, No-Show |
 | channel          | How the reservation was made                                 | String    | 20               | Not Null, Values: Online, Reception                                 |
 | created_at       | When the reservation was created                             | DateTime  | -                | Not Null                                                            |
+| online_cancellation_deadline | Moment from which the guest can no longer cancel online (UC-003 BR-001), in the hotel's local time | DateTime | - | Not Null |
 | checked_in_at    | When the guest checked in                                    | DateTime  | -                | Optional                                                            |
 | checked_out_at   | When the guest checked out                                   | DateTime  | -                | Optional                                                            |
 | cancelled_at     | When the reservation was cancelled                           | DateTime  | -                | Optional                                                            |
@@ -87,6 +88,7 @@ A guest's claim on one room type for a date range, made online or by a reception
 - checked_in_at is set exactly when the status is Checked In or Checked Out; checked_out_at exactly when the status is Checked Out; cancelled_at exactly when the status is Cancelled.
 - For every night, the number of Confirmed and Checked In reservations of a room type must not exceed the number of its active rooms that are not blocked that night.
 - A room is assigned to at most one Checked In reservation at a time.
+- The online cancellation deadline is set when the reservation is recorded to 48 hours before the check-in time (14:00) on the arrival date, and set again in the same way when the arrival date is changed (UC-003 BR-001, UC-005 BR-007). Reservations recorded before this rule took effect have 24 hours before the check-in time on the arrival date.
 
 ### ROOM_BLOCK
 

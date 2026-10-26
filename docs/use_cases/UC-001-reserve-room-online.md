@@ -26,8 +26,8 @@
 6. Guest enters first name, last name, email address and phone number.
 7. Guest confirms the reservation.
 8. System checks the guest details and that the selected room type is still available for every night of the date range.
-9. System records the guest with the entered details and records the reservation for the selected room type with status Confirmed, channel Online and a new reservation code.
-10. System sends a confirmation email with the reservation code, dates, room type and total price to the guest through the Email Service.
+9. System records the guest with the entered details and records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code and its online cancellation deadline (UC-003 BR-001).
+10. System sends a confirmation email with the reservation code, dates, room type, total price and online cancellation deadline to the guest through the Email Service.
 11. System displays the confirmation with the reservation code and the total price; the guest has a reserved room type.
 
 ## Alternative Flows
@@ -86,7 +86,7 @@
 **Flow:**
 
 1. System links the reservation to the existing guest and replaces the stored first name, last name and phone number with the entered values.
-2. System records the reservation for the selected room type with status Confirmed, channel Online and a new reservation code.
+2. System records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code and its online cancellation deadline (UC-003 BR-001).
 3. Use case continues at step 10.
 
 ### A8: Email Service Does Not Accept the Confirmation
@@ -103,7 +103,7 @@
 ### Success Postconditions
 
 - A reservation with status Confirmed and channel Online exists for the selected room type, dates and number of guests, linked to the guest identified by the entered email address.
-- The reservation has a unique reservation code and a total price fixed at the nightly rate valid when it was recorded.
+- The reservation has a unique reservation code, a total price fixed at the nightly rate valid when it was recorded, and an online cancellation deadline 48 hours before the check-in time on the arrival date (UC-003 BR-001).
 - The availability of the room type is reduced by one for every night of the reservation.
 - The stored guest has the first name, last name and phone number entered in this reservation.
 - The confirmation email with the reservation code is sent to the guest; when the Email Service did not accept it (A8), it is retried for at most 24 hours (BR-012).
@@ -159,7 +159,7 @@ The guest pays at the hotel. The online reservation neither asks for nor process
 
 ### BR-011: Confirmation Email
 
-While the Email Service accepts emails, the confirmation email is sent within 1 minute after the reservation is recorded. It contains the reservation code, the arrival date, the departure date, the room type, the number of guests and the total price.
+While the Email Service accepts emails, the confirmation email is sent within 1 minute after the reservation is recorded. It contains the reservation code, the arrival date, the departure date, the room type, the number of guests, the total price and the online cancellation deadline as described in UC-003 BR-006.
 
 ### BR-012: Confirmation Email Retry
 
