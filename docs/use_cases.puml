@@ -39,6 +39,7 @@ rectangle "Hotel Reservation System" {
     usecase "UC-020\nView Revenue Report" as UC020
     usecase "UC-021\nMaintain Staff Members" as UC021
     usecase "UC-024\nErase Guest Data" as UC024
+    usecase "UC-025\nMaintain Seasonal Rates" as UC025
 
     ' Every staff member
     usecase "UC-022\nLog In" as UC022
@@ -71,6 +72,7 @@ manager --> UC019
 manager --> UC020
 manager --> UC021
 manager --> UC024
+manager --> UC025
 
 receptionist -up-|> staff
 housekeeper -up-|> staff

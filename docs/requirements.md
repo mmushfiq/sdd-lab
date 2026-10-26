@@ -24,7 +24,7 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | FR-009 | Search Reservations         | As a receptionist, I want to search reservations by guest name, reservation code or date so that I can answer a guest's question about their reservation while they wait.                                  | High     | Implemented |
 | FR-010 | View Arrivals and Departures | As a receptionist, I want to see the list of today's arrivals and departures so that I can prepare check-ins and check-outs.                                                                    | High     | Implemented |
 | FR-011 | Check In Guest              | As a receptionist, I want to check in a guest by assigning a clean, free room of the reserved room type so that the guest gets a room that is ready for them.                                 | High     | Implemented |
-| FR-012 | Check Out Guest             | As a receptionist, I want to check out a guest and see the total price of the stay so that the room is released and its cleaning status is set to dirty for housekeeping.                     | High     | Implemented |
+| FR-012 | Check Out Guest             | As a receptionist, I want to check out a guest and see the total price of the stay so that the room is released and its cleaning status is set to dirty for housekeeping.                     | High     | Open   |
 | FR-013 | View Room Status Board      | As a receptionist, I want to see every room with its occupancy and cleaning status on one screen so that I know at a glance which rooms I can assign.                                         | High     | Implemented |
 | FR-014 | Record No-Show              | As a receptionist, I want to mark a reservation as a no-show when the guest has not checked in by the end of the arrival date so that the room type becomes available again.                   | Medium   | Implemented |
 
@@ -40,13 +40,14 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 
 | ID     | Title                  | User Story                                                                                                                                                             | Priority | Status |
 |--------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------|
-| FR-018 | Maintain Room Types    | As a manager, I want to create and edit room types with name, description, maximum number of guests and nightly rate so that guests see correct offers and prices.     | High     | Implemented |
+| FR-018 | Maintain Room Types    | As a manager, I want to create and edit room types with name, description, maximum number of guests and normal rate so that guests see correct offers and prices.      | High     | Open   |
 | FR-019 | Maintain Rooms         | As a manager, I want to create and edit rooms with room number and room type so that availability is calculated from the rooms the hotel really has.                   | High     | Implemented |
 | FR-020 | Block Room             | As a manager, I want to block a room for a date range so that a room under repair is neither reserved nor assigned.                                                    | Medium   | Implemented |
 | FR-021 | View Occupancy Report  | As a manager, I want to see the occupancy rate per day and per month for a chosen period so that I can understand how well the hotel is used.                          | High     | Implemented |
 | FR-022 | View Revenue Report    | As a manager, I want to see the revenue per month and per room type for a chosen period so that I can run the business without manual spreadsheet work.                | High     | Implemented |
 | FR-023 | Maintain Staff Members | As a manager, I want to create, edit and deactivate staff members with their role so that only current employees can use the staff functions.                         | High     | Implemented |
 | FR-026 | Erase Guest Data       | As a manager, I want to erase or anonymise a guest's personal data on the guest's request so that the hotel meets its obligation under the right to erasure within 30 days. | High     | Implemented |
+| FR-027 | Maintain Seasonal Rates | As a manager, I want to define seasons as date ranges with their own nightly rate per room type so that prices rise in busy periods and fall in quiet ones without changing the normal rate by hand before and after each season. | High     | Open   |
 
 ### Staff member
 
@@ -64,7 +65,7 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | NFR-003 | Confirmation Email Delay      | The reservation confirmation email is sent within 1 minute after the reservation is created.                                                     | Performance     | Medium   | Open   |
 | NFR-004 | No Concurrent Overbooking     | When 10 reservation requests for the last available room of a room type arrive at the same time, exactly one succeeds and the others are refused. | Scalability     | High     | In Progress |
 | NFR-005 | Online Reservation Duration   | A first-time guest completes an online reservation in under 3 minutes in a usability test with 5 participants.                                   | Usability       | High     | Open   |
-| NFR-006 | Check-in and Check-out Duration | A trained receptionist completes a check-in or a check-out in under 1 minute.                                                                   | Usability       | High     | Implemented |
+| NFR-006 | Check-in and Check-out Duration | A trained receptionist completes a check-in or a check-out in under 1 minute.                                                                   | Usability       | High     | In Progress |
 | NFR-007 | Tablet Layout                 | Cleaning list and room status screens are fully usable without horizontal scrolling on a tablet with a screen width of 768 px.                   | Usability       | High     | Implemented |
 | NFR-008 | Guest Accessibility           | The guest screens (search, reserve, view, cancel) conform to WCAG 2.1 level AA.                                                                  | Usability       | Medium   | Open   |
 | NFR-009 | Role-Based Access             | Every staff screen and action is only available to the roles that need it; a guest without login can only reach the guest screens.              | Security        | High     | In Progress |

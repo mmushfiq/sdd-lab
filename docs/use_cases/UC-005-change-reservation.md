@@ -24,7 +24,7 @@
 4. System checks the new values and that the room type is available for every night of the new date range, not counting this reservation itself.
 5. System displays the old and the new total price.
 6. Receptionist confirms the change.
-7. System checks the availability again and records the changed reservation with the new total price and, when the arrival date changed, the new online cancellation deadline (BR-007).
+7. System checks the availability again and records the changed reservation with the night prices of the new date range (BR-005), the new total price and, when the arrival date changed, the new online cancellation deadline (BR-007).
 8. System sends a change confirmation email with the reservation code and the new dates, room type, number of guests, total price and, for a reservation with status Confirmed, the online cancellation deadline (UC-003 BR-006) to the guest through the Email Service.
 9. System displays the changed reservation; the reservation reflects the guest's request.
 
@@ -132,7 +132,7 @@ The availability for the new values is calculated as if the reservation being ch
 
 ### BR-005: New Total Price
 
-On every change of a Confirmed reservation, the total price is recalculated as the number of nights of the new date range times the current nightly rate of the new room type, in CHF. For a Checked In reservation, the total price becomes the new number of nights times the nightly rate on which the reserved total price was based (reserved total price ÷ reserved number of nights), so nights already stayed keep their price (UC-001 BR-004).
+After a change, every night of the new date range has a night price. A night that was already part of the reservation keeps its night price as long as the room type stays the same. Every added night, and every night after a change of the room type, gets the nightly rate valid for that night at the time of the change (UC-001 BR-004). Nights no longer part of the reservation are removed. The total price is the sum of the night prices, in CHF. For a Checked In reservation, only the departure date changes, so the nights already reserved keep their price and only added nights get the current nightly rate.
 
 ### BR-006: Change Confirmation Email
 

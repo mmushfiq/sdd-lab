@@ -7,7 +7,7 @@
 **Primary Actor:** Receptionist  
 **Goal:** The receptionist checks out a guest and sees the total price of the stay, so that the room is released and marked dirty for housekeeping.  
 **Trigger:** A checked-in guest asks to check out at the front desk  
-**Status:** Implemented  
+**Status:** Approved  
 
 **Requirements:** [FR-012, NFR-006, NFR-009, C-007](../requirements.md)
 
@@ -90,11 +90,11 @@ Only a reservation with status Checked In can be checked out.
 
 ### BR-002: Early Check-out Price
 
-When the guest leaves before the departure date, the departure date becomes today, but at least the day after the arrival date. The total price becomes the new number of nights times the nightly rate on which the reserved total price was based (reserved total price ÷ reserved number of nights), in CHF.
+When the guest leaves before the departure date, the departure date becomes today, but at least the day after the arrival date. The nights from the new departure date on are removed; the nights stayed keep their night prices, and the total price becomes the sum of their night prices, in CHF.
 
 ### BR-003: Overdue Check-out
 
-When a guest checks out after the departure date, the departure date becomes today and the total price is calculated for the new number of nights in the same way as in BR-002.
+When a guest checks out after the departure date, the departure date becomes today. The reserved nights keep their night prices, every additional night gets the nightly rate valid for that night at the time of check-out (UC-001 BR-004), and the total price becomes the sum of all night prices, in CHF.
 
 ### BR-004: Payment Outside the System
 

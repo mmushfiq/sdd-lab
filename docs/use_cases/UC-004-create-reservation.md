@@ -21,7 +21,7 @@
 
 1. Receptionist opens a new reservation.
 2. Receptionist enters the arrival date, the departure date and the number of guests.
-3. System displays the room types that are available for every night of the date range and fit the number of guests, each with its nightly rate, total price and number of available rooms.
+3. System displays the room types that are available for every night of the date range and fit the number of guests, each with its nightly rate (the lowest and the highest when the nights have different nightly rates), total price and number of available rooms.
 4. Receptionist selects a room type.
 5. Receptionist enters the guest's email address.
 6. System displays the stored first name, last name and phone number when a guest with this email address exists.
@@ -96,7 +96,7 @@
 ### Success Postconditions
 
 - A reservation with status Confirmed and channel Reception exists for the selected room type, dates and number of guests, linked to the guest identified by the entered email address.
-- The reservation has a unique reservation code and a total price fixed at the nightly rate valid when it was recorded.
+- The reservation has a unique reservation code and a night price for every night fixed at the nightly rate valid for that night when it was recorded, and a total price that is the sum of the night prices.
 - The availability of the room type is reduced by one for every night of the reservation.
 - The stored guest has the first name, last name and phone number entered in this reservation.
 - The confirmation email is sent to the guest; when the Email Service did not accept it (A7), it is retried for at most 24 hours.
@@ -124,7 +124,7 @@ The availability check in step 9 and the recording in step 10 happen as one indi
 
 ### BR-004: Total Price
 
-The total price is the number of nights times the nightly rate of the room type, in CHF, fixed when the reservation is recorded (UC-001 BR-004).
+Every night is priced at the nightly rate valid for it and the total price is the sum of the night prices, in CHF, fixed when the reservation is recorded, as online (UC-001 BR-004).
 
 ### BR-005: Guest Identified by Email Address
 

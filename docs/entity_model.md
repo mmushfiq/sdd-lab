@@ -11,12 +11,15 @@ erDiagram
     GUEST ||--o{ RESERVATION : "makes"
     ROOM |o--o{ RESERVATION : "is assigned at check-in to"
     ROOM ||--o{ ROOM_BLOCK : "is blocked by"
+    RESERVATION ||--|{ RESERVATION_NIGHT : "is priced by"
+    SEASON ||--o{ SEASON_RATE : "sets"
+    ROOM_TYPE ||--o{ SEASON_RATE : "is priced in season by"
     STAFF_MEMBER
 ```
 
 ### ROOM_TYPE
 
-A class of rooms with the same name, description, maximum number of guests and nightly rate that guests reserve.
+A class of rooms with the same name, description, maximum number of guests and normal rate that guests reserve.
 
 | Attribute    | Description                                             | Data Type | Length/Precision | Validation Rules                    |
 |--------------|---------------------------------------------------------|-----------|------------------|-------------------------------------|
@@ -24,7 +27,7 @@ A class of rooms with the same name, description, maximum number of guests and n
 | name         | Name of the room type, e.g. "Double Room"               | String    | 50               | Not Null, Unique                    |
 | description  | Description shown to guests                             | String    | 500              | Optional                            |
 | max_guests   | Maximum number of guests per room                       | Integer   | 10               | Not Null, Min: 1, Max: 10           |
-| nightly_rate | Price of one night in CHF                               | Decimal   | 10,2             | Not Null, Min: 0, Max: 99999999.99  |
+| nightly_rate | Normal rate: price of one night in CHF outside seasons  | Decimal   | 10,2             | Not Null, Min: 0, Max: 99999999.99  |
 | active       | Whether the room type is offered for new reservations   | Boolean   | 1                | Not Null                            |
 
 ### ROOM
@@ -69,7 +72,7 @@ A guest's claim on one room type for a date range, made online or by a reception
 | arrival_date     | First date of the reservation                                | Date      | -                | Not Null                                                            |
 | departure_date   | Date on which the guest checks out                           | Date      | -                | Not Null                                                            |
 | number_of_guests | Number of guests staying                                     | Integer   | 10               | Not Null, Min: 1, Max: 10                                           |
-| total_price      | Sum of the nightly rate over all nights in CHF, fixed when reserved or changed | Decimal | 10,2 | Not Null, Min: 0, Max: 99999999.99                           |
+| total_price      | Sum of the night prices of all nights in CHF                 | Decimal   | 10,2             | Not Null, Min: 0, Max: 99999999.99                                  |
 | status           | Current status of the reservation                            | String    | 20               | Not Null, Values: Confirmed, Checked In, Checked Out, Cancelled, No-Show |
 | channel          | How the reservation was made                                 | String    | 20               | Not Null, Values: Online, Reception                                 |
 | created_at       | When the reservation was created                             | DateTime  | -                | Not Null                                                            |
@@ -82,13 +85,55 @@ A guest's claim on one room type for a date range, made online or by a reception
 
 - The departure date must be after the arrival date.
 - The number of guests must not exceed the reserved room type's maximum number of guests.
-- The total price equals the number of nights (departure date − arrival date) times the room type's nightly rate at the time the reservation was created or last changed.
+- The reservation has exactly one reservation night for every night from the arrival date up to the day before the departure date.
+- The total price equals the sum of the night prices of its reservation nights.
 - The assigned room must belong to the reserved room type.
 - A room is assigned exactly when the status is Checked In or Checked Out.
 - checked_in_at is set exactly when the status is Checked In or Checked Out; checked_out_at exactly when the status is Checked Out; cancelled_at exactly when the status is Cancelled.
 - For every night, the number of Confirmed and Checked In reservations of a room type must not exceed the number of its active rooms that are not blocked that night.
 - A room is assigned to at most one Checked In reservation at a time.
 - The online cancellation deadline is set when the reservation is recorded to 48 hours before the check-in time (14:00) on the arrival date, and set again in the same way when the arrival date is changed (UC-003 BR-001, UC-005 BR-007). Reservations recorded before this rule took effect have 24 hours before the check-in time on the arrival date.
+
+### RESERVATION_NIGHT
+
+One night of a reservation with the price fixed for it when the night was recorded.
+
+| Attribute      | Description                                                        | Data Type | Length/Precision | Validation Rules                        |
+|----------------|--------------------------------------------------------------------|-----------|------------------|-----------------------------------------|
+| reservation_id | Reservation the night belongs to                                   | Long      | 19               | Primary Key, Foreign Key (RESERVATION.id) |
+| night_date     | Date on which the night begins                                     | Date      | -                | Primary Key                             |
+| night_price    | Nightly rate valid for this night when it was recorded, in CHF     | Decimal   | 10,2             | Not Null, Min: 0, Max: 99999999.99      |
+
+#### Constraints
+
+- The night date lies on or after the arrival date and before the departure date of the reservation.
+- A night keeps its price when the reservation changes, as long as the night stays part of the reservation and the room type does not change (UC-005 BR-005, UC-010 BR-002).
+
+### SEASON
+
+A named date range for which the manager sets season rates per room type.
+
+| Attribute  | Description                                  | Data Type | Length/Precision | Validation Rules      |
+|------------|----------------------------------------------|-----------|------------------|-----------------------|
+| id         | Unique identifier                            | Long      | 19               | Primary Key, Sequence |
+| name       | Name of the season, e.g. "Summer 2027"       | String    | 50               | Not Null, Unique      |
+| first_night | Date of the first night of the season       | Date      | -                | Not Null              |
+| last_night | Date of the last night of the season         | Date      | -                | Not Null              |
+
+#### Constraints
+
+- The last night must be on or after the first night.
+- Seasons must not overlap: every date belongs to at most one season.
+
+### SEASON_RATE
+
+The nightly rate of one room type for the nights of one season.
+
+| Attribute    | Description                                  | Data Type | Length/Precision | Validation Rules                      |
+|--------------|----------------------------------------------|-----------|------------------|---------------------------------------|
+| season_id    | Season the rate belongs to                   | Long      | 19               | Primary Key, Foreign Key (SEASON.id)  |
+| room_type_id | Room type the rate applies to                | Long      | 19               | Primary Key, Foreign Key (ROOM_TYPE.id) |
+| nightly_rate | Price of one night in CHF during the season  | Decimal   | 10,2             | Not Null, Min: 0, Max: 99999999.99    |
 
 ### ROOM_BLOCK
 

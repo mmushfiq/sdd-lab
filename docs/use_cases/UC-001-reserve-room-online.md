@@ -20,13 +20,13 @@
 
 1. Guest opens the online reservation.
 2. Guest enters the arrival date, the departure date and the number of guests.
-3. System displays the room types that are available for every night of the date range and fit the number of guests, each with its description, nightly rate and total price.
+3. System displays the room types that are available for every night of the date range and fit the number of guests, each with its description, its nightly rate (the lowest and the highest when the nights have different nightly rates) and total price (BR-004).
 4. Guest selects a room type.
-5. System displays a summary of the dates, room type, number of nights and total price, the form for the guest details, and the privacy notice.
+5. System displays a summary of the dates, room type, number of nights, the night price of every night and the total price, the form for the guest details, and the privacy notice.
 6. Guest enters first name, last name, email address and phone number.
 7. Guest confirms the reservation.
 8. System checks the guest details and that the selected room type is still available for every night of the date range.
-9. System records the guest with the entered details and records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code and its online cancellation deadline (UC-003 BR-001).
+9. System records the guest with the entered details and records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code, the night price of every night (BR-004) and its online cancellation deadline (UC-003 BR-001).
 10. System sends a confirmation email with the reservation code, dates, room type, total price and online cancellation deadline to the guest through the Email Service.
 11. System displays the confirmation with the reservation code and the total price; the guest has a reserved room type.
 
@@ -86,7 +86,7 @@
 **Flow:**
 
 1. System links the reservation to the existing guest and replaces the stored first name, last name and phone number with the entered values.
-2. System records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code and its online cancellation deadline (UC-003 BR-001).
+2. System records the reservation for the selected room type with status Confirmed, channel Online, a new reservation code, the night price of every night (BR-004) and its online cancellation deadline (UC-003 BR-001).
 3. Use case continues at step 10.
 
 ### A8: Email Service Does Not Accept the Confirmation
@@ -103,7 +103,7 @@
 ### Success Postconditions
 
 - A reservation with status Confirmed and channel Online exists for the selected room type, dates and number of guests, linked to the guest identified by the entered email address.
-- The reservation has a unique reservation code, a total price fixed at the nightly rate valid when it was recorded, and an online cancellation deadline 48 hours before the check-in time on the arrival date (UC-003 BR-001).
+- The reservation has a unique reservation code, a night price for every night fixed at the nightly rate valid for that night when it was recorded, a total price that is the sum of the night prices, and an online cancellation deadline 48 hours before the check-in time on the arrival date (UC-003 BR-001).
 - The availability of the room type is reduced by one for every night of the reservation.
 - The stored guest has the first name, last name and phone number entered in this reservation.
 - The confirmation email with the reservation code is sent to the guest; when the Email Service did not accept it (A8), it is retried for at most 24 hours (BR-012).
@@ -131,7 +131,7 @@ The number of guests is between 1 and 10 and must not exceed the maximum number 
 
 ### BR-004: Total Price
 
-The total price is the number of nights (departure date − arrival date) times the nightly rate of the room type, in CHF. It is fixed when the reservation is recorded and does not change when the nightly rate changes later.
+Every night from the arrival date to the night before the departure date gets a night price: the nightly rate of the room type valid for that night, which is the season rate when a season with a season rate for the room type covers the night, and otherwise the normal rate (UC-025 BR-003). The total price is the sum of the night prices, in CHF. The night prices are fixed when the reservation is recorded and do not change when the normal rate or a season changes later.
 
 ### BR-005: No Overbooking
 

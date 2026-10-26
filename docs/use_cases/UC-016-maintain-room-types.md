@@ -5,9 +5,9 @@
 **Use Case ID:** UC-016  
 **Use Case Name:** Maintain Room Types  
 **Primary Actor:** Manager  
-**Goal:** The manager creates and edits room types with name, description, maximum number of guests and nightly rate, so that guests see correct offers and prices.  
+**Goal:** The manager creates and edits room types with name, description, maximum number of guests and normal rate, so that guests see correct offers and prices.  
 **Trigger:** Manager wants to add a room type or change an existing one  
-**Status:** Implemented  
+**Status:** Approved  
 
 **Requirements:** [FR-018, NFR-009](../requirements.md)
 
@@ -18,9 +18,9 @@
 ## Main Success Scenario
 
 1. Manager opens the room types.
-2. System displays all room types with name, maximum number of guests, nightly rate, number of active rooms and whether they are active.
+2. System displays all room types with name, maximum number of guests, normal rate, number of active rooms and whether they are active.
 3. Manager creates a new room type or selects an existing one.
-4. Manager enters or changes the name, description, maximum number of guests, nightly rate and whether the room type is active.
+4. Manager enters or changes the name, description, maximum number of guests, normal rate and whether the room type is active.
 5. Manager saves the room type.
 6. System checks the entered values.
 7. System records the room type.
@@ -30,7 +30,7 @@
 
 ### A1: Invalid Values
 
-**Trigger:** The name is missing or longer than 50 characters, the description is longer than 500 characters, the maximum number of guests is not between 1 and 10, or the nightly rate is missing or negative (step 6)  
+**Trigger:** The name is missing or longer than 50 characters, the description is longer than 500 characters, the maximum number of guests is not between 1 and 10, or the normal rate is missing or negative (step 6)  
 **Flow:**
 
 1. System marks the invalid values; the entered values are kept.
@@ -64,8 +64,8 @@
 
 ### Success Postconditions
 
-- The room type exists with the saved name, description, maximum number of guests, nightly rate and active flag.
-- New searches and reservations use the saved data; total prices of existing reservations are unchanged.
+- The room type exists with the saved name, description, maximum number of guests, normal rate and active flag.
+- New searches and reservations use the saved data; night prices and total prices of existing reservations are unchanged.
 
 ### Failure Postconditions
 
@@ -78,9 +78,9 @@
 
 Every room type has a name that no other room type has.
 
-### BR-002: Nightly Rate Change
+### BR-002: Normal Rate Change
 
-A changed nightly rate applies to reservations recorded or changed afterwards. The total price of an existing reservation is never changed by it.
+The normal rate is the nightly rate of the room type on every night for which no season sets a season rate for it (UC-025 BR-003). A changed normal rate applies to nights recorded afterwards. The night prices and total price of an existing reservation are never changed by it.
 
 ### BR-003: Maximum Number of Guests
 
