@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -13,9 +12,6 @@ import java.util.Optional;
  */
 @Service
 public class ReservationLookupService {
-
-    public static final LocalTime CHECK_IN_TIME = LocalTime.of(14, 0);
-    public static final int ONLINE_CANCELLATION_HOURS = 24;
 
     private final ReservationRepository reservationRepository;
     private final ReservationLookupLock lookupLock;
@@ -63,13 +59,22 @@ public class ReservationLookupService {
      */
     public boolean canBeCancelledOnline(OwnReservation reservation) {
         // UC-003 BR-002: Only a reservation with status Confirmed can be cancelled.
-        // UC-003 BR-001: Online until 24 hours before the check-in time (14:00) on the arrival date, local time.
+        // UC-003 BR-001: Online until the stored online cancellation deadline of the reservation.
         return reservation.status() == ReservationStatus.CONFIRMED
-                && LocalDateTime.now(clock).isBefore(onlineCancellationDeadline(reservation));
+                && OnlineCancellationDeadline.notPassed(reservation.onlineCancellationDeadline(),
+                LocalDateTime.now(clock));
     }
 
-    public static LocalDateTime onlineCancellationDeadline(OwnReservation reservation) {
-        return reservation.arrivalDate().atTime(CHECK_IN_TIME).minusHours(ONLINE_CANCELLATION_HOURS);
+    /**
+     * UC-003 BR-006: the online cancellation deadline as shown to the guest for a Confirmed reservation, or empty for
+     * any other status.
+     */
+    public Optional<String> shownOnlineCancellationDeadline(OwnReservation reservation) {
+        if (reservation.status() != ReservationStatus.CONFIRMED) {
+            return Optional.empty();
+        }
+        return Optional.of(OnlineCancellationDeadline.describe(reservation.onlineCancellationDeadline(),
+                LocalDateTime.now(clock)));
     }
 
     private static boolean isBlank(String value) {

@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -160,13 +161,16 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
         assertThat(after.getGuestId()).isEqualTo(before.getGuestId());
         assertThat(after.getChannel()).isEqualTo(before.getChannel());
         assertThat(after.getStatus()).isEqualTo("CONFIRMED");
+        // BR-007: the arrival date did not change, so the online cancellation deadline stays
+        assertThat(after.getOnlineCancellationDeadline()).isEqualTo(LocalDateTime.of(2031, 5, 8, 14, 0));
 
-        // Step 8: change confirmation email with the code and the new values
+        // Step 8: change confirmation email with the code, the new values and, for a Confirmed reservation, the
+        // online cancellation deadline (UC-003 BR-006)
         assertThat(EMAIL_SERVICE.sentEmails()).singleElement().satisfies(email -> {
             assertThat(email.to()).isEqualTo("clemens.change@example.com");
             assertThat(email.body()).contains("Reservation code: CHANGE0001", "Arrival date: 2031-05-10",
                     "Departure date: 2031-05-13", "Room type: Family Room", "Number of guests: 3",
-                    "Total price: CHF 750.00");
+                    "Total price: CHF 750.00", "Free online cancellation before 8 May 2031, 14:00");
         });
     }
 
@@ -199,6 +203,39 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
         assertThat(field("new-total-price")).isEqualTo("New total price: CHF 300.00");
         confirmChange();
         assertThat(reservation("CHANGE0002").getTotalPrice()).isEqualByComparingTo(new BigDecimal("300.00"));
+    }
+
+    @Test
+    @UseCase(id = "UC-005", businessRules = {"BR-007"})
+    void new_arrival_date_sets_the_48_hour_deadline_also_for_a_reservation_with_24_hours() {
+        // CHANGE0002 (arrival 15 May) was recorded with a 24-hour deadline: 14 May, 14:00
+        openChange("CHANGE0002");
+
+        test(arrivalDate()).setValue(LocalDate.of(2031, 5, 18));
+        test(departureDate()).setValue(LocalDate.of(2031, 5, 19));
+        checkChange();
+        confirmChange();
+
+        // 48 hours before 14:00 on the new arrival date
+        assertThat(reservation("CHANGE0002").getOnlineCancellationDeadline())
+                .isEqualTo(LocalDateTime.of(2031, 5, 16, 14, 0));
+        assertThat(EMAIL_SERVICE.sentEmails().getFirst().body())
+                .contains("Free online cancellation before 16 May 2031, 14:00");
+    }
+
+    @Test
+    @UseCase(id = "UC-005", businessRules = {"BR-007"})
+    void change_of_only_the_departure_date_keeps_the_24_hour_deadline() {
+        openChange("CHANGE0002");
+
+        test(departureDate()).setValue(LocalDate.of(2031, 5, 17));
+        checkChange();
+        confirmChange();
+
+        assertThat(reservation("CHANGE0002").getOnlineCancellationDeadline())
+                .isEqualTo(LocalDateTime.of(2031, 5, 14, 14, 0));
+        assertThat(EMAIL_SERVICE.sentEmails().getFirst().body())
+                .contains("Free online cancellation before 14 May 2031, 14:00");
     }
 
     @Test
@@ -293,7 +330,12 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
         // The guest keeps the assigned room
         assertThat(after.getRoomId()).isEqualTo(1801L);
         assertThat(after.getStatus()).isEqualTo("CHECKED_IN");
-        assertThat(EMAIL_SERVICE.sentEmails()).hasSize(1);
+        assertThat(after.getOnlineCancellationDeadline())
+                .isEqualTo(reservationBefore("CHANGE0010").getOnlineCancellationDeadline());
+        // Step 8: the online cancellation deadline is shown only for a Confirmed reservation
+        assertThat(EMAIL_SERVICE.sentEmails()).singleElement().satisfies(email ->
+                assertThat(email.body()).contains("Departure date: 2030-06-05")
+                        .doesNotContain("online cancellation", "cancelled online"));
     }
 
     @Test
@@ -643,6 +685,13 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
                 .mapToLong(ReceptionRoomType::availableRooms)
                 .findFirst()
                 .orElse(0);
+    }
+
+    private ReservationRecord reservationBefore(String reservationCode) {
+        return originalReservations.stream()
+                .filter(original -> original.getReservationCode().equals(reservationCode))
+                .findFirst()
+                .orElseThrow();
     }
 
     private ReservationRecord reservation(String reservationCode) {

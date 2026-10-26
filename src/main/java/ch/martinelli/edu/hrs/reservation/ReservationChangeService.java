@@ -88,9 +88,13 @@ public class ReservationChangeService {
             // A5: nothing changed, no email
             return new ChangeResult(false, false);
         }
+        // UC-005 step 8, UC-003 BR-006: The email shows the online cancellation deadline of a Confirmed reservation.
+        Optional<LocalDateTime> shownDeadline = changed.status() == ReservationStatus.CONFIRMED
+                ? Optional.of(changed.onlineCancellationDeadline())
+                : Optional.empty();
         boolean emailAccepted = changeEmailSender.send(changed.guestEmail(), reservationCode, change.arrivalDate(),
                 change.departureDate(), changed.roomTypeName(), change.numberOfGuests(), changed.totalPrice(),
-                changedAt);
+                shownDeadline, changedAt);
         return new ChangeResult(true, emailAccepted);
     }
 
@@ -108,9 +112,11 @@ public class ReservationChangeService {
         checkAvailability(reservation, change);
 
         BigDecimal totalPrice = newTotalPrice(reservation, change, roomType);
+        LocalDateTime onlineCancellationDeadline = newOnlineCancellationDeadline(reservation, change);
         reservationRepository.change(reservation.id(), change.arrivalDate(), change.departureDate(),
-                change.roomTypeId(), change.numberOfGuests(), totalPrice);
-        return new ChangedReservation(reservation.guestEmail(), roomType.name(), totalPrice);
+                change.roomTypeId(), change.numberOfGuests(), totalPrice, onlineCancellationDeadline);
+        return new ChangedReservation(reservation.guestEmail(), roomType.name(), totalPrice, reservation.status(),
+                onlineCancellationDeadline);
     }
 
     /**
@@ -204,6 +210,16 @@ public class ReservationChangeService {
         return OnlineReservationService.totalPrice(roomType.nightlyRate(), newNights);
     }
 
+    // UC-005 BR-007: A new arrival date of a Confirmed reservation sets the deadline again to 48 hours before the
+    // check-in time (UC-003 BR-001), also after 24 hours; other changes keep the deadline.
+    static LocalDateTime newOnlineCancellationDeadline(ChangeableReservation reservation, ReservationChange change) {
+        if (reservation.status() == ReservationStatus.CONFIRMED
+                && !reservation.arrivalDate().equals(change.arrivalDate())) {
+            return OnlineCancellationDeadline.forArrival(change.arrivalDate());
+        }
+        return reservation.onlineCancellationDeadline();
+    }
+
     private static boolean isChanged(ChangeableReservation reservation, ReservationChange change) {
         return !reservation.arrivalDate().equals(change.arrivalDate())
                 || !reservation.departureDate().equals(change.departureDate())
@@ -211,6 +227,7 @@ public class ReservationChangeService {
                 || reservation.numberOfGuests() != change.numberOfGuests();
     }
 
-    private record ChangedReservation(String guestEmail, String roomTypeName, BigDecimal totalPrice) {
+    private record ChangedReservation(String guestEmail, String roomTypeName, BigDecimal totalPrice,
+                                      ReservationStatus status, LocalDateTime onlineCancellationDeadline) {
     }
 }

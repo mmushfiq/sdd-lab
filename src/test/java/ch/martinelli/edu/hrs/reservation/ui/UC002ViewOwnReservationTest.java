@@ -82,7 +82,9 @@ class UC002ViewOwnReservationTest extends HrsBrowserlessTest {
                 "Number of nights: 3",
                 "Room type: Double Room",
                 "Number of guests: 2",
-                "Total price: CHF 450.00");
+                "Total price: CHF 450.00",
+                // Confirmed: the online cancellation deadline, 48 hours before 14:00 on the arrival date
+                "Free online cancellation before 30 October 2030, 14:00");
         assertThat($(Paragraph.class, view).withId("error-message").exists()).isFalse();
         // Success postcondition: no reservation data is changed
         assertThat(ctx.selectFrom(RESERVATION).orderBy(RESERVATION.ID).fetch()).isEqualTo(before);
@@ -289,9 +291,10 @@ class UC002ViewOwnReservationTest extends HrsBrowserlessTest {
         lookUp(view, "LOOKUP0001", EMAIL);
         assertThat(cancelOffered(view)).isTrue();
 
-        // Arrival tomorrow: the deadline is today at 14:00, it is 12:00
+        // Arrival tomorrow, recorded with a 24-hour deadline: the deadline is today at 14:00, it is 12:00
         lookUp(view, "LOOKUP0002", EMAIL);
         assertThat(cancelOffered(view)).isTrue();
+        assertThat(deadlineText(view)).isEqualTo("Free online cancellation before 1 June 2030, 14:00");
     }
 
     @Test
@@ -299,15 +302,20 @@ class UC002ViewOwnReservationTest extends HrsBrowserlessTest {
     void no_cancellation_offered_after_the_deadline_or_for_other_statuses() {
         Component view = openView();
 
-        // Arrival today: the deadline was yesterday at 14:00
+        // Arrival today: the deadline has passed; instead of the deadline the guest is told that reception can
+        // still cancel (UC-003 BR-006)
         lookUp(view, "LOOKUP0003", EMAIL);
-        assertThat(paragraphTexts(view)).contains("Reservation code: LOOKUP0003");
+        assertThat(paragraphTexts(view)).contains("Reservation code: LOOKUP0003",
+                "This reservation can no longer be cancelled online. The hotel's reception can still cancel it.");
         assertThat(cancelOffered(view)).isFalse();
+        assertThat(deadlineShown(view)).isFalse();
 
+        // Step 4: the deadline is shown only for a Confirmed reservation
         for (String code : List.of("LOOKUP0004", "LOOKUP0005", "LOOKUP0006")) {
             lookUp(view, code, EMAIL);
             assertThat(paragraphTexts(view)).contains("Reservation code: " + code);
             assertThat(cancelOffered(view)).as(code).isFalse();
+            assertThat(deadlineShown(view)).as(code).isFalse();
         }
     }
 
@@ -339,6 +347,14 @@ class UC002ViewOwnReservationTest extends HrsBrowserlessTest {
         test($(TextField.class, view).withCaption("Reservation code").single()).setValue(reservationCode);
         test($(EmailField.class, view).withCaption("Email address").single()).setValue(email);
         test($(Button.class, view).withText("Show reservation").single()).click();
+    }
+
+    private String deadlineText(Component view) {
+        return $(Paragraph.class, view).withId("online-cancellation-deadline").single().getText();
+    }
+
+    private boolean deadlineShown(Component view) {
+        return $(Paragraph.class, view).withId("online-cancellation-deadline").exists();
     }
 
     private boolean cancelOffered(Component view) {

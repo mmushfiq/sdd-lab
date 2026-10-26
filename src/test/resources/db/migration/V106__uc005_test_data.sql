@@ -46,3 +46,7 @@ VALUES
      '2030-05-01 10:00:00', NULL, NULL),
     (1812, 'CHANGE0012', 1802, 1801, NULL, '2030-06-07', '2030-06-08', 1, 120.00, 'CONFIRMED', 'ONLINE',
      '2030-05-01 10:00:00', NULL, NULL);
+
+-- CR-001: CHANGE0002 was recorded before the 48-hour deadline took effect and keeps its 24-hour deadline until its
+-- arrival date is changed (UC-005 BR-007). The other reservations get 48 hours (V199).
+UPDATE reservation SET online_cancellation_deadline = '2031-05-14 14:00:00' WHERE id = 1802;

@@ -13,10 +13,7 @@ VALUES
     -- Confirmed, long before the online cancellation deadline (Double Room, 3 nights)
     (1101, 'LOOKUP0001', 1101, 1002, NULL, '2030-11-01', '2030-11-04', 2, 450.00, 'CONFIRMED', 'ONLINE',
      '2030-05-01 10:00:00', NULL, NULL, NULL),
-    -- Confirmed, deadline 2030-06-01 14:00 not yet passed at 12:00 (Single Room)
-    (1102, 'LOOKUP0002', 1101, 1001, NULL, '2030-06-02', '2030-06-03', 1, 100.00, 'CONFIRMED', 'RECEPTION',
-     '2030-05-01 10:00:00', NULL, NULL, NULL),
-    -- Confirmed, arriving today: deadline 2030-05-31 14:00 has passed (Single Room)
+    -- Confirmed, arriving today: deadline 2030-05-30 14:00 (48 hours, V199) has passed (Single Room)
     (1103, 'LOOKUP0003', 1101, 1001, NULL, '2030-06-01', '2030-06-02', 1, 100.00, 'CONFIRMED', 'RECEPTION',
      '2030-05-01 10:00:00', NULL, NULL, NULL),
     -- Cancelled
@@ -31,3 +28,10 @@ VALUES
     -- Reservation of the erased guest
     (1107, 'ERASED0001', 1102, 1002, NULL, '2030-11-10', '2030-11-12', 2, 300.00, 'CONFIRMED', 'ONLINE',
      '2030-05-01 10:00:00', NULL, NULL, NULL);
+
+-- Confirmed, recorded before the 48-hour deadline took effect: stored deadline 2030-06-01 14:00 (24 hours) not yet
+-- passed at 12:00 (Single Room)
+INSERT INTO reservation (id, reservation_code, guest_id, room_type_id, room_id, arrival_date, departure_date,
+                         number_of_guests, total_price, status, channel, created_at, online_cancellation_deadline)
+VALUES (1102, 'LOOKUP0002', 1101, 1001, NULL, '2030-06-02', '2030-06-03', 1, 100.00, 'CONFIRMED', 'RECEPTION',
+        '2030-05-01 10:00:00', '2030-06-01 14:00:00');

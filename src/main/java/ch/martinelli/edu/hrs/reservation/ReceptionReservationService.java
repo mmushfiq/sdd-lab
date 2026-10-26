@@ -98,12 +98,13 @@ public class ReceptionReservationService {
 
         // UC-004 BR-007: The confirmation email is sent right after recording and retried for at most 24 hours;
         // an email that could not be sent never cancels or changes the reservation.
+        // UC-004 step 11, UC-003 BR-006: The email contains the online cancellation deadline.
         boolean emailAccepted = confirmationEmailSender.send(guest.email(), recorded.reservationCode(),
                 recorded.arrivalDate(), recorded.departureDate(), recorded.roomTypeName(),
-                recorded.numberOfGuests(), recorded.totalPrice(), recordedAt);
+                recorded.numberOfGuests(), recorded.totalPrice(), recorded.onlineCancellationDeadline(), recordedAt);
         return new ReservationConfirmation(recorded.reservationCode(), recorded.arrivalDate(),
                 recorded.departureDate(), recorded.roomTypeName(), recorded.numberOfGuests(), recorded.nights(),
-                recorded.totalPrice(), emailAccepted);
+                recorded.totalPrice(), recorded.onlineCancellationDeadline(), emailAccepted);
     }
 
     private ReservationConfirmation record(ReceptionReservationRequest request, GuestDetails guest,
@@ -131,12 +132,14 @@ public class ReceptionReservationService {
         // UC-004 BR-004: Total price = nights times the nightly rate in CHF, fixed when the reservation is recorded.
         BigDecimal totalPrice = OnlineReservationService.totalPrice(roomType.nightlyRate(), nights);
 
+        // UC-004 step 10, UC-003 BR-001: The online cancellation deadline is fixed when the reservation is recorded.
+        LocalDateTime onlineCancellationDeadline = OnlineCancellationDeadline.forArrival(request.arrivalDate());
         reservationRepository.insert(reservationCode, guestId, roomType.roomTypeId(), request.arrivalDate(),
                 request.departureDate(), request.numberOfGuests(), totalPrice, ReservationStatus.CONFIRMED,
-                ReservationChannel.RECEPTION, recordedAt);
+                ReservationChannel.RECEPTION, recordedAt, onlineCancellationDeadline);
 
         return new ReservationConfirmation(reservationCode, request.arrivalDate(), request.departureDate(),
-                roomType.name(), request.numberOfGuests(), nights, totalPrice, false);
+                roomType.name(), request.numberOfGuests(), nights, totalPrice, onlineCancellationDeadline, false);
     }
 
     private String uniqueReservationCode() {

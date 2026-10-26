@@ -38,8 +38,8 @@ public class OnlineCancellationService {
         if (reservation.status() != ReservationStatus.CONFIRMED) {
             throw new ReservationNotCancellableException(ReservationNotCancellableException.Reason.NOT_CONFIRMED);
         }
-        // UC-003 BR-001: Online until 24 hours before the check-in time (14:00) on the arrival date, local time.
-        if (!LocalDateTime.now(clock).isBefore(ReservationLookupService.onlineCancellationDeadline(reservation))) {
+        // UC-003 BR-001: Online until the stored online cancellation deadline of the reservation, local time.
+        if (!OnlineCancellationDeadline.notPassed(reservation.onlineCancellationDeadline(), LocalDateTime.now(clock))) {
             throw new ReservationNotCancellableException(ReservationNotCancellableException.Reason.DEADLINE_PASSED);
         }
     }
@@ -66,7 +66,7 @@ public class OnlineCancellationService {
             reservationRepository.cancel(reservationCode, cancelledAt);
             return new OwnReservation(reservation.reservationCode(), ReservationStatus.CANCELLED,
                     reservation.arrivalDate(), reservation.departureDate(), reservation.roomTypeName(),
-                    reservation.numberOfGuests(), reservation.totalPrice());
+                    reservation.numberOfGuests(), reservation.totalPrice(), reservation.onlineCancellationDeadline());
         });
 
         // UC-003 BR-004: A cancellation email that could not be sent never undoes the cancellation.

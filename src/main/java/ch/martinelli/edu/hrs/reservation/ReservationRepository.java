@@ -1,8 +1,8 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import org.jooq.DSLContext;
-import org.jooq.Record12;
-import org.jooq.Record7;
+import org.jooq.Record13;
+import org.jooq.Record8;
 import org.jooq.Records;
 import org.jooq.SelectConditionStep;
 import org.springframework.stereotype.Repository;
@@ -37,7 +37,8 @@ public class ReservationRepository {
 
     public void insert(String reservationCode, Long guestId, Long roomTypeId, LocalDate arrivalDate,
                        LocalDate departureDate, int numberOfGuests, BigDecimal totalPrice,
-                       ReservationStatus status, ReservationChannel channel, LocalDateTime createdAt) {
+                       ReservationStatus status, ReservationChannel channel, LocalDateTime createdAt,
+                       LocalDateTime onlineCancellationDeadline) {
         ctx.insertInto(RESERVATION)
                 .set(RESERVATION.RESERVATION_CODE, reservationCode)
                 .set(RESERVATION.GUEST_ID, guestId)
@@ -49,6 +50,7 @@ public class ReservationRepository {
                 .set(RESERVATION.STATUS, status.name())
                 .set(RESERVATION.CHANNEL, channel.name())
                 .set(RESERVATION.CREATED_AT, createdAt)
+                .set(RESERVATION.ONLINE_CANCELLATION_DEADLINE, onlineCancellationDeadline)
                 .execute();
     }
 
@@ -70,11 +72,12 @@ public class ReservationRepository {
                 .fetchOptional(Records.mapping(OwnReservation::new));
     }
 
-    private SelectConditionStep<Record7<String, ReservationStatus, LocalDate, LocalDate, String, Integer,
-            BigDecimal>> ownReservationQuery(String reservationCode, String normalisedEmail) {
+    private SelectConditionStep<Record8<String, ReservationStatus, LocalDate, LocalDate, String, Integer,
+            BigDecimal, LocalDateTime>> ownReservationQuery(String reservationCode, String normalisedEmail) {
         return ctx.select(RESERVATION.RESERVATION_CODE, RESERVATION.STATUS.convertFrom(ReservationStatus::valueOf),
                         RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE, ROOM_TYPE.NAME,
-                        RESERVATION.NUMBER_OF_GUESTS, RESERVATION.TOTAL_PRICE)
+                        RESERVATION.NUMBER_OF_GUESTS, RESERVATION.TOTAL_PRICE,
+                        RESERVATION.ONLINE_CANCELLATION_DEADLINE)
                 .from(RESERVATION)
                 .join(GUEST).on(GUEST.ID.eq(RESERVATION.GUEST_ID))
                 .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(RESERVATION.ROOM_TYPE_ID))
@@ -112,13 +115,13 @@ public class ReservationRepository {
                 .fetchOptional(Records.mapping(ChangeableReservation::new));
     }
 
-    private SelectConditionStep<Record12<Long, String, ReservationStatus, LocalDate, LocalDate, Long,
-            String, Integer, BigDecimal, Long, String, String>> changeableQuery(String reservationCode) {
+    private SelectConditionStep<Record13<Long, String, ReservationStatus, LocalDate, LocalDate, Long,
+            String, Integer, BigDecimal, Long, String, String, LocalDateTime>> changeableQuery(String reservationCode) {
         return ctx.select(RESERVATION.ID, RESERVATION.RESERVATION_CODE,
                         RESERVATION.STATUS.convertFrom(ReservationStatus::valueOf), RESERVATION.ARRIVAL_DATE,
                         RESERVATION.DEPARTURE_DATE, RESERVATION.ROOM_TYPE_ID, ROOM_TYPE.NAME,
                         RESERVATION.NUMBER_OF_GUESTS, RESERVATION.TOTAL_PRICE, RESERVATION.ROOM_ID, ROOM.ROOM_NUMBER,
-                        GUEST.EMAIL)
+                        GUEST.EMAIL, RESERVATION.ONLINE_CANCELLATION_DEADLINE)
                 .from(RESERVATION)
                 .join(GUEST).on(GUEST.ID.eq(RESERVATION.GUEST_ID))
                 .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(RESERVATION.ROOM_TYPE_ID))
@@ -127,17 +130,18 @@ public class ReservationRepository {
     }
 
     /**
-     * Records the new dates, room type, number of guests and total price; code, guest, channel and assigned room stay
-     * (UC-005 step 7).
+     * Records the new dates, room type, number of guests, total price and online cancellation deadline; code, guest,
+     * channel and assigned room stay (UC-005 step 7).
      */
     public void change(Long reservationId, LocalDate arrivalDate, LocalDate departureDate, Long roomTypeId,
-                       int numberOfGuests, BigDecimal totalPrice) {
+                       int numberOfGuests, BigDecimal totalPrice, LocalDateTime onlineCancellationDeadline) {
         ctx.update(RESERVATION)
                 .set(RESERVATION.ARRIVAL_DATE, arrivalDate)
                 .set(RESERVATION.DEPARTURE_DATE, departureDate)
                 .set(RESERVATION.ROOM_TYPE_ID, roomTypeId)
                 .set(RESERVATION.NUMBER_OF_GUESTS, numberOfGuests)
                 .set(RESERVATION.TOTAL_PRICE, totalPrice)
+                .set(RESERVATION.ONLINE_CANCELLATION_DEADLINE, onlineCancellationDeadline)
                 .where(RESERVATION.ID.eq(reservationId))
                 .execute();
     }

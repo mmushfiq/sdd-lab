@@ -157,8 +157,11 @@ class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
         assertThat(reservation.getChannel()).isEqualTo("ONLINE");
         assertThat(reservation.getRoomId()).isNull();
         assertThat(reservation.getCreatedAt()).isEqualTo(LocalDateTime.now(clock));
+        // Step 9 / success postcondition: online cancellation deadline 48 hours before 14:00 on the arrival date
+        assertThat(reservation.getOnlineCancellationDeadline()).isEqualTo(LocalDateTime.of(2030, 6, 8, 14, 0));
 
-        // Step 10, UC-001 BR-011: confirmation email with code, dates, room type, number of guests and total price
+        // Step 10, UC-001 BR-011: confirmation email with code, dates, room type, number of guests, total price and
+        // online cancellation deadline (UC-003 BR-006)
         List<Email> emails = EMAIL_SERVICE.sentEmails();
         assertThat(emails).hasSize(1);
         Email email = emails.getFirst();
@@ -169,7 +172,29 @@ class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
                 "Departure date: 2030-06-13",
                 "Room type: Double Room",
                 "Number of guests: 2",
-                "Total price: CHF 450.00");
+                "Total price: CHF 450.00",
+                "Free online cancellation before 8 June 2030, 14:00");
+    }
+
+    @Test
+    @UseCase(id = "UC-001", businessRules = {"BR-011"})
+    void confirmation_email_of_a_late_reservation_says_that_only_reception_can_cancel() {
+        Component view = openView();
+        // Arrival today: the online cancellation deadline (30 May, 14:00) has already passed
+        search(view, TODAY, TODAY.plusDays(1), 2);
+        selectRoomType(view, "Double Room");
+        enterGuestDetails(view, "Clara", "Neu", "clara.neu@example.com", "+41 79 333 33 33");
+        confirm(view);
+
+        ReservationRecord reservation = ctx.selectFrom(RESERVATION)
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode(view)))
+                .fetchSingle();
+        assertThat(reservation.getOnlineCancellationDeadline()).isEqualTo(LocalDateTime.of(2030, 5, 30, 14, 0));
+        // UC-003 BR-006: instead of the deadline the guest is told that reception can still cancel
+        assertThat(EMAIL_SERVICE.sentEmails().getFirst().body())
+                .contains("This reservation can no longer be cancelled online. "
+                        + "The hotel's reception can still cancel it.")
+                .doesNotContain("Free online cancellation");
     }
 
     @Test

@@ -87,7 +87,7 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
         ctx.update(RESERVATION)
                 .set(RESERVATION.STATUS, "CONFIRMED")
                 .setNull(RESERVATION.CANCELLED_AT)
-                .where(RESERVATION.ID.in(1201L, 1202L))
+                .where(RESERVATION.ID.in(1201L, 1202L, 1204L))
                 .execute();
     }
 
@@ -96,15 +96,16 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
     // ---------------------------------------------------------------------------------------------------------------
 
     @Test
-    @UseCase(id = "UC-003", businessRules = {"BR-003", "BR-004"})
+    @UseCase(id = "UC-003", businessRules = {"BR-003", "BR-004", "BR-006"})
     void guest_cancels_reservation_and_receives_cancellation_email() {
         Component view = openView();
         lookUp(view, "CANCEL0001", EMAIL);
 
-        // Step 4
+        // Step 4, with the online cancellation deadline (BR-006): arrival 20 November, 48 hours before 14:00
         assertThat(paragraphTexts(view)).contains("Reservation code: CANCEL0001", "Status: Confirmed",
                 "Arrival date: Nov 20, 2030", "Departure date: Nov 22, 2030", "Room type: Family Room",
                 "Number of guests: 3", "Total price: CHF 500.00");
+        assertThat(deadlineText(view)).isEqualTo("Free online cancellation before 18 November 2030, 14:00");
 
         // Steps 5 to 7: the guest is asked to confirm and told that it cannot be undone
         requestCancellation(view);
@@ -153,8 +154,8 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
     @Test
     @UseCase(id = "UC-003", businessRules = {"BR-001"})
     void cancellation_is_possible_one_minute_before_the_deadline() {
-        // Arrival 2 June: the last online cancellation is on 1 June at 13:59
-        CLOCK.setInstant(LocalDateTime.of(2030, 6, 1, 13, 59).atZone(HOTEL_ZONE).toInstant());
+        // Arrival 2 June: the deadline is 31 May at 14:00, so the last online cancellation is on 31 May at 13:59
+        CLOCK.setInstant(LocalDateTime.of(2030, 5, 31, 13, 59).atZone(HOTEL_ZONE).toInstant());
         Component view = openView();
         lookUp(view, "CANCEL0002", EMAIL);
 
@@ -162,6 +163,34 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
         test($(ConfirmDialog.class).single()).confirm();
 
         assertThat(reservation(1202L).getStatus()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    @UseCase(id = "UC-003", businessRules = {"BR-001", "BR-006"})
+    void reservation_recorded_before_the_change_keeps_its_24_hour_deadline() {
+        // Arrival 14 December, stored deadline 13 December 14:00; the 48-hour deadline (12 December) has passed
+        CLOCK.setInstant(LocalDateTime.of(2030, 12, 13, 13, 59).atZone(HOTEL_ZONE).toInstant());
+        Component view = openView();
+        lookUp(view, "CANCEL0004", EMAIL);
+
+        assertThat(deadlineText(view)).isEqualTo("Free online cancellation before 13 December 2030, 14:00");
+        requestCancellation(view);
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(reservation(1204L).getStatus()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    @UseCase(id = "UC-003", scenario = "A5: Cancellation Deadline Passed", businessRules = {"BR-001", "BR-006"})
+    void reservation_with_24_hour_deadline_is_refused_from_its_deadline_on() {
+        CLOCK.setInstant(LocalDateTime.of(2030, 12, 13, 14, 0).atZone(HOTEL_ZONE).toInstant());
+        Component view = openView();
+
+        lookUp(view, "CANCEL0004", EMAIL);
+
+        assertThat(cancelOffered(view)).isFalse();
+        assertThat(notCancellableMessage(view)).isEqualTo(ViewOwnReservationView.DEADLINE_PASSED);
+        assertThat(reservation(1204L).getStatus()).isEqualTo("CONFIRMED");
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -244,16 +273,19 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
     // ---------------------------------------------------------------------------------------------------------------
 
     @Test
-    @UseCase(id = "UC-003", scenario = "A5: Cancellation Deadline Passed", businessRules = {"BR-001"})
+    @UseCase(id = "UC-003", scenario = "A5: Cancellation Deadline Passed", businessRules = {"BR-001", "BR-006"})
     void cancellation_is_refused_from_the_deadline_on() {
-        // Arrival 2 June: from 1 June 14:00 only the reception can cancel
-        CLOCK.setInstant(LocalDateTime.of(2030, 6, 1, 14, 0).atZone(HOTEL_ZONE).toInstant());
+        // Arrival 2 June: from 31 May 14:00 only the reception can cancel
+        CLOCK.setInstant(LocalDateTime.of(2030, 5, 31, 14, 0).atZone(HOTEL_ZONE).toInstant());
         Component view = openView();
 
         lookUp(view, "CANCEL0002", EMAIL);
 
         assertThat(cancelOffered(view)).isFalse();
-        assertThat(notCancellableMessage(view)).isEqualTo(ViewOwnReservationView.DEADLINE_PASSED);
+        // BR-006: instead of the deadline the guest is told that reception can still cancel
+        assertThat(notCancellableMessage(view)).isEqualTo(
+                "This reservation can no longer be cancelled online. The hotel's reception can still cancel it.");
+        assertThat($(Paragraph.class, view).withId("online-cancellation-deadline").exists()).isFalse();
         assertThat(reservation(1202L).getStatus()).isEqualTo("CONFIRMED");
     }
 
@@ -285,12 +317,12 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
     @Test
     @UseCase(id = "UC-003", scenario = "A7: Deadline Passes Before Confirmation", businessRules = {"BR-001"})
     void deadline_passes_while_the_guest_confirms() {
-        CLOCK.setInstant(LocalDateTime.of(2030, 6, 1, 13, 59).atZone(HOTEL_ZONE).toInstant());
+        CLOCK.setInstant(LocalDateTime.of(2030, 5, 31, 13, 59).atZone(HOTEL_ZONE).toInstant());
         Component view = openView();
         lookUp(view, "CANCEL0002", EMAIL);
         requestCancellation(view);
 
-        CLOCK.setInstant(LocalDateTime.of(2030, 6, 1, 14, 0).atZone(HOTEL_ZONE).toInstant());
+        CLOCK.setInstant(LocalDateTime.of(2030, 5, 31, 14, 0).atZone(HOTEL_ZONE).toInstant());
         test($(ConfirmDialog.class).single()).confirm();
 
         assertThat(reservation(1202L).getStatus()).isEqualTo("CONFIRMED");
@@ -366,6 +398,10 @@ class UC003CancelOwnReservationTest extends HrsBrowserlessTest {
 
     private String notCancellableMessage(Component view) {
         return $(Paragraph.class, view).withId("not-cancellable").single().getText();
+    }
+
+    private String deadlineText(Component view) {
+        return $(Paragraph.class, view).withId("online-cancellation-deadline").single().getText();
     }
 
     private ReservationRecord reservation(long id) {

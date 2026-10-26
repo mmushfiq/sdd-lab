@@ -74,10 +74,10 @@ public class OnlineReservationService {
 
         boolean emailAccepted = confirmationEmailSender.send(guest.email(), recorded.reservationCode(),
                 recorded.arrivalDate(), recorded.departureDate(), recorded.roomTypeName(),
-                recorded.numberOfGuests(), recorded.totalPrice(), recordedAt);
+                recorded.numberOfGuests(), recorded.totalPrice(), recorded.onlineCancellationDeadline(), recordedAt);
         return new ReservationConfirmation(recorded.reservationCode(), recorded.arrivalDate(),
                 recorded.departureDate(), recorded.roomTypeName(), recorded.numberOfGuests(), recorded.nights(),
-                recorded.totalPrice(), emailAccepted);
+                recorded.totalPrice(), recorded.onlineCancellationDeadline(), emailAccepted);
     }
 
     private ReservationConfirmation record(OnlineReservationRequest request, GuestDetails guest,
@@ -104,12 +104,14 @@ public class OnlineReservationService {
         // UC-001 BR-004: The total price is fixed at the nightly rate valid when the reservation is recorded.
         BigDecimal totalPrice = totalPrice(roomType.nightlyRate(), nights);
 
+        // UC-001 step 9, UC-003 BR-001: The online cancellation deadline is fixed when the reservation is recorded.
+        LocalDateTime onlineCancellationDeadline = OnlineCancellationDeadline.forArrival(request.arrivalDate());
         reservationRepository.insert(reservationCode, guestId, roomType.roomTypeId(), request.arrivalDate(),
                 request.departureDate(), request.numberOfGuests(), totalPrice, ReservationStatus.CONFIRMED,
-                ReservationChannel.ONLINE, recordedAt);
+                ReservationChannel.ONLINE, recordedAt, onlineCancellationDeadline);
 
         return new ReservationConfirmation(reservationCode, request.arrivalDate(), request.departureDate(),
-                roomType.name(), request.numberOfGuests(), nights, totalPrice, false);
+                roomType.name(), request.numberOfGuests(), nights, totalPrice, onlineCancellationDeadline, false);
     }
 
     // UC-001 BR-007: Every reservation receives a unique reservation code.

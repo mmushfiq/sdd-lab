@@ -150,6 +150,8 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
         assertThat(reservation.getNumberOfGuests()).isEqualTo(2);
         assertThat(reservation.getTotalPrice()).isEqualByComparingTo(new BigDecimal("450.00"));
         assertThat(reservation.getCreatedAt()).isEqualTo(LocalDateTime.now(clock));
+        // Step 10, UC-003 BR-001: online cancellation deadline 48 hours before 14:00 on the arrival date
+        assertThat(reservation.getOnlineCancellationDeadline()).isEqualTo(LocalDateTime.of(2031, 1, 8, 14, 0));
 
         GuestRecord guest = ctx.selectFrom(GUEST).where(GUEST.ID.eq(reservation.getGuestId())).fetchSingle();
         assertThat(guest.getFirstName()).isEqualTo("Greta");
@@ -158,12 +160,13 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
         assertThat(guest.getEmail()).isEqualTo("greta.neu@example.com");
         assertThat(guest.getPhone()).isEqualTo("+41 79 777 77 77");
 
-        // Step 11: confirmation email with code, dates, room type, number of guests and total price
+        // Step 11: confirmation email with code, dates, room type, number of guests, total price and online
+        // cancellation deadline (UC-003 BR-006)
         assertThat(EMAIL_SERVICE.sentEmails()).singleElement().satisfies(email -> {
             assertThat(email.to()).isEqualTo("greta.neu@example.com");
             assertThat(email.body()).contains("Reservation code: " + reservationCode, "Arrival date: 2031-01-10",
                     "Departure date: 2031-01-13", "Room type: Double Room", "Number of guests: 2",
-                    "Total price: CHF 450.00");
+                    "Total price: CHF 450.00", "Free online cancellation before 8 January 2031, 14:00");
         });
     }
 
@@ -211,6 +214,13 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
         ReservationRecord reservation = reservation(reservationCode(view));
         assertThat(reservation.getArrivalDate()).isEqualTo(TODAY);
         assertThat(reservation.getChannel()).isEqualTo("RECEPTION");
+        // Step 10, UC-003 BR-001: the deadline (30 May, 14:00) has already passed for a walk-in guest
+        assertThat(reservation.getOnlineCancellationDeadline()).isEqualTo(LocalDateTime.of(2030, 5, 30, 14, 0));
+        // Step 11, UC-003 BR-006: instead of the deadline the guest is told that reception can still cancel
+        assertThat(EMAIL_SERVICE.sentEmails().getFirst().body())
+                .contains("This reservation can no longer be cancelled online. "
+                        + "The hotel's reception can still cancel it.")
+                .doesNotContain("Free online cancellation");
     }
 
     // ---------------------------------------------------------------------------------------------------------------

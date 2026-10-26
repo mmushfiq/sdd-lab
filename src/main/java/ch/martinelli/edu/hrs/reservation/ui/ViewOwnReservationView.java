@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reservation.ui;
 
 import ch.martinelli.edu.hrs.reservation.OnlineCancellation;
+import ch.martinelli.edu.hrs.reservation.OnlineCancellationDeadline;
 import ch.martinelli.edu.hrs.reservation.OnlineCancellationService;
 import ch.martinelli.edu.hrs.reservation.OwnReservation;
 import ch.martinelli.edu.hrs.reservation.ReservationNotCancellableException;
@@ -51,8 +52,7 @@ public class ViewOwnReservationView extends VerticalLayout {
     static final String CANCELLATION_CANNOT_BE_UNDONE = "The cancellation cannot be undone.";
     static final String CANCELLED = "Your reservation is cancelled. We have sent you a cancellation email.";
     static final String CANCELLED_EMAIL_DELAYED = "Your reservation is cancelled. The cancellation email may be delayed.";
-    static final String DEADLINE_PASSED = "This reservation can no longer be cancelled online. "
-            + "The hotel's reception can still cancel it.";
+    static final String DEADLINE_PASSED = OnlineCancellationDeadline.NO_LONGER_POSSIBLE;
 
     private final ReservationLookupService lookupService;
     private final OnlineCancellationService cancellationService;
@@ -159,6 +159,13 @@ public class ViewOwnReservationView extends VerticalLayout {
 
         // UC-002 A4: offer the online cancellation (UC-003)
         if (lookupService.canBeCancelledOnline(reservation)) {
+            // UC-002 step 4, UC-003 BR-006: A Confirmed reservation shows its online cancellation deadline. When it
+            // has passed, the guest is told instead that reception can still cancel (showWhyNotCancellable).
+            lookupService.shownOnlineCancellationDeadline(reservation).ifPresent(text -> {
+                Paragraph deadline = new Paragraph(text);
+                deadline.setId("online-cancellation-deadline");
+                reservationDetails.add(deadline);
+            });
             Button cancel = new Button("Cancel reservation");
             cancel.setId("cancel-reservation");
             cancel.addThemeVariants(ButtonVariant.ERROR);
