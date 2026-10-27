@@ -5,12 +5,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -21,16 +22,18 @@ public class ReservationChangeService {
 
     private final ReservationRepository reservationRepository;
     private final RoomTypeAvailabilityRepository availabilityRepository;
+    private final NightlyRates nightlyRates;
     private final ChangeEmailSender changeEmailSender;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
     public ReservationChangeService(ReservationRepository reservationRepository,
-                                    RoomTypeAvailabilityRepository availabilityRepository,
+                                    RoomTypeAvailabilityRepository availabilityRepository, NightlyRates nightlyRates,
                                     ChangeEmailSender changeEmailSender, TransactionTemplate transactionTemplate,
                                     Clock clock) {
         this.reservationRepository = reservationRepository;
         this.availabilityRepository = availabilityRepository;
+        this.nightlyRates = nightlyRates;
         this.changeEmailSender = changeEmailSender;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
@@ -70,7 +73,7 @@ public class ReservationChangeService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown reservation " + reservationCode));
         RoomTypeChoice roomType = checkValues(reservation, change);
         checkAvailability(reservation, change);
-        return new ChangePreview(reservation.totalPrice(), newTotalPrice(reservation, change, roomType),
+        return new ChangePreview(reservation.totalPrice(), NightPrice.total(newNightPrices(reservation, change)),
                 roomType.name(), isChanged(reservation, change));
     }
 
@@ -111,10 +114,13 @@ public class ReservationChangeService {
         availabilityRepository.lockRoomType(change.roomTypeId());
         checkAvailability(reservation, change);
 
-        BigDecimal totalPrice = newTotalPrice(reservation, change, roomType);
+        // UC-005 step 7: the night prices of the new date range and their sum as the new total price
+        List<NightPrice> nightPrices = newNightPrices(reservation, change);
+        BigDecimal totalPrice = NightPrice.total(nightPrices);
         LocalDateTime onlineCancellationDeadline = newOnlineCancellationDeadline(reservation, change);
         reservationRepository.change(reservation.id(), change.arrivalDate(), change.departureDate(),
                 change.roomTypeId(), change.numberOfGuests(), totalPrice, onlineCancellationDeadline);
+        reservationRepository.replaceNightPrices(reservation.id(), nightPrices);
         return new ChangedReservation(reservation.guestEmail(), roomType.name(), totalPrice, reservation.status(),
                 onlineCancellationDeadline);
     }
@@ -197,17 +203,18 @@ public class ReservationChangeService {
         }
     }
 
-    // UC-005 BR-005: Confirmed: new nights times the current nightly rate of the new room type.
-    // Checked In: new nights times the reserved total price divided by the reserved number of nights.
-    static BigDecimal newTotalPrice(ChangeableReservation reservation, ReservationChange change,
-                                    RoomTypeChoice roomType) {
-        long newNights = OnlineReservationService.nights(change.arrivalDate(), change.departureDate());
-        if (reservation.status() == ReservationStatus.CHECKED_IN) {
-            return reservation.totalPrice()
-                    .multiply(BigDecimal.valueOf(newNights))
-                    .divide(BigDecimal.valueOf(reservation.nights()), 2, RoundingMode.HALF_UP);
+    // UC-005 BR-005: A night already part of the reservation keeps its night price while the room type stays; added
+    // nights, and all nights after a change of the room type, get the nightly rate valid now (UC-001 BR-004).
+    // Nights no longer part of the reservation are removed.
+    private List<NightPrice> newNightPrices(ChangeableReservation reservation, ReservationChange change) {
+        Map<LocalDate, BigDecimal> kept = new HashMap<>();
+        if (reservation.roomTypeId().equals(change.roomTypeId())) {
+            reservationRepository.findNightPrices(reservation.id())
+                    .forEach(nightPrice -> kept.put(nightPrice.night(), nightPrice.price()));
         }
-        return OnlineReservationService.totalPrice(roomType.nightlyRate(), newNights);
+        return nightlyRates.of(change.roomTypeId(), change.arrivalDate(), change.departureDate()).stream()
+                .map(rate -> new NightPrice(rate.night(), kept.getOrDefault(rate.night(), rate.rate())))
+                .toList();
     }
 
     // UC-005 BR-007: A new arrival date of a Confirmed reservation sets the deadline again to 48 hours before the

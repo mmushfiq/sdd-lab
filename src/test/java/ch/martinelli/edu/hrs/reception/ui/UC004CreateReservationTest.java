@@ -40,6 +40,8 @@ import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
+import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -55,6 +57,7 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
     /** Rows created by the tests get sequence values below the IDs of the test data. */
     private static final long FIRST_TEST_DATA_ID = 1001;
     private static final long KNOWN_GUEST_ID = 1401;
+    private static final long RIAD = 3301;
 
     @TestBean
     Clock clock;
@@ -94,6 +97,8 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
                 .set(GUEST.PHONE, "+41 79 666 66 66")
                 .where(GUEST.ID.eq(KNOWN_GUEST_ID))
                 .execute();
+        // The season test offers the Riad (V121); make it inactive again
+        ctx.update(ROOM_TYPE).set(ROOM_TYPE.ACTIVE, false).where(ROOM_TYPE.ID.eq(RIAD)).execute();
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -221,6 +226,37 @@ class UC004CreateReservationTest extends HrsBrowserlessTest {
                 .contains("This reservation can no longer be cancelled online. "
                         + "The hotel's reception can still cancel it.")
                 .doesNotContain("Free online cancellation");
+    }
+
+    @Test
+    @UseCase(id = "UC-004", businessRules = {"BR-004"})
+    void stay_crossing_a_season_boundary_is_priced_night_by_night() {
+        // The season Autumn 2030 (5 to 7 November) sets 160.00 for the Riad, whose normal rate is 100.00 (V121)
+        ctx.update(ROOM_TYPE).set(ROOM_TYPE.ACTIVE, true).where(ROOM_TYPE.ID.eq(RIAD)).execute();
+        Component view = openView();
+        search(view, LocalDate.of(2030, 11, 4), LocalDate.of(2030, 11, 9), 2);
+
+        // Step 3: the lowest and the highest nightly rate when the nights have different nightly rates
+        assertThat(paragraphTexts(view)).contains("Nightly rate: CHF 100.00 to CHF 160.00",
+                "Total price for 5 nights: CHF 680.00");
+        // A room type without a season rate keeps its normal rate (UC-025 BR-003)
+        assertThat(paragraphTexts(view)).contains("Nightly rate: CHF 150.00", "Total price for 5 nights: CHF 750.00");
+
+        selectRoomType(view, "Riad");
+        enterGuestDetails(view, "Greta", "Neu", "greta.neu@example.com", "+41 79 777 77 77");
+        confirm(view);
+
+        // BR-004 / success postcondition: a night price for every night, the total price is their sum
+        String reservationCode = reservationCode(view);
+        assertThat($(Paragraph.class, view).withId("total-price").single().getText())
+                .isEqualTo("Total price: CHF 680.00");
+        assertThat(ctx.select(RESERVATION_NIGHT.NIGHT_PRICE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservation(reservationCode).getId()))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHT_PRICE))
+                .containsExactly(new BigDecimal("100.00"), new BigDecimal("160.00"), new BigDecimal("160.00"),
+                        new BigDecimal("160.00"), new BigDecimal("100.00"));
+        assertThat(reservation(reservationCode).getTotalPrice()).isEqualByComparingTo("680.00");
     }
 
     // ---------------------------------------------------------------------------------------------------------------

@@ -70,7 +70,7 @@ public class RoomTypeService {
         }
     }
 
-    // UC-016 A1: name 1 to 50 characters, description at most 500, 1 to 10 guests, nightly rate not missing or
+    // UC-016 A1: name 1 to 50 characters, description at most 500, 1 to 10 guests, normal rate not missing or
     // negative (with at most 2 decimals and at most 99999999.99, entity model).
     static RoomTypeData checkValues(RoomTypeData data) {
         String name = data.name() == null ? "" : data.name().strip();
@@ -88,7 +88,7 @@ public class RoomTypeService {
                     + " and " + MAX_GUESTS);
         }
         if (!isValidNightlyRate(data.nightlyRate())) {
-            throw new IllegalArgumentException("The nightly rate must be between 0 and " + MAX_NIGHTLY_RATE);
+            throw new IllegalArgumentException("The normal rate must be between 0 and " + MAX_NIGHTLY_RATE);
         }
         return new RoomTypeData(name, description, data.maxGuests(), data.nightlyRate(), data.active());
     }

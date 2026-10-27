@@ -7,7 +7,7 @@
 **Primary Actor:** Manager  
 **Goal:** The manager defines seasons as date ranges with their own nightly rate per room type, so that prices rise in busy periods and fall in quiet ones without changing the normal rate by hand before and after each season.  
 **Trigger:** Manager wants to add a season or change or delete an existing one  
-**Status:** Approved  
+**Status:** Tested  
 
 **Requirements:** [FR-027, NFR-009](../requirements.md)
 

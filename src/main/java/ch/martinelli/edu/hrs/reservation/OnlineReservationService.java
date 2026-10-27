@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -25,6 +26,7 @@ public class OnlineReservationService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final RoomTypeAvailabilityRepository availabilityRepository;
+    private final NightlyRates nightlyRates;
     private final GuestRepository guestRepository;
     private final ReservationRepository reservationRepository;
     private final ReservationCodeGenerator codeGenerator;
@@ -32,12 +34,13 @@ public class OnlineReservationService {
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
-    public OnlineReservationService(RoomTypeAvailabilityRepository availabilityRepository,
+    public OnlineReservationService(RoomTypeAvailabilityRepository availabilityRepository, NightlyRates nightlyRates,
                                     GuestRepository guestRepository, ReservationRepository reservationRepository,
                                     ReservationCodeGenerator codeGenerator,
                                     ConfirmationEmailSender confirmationEmailSender,
                                     TransactionTemplate transactionTemplate, Clock clock) {
         this.availabilityRepository = availabilityRepository;
+        this.nightlyRates = nightlyRates;
         this.guestRepository = guestRepository;
         this.reservationRepository = reservationRepository;
         this.codeGenerator = codeGenerator;
@@ -53,9 +56,18 @@ public class OnlineReservationService {
                                                             int numberOfGuests) {
         checkSearch(arrivalDate, departureDate, numberOfGuests);
         long nights = nights(arrivalDate, departureDate);
-        return availabilityRepository.findAvailableRoomTypes(arrivalDate, departureDate, numberOfGuests).stream()
-                .map(offer -> new AvailableRoomType(offer.roomTypeId(), offer.name(), offer.description(),
-                        offer.maxGuests(), offer.nightlyRate(), nights, totalPrice(offer.nightlyRate(), nights)))
+        List<RoomTypeOffer> offers = availabilityRepository.findAvailableRoomTypes(arrivalDate, departureDate,
+                numberOfGuests);
+        // UC-001 BR-004: Every night is priced at the nightly rate valid for it (UC-025 BR-003).
+        Map<Long, List<NightlyRate>> rates = nightlyRates.of(offers.stream().map(RoomTypeOffer::roomTypeId).toList(),
+                arrivalDate, departureDate);
+        return offers.stream()
+                .map(offer -> {
+                    List<NightPrice> nightPrices = NightPrice.of(rates.get(offer.roomTypeId()));
+                    return new AvailableRoomType(offer.roomTypeId(), offer.name(), offer.description(),
+                            offer.maxGuests(), lowest(nightPrices), highest(nightPrices), nights, nightPrices,
+                            NightPrice.total(nightPrices));
+                })
                 .toList();
     }
 
@@ -101,13 +113,16 @@ public class OnlineReservationService {
 
         String reservationCode = uniqueReservationCode();
         long nights = nights(request.arrivalDate(), request.departureDate());
-        // UC-001 BR-004: The total price is fixed at the nightly rate valid when the reservation is recorded.
-        BigDecimal totalPrice = totalPrice(roomType.nightlyRate(), nights);
+        // UC-001 BR-004: Every night gets the nightly rate valid for it when the reservation is recorded; the total
+        // price is the sum of the night prices.
+        List<NightPrice> nightPrices = NightPrice.of(nightlyRates.of(roomType.roomTypeId(), request.arrivalDate(),
+                request.departureDate()));
+        BigDecimal totalPrice = NightPrice.total(nightPrices);
 
         // UC-001 step 9, UC-003 BR-001: The online cancellation deadline is fixed when the reservation is recorded.
         LocalDateTime onlineCancellationDeadline = OnlineCancellationDeadline.forArrival(request.arrivalDate());
         reservationRepository.insert(reservationCode, guestId, roomType.roomTypeId(), request.arrivalDate(),
-                request.departureDate(), request.numberOfGuests(), totalPrice, ReservationStatus.CONFIRMED,
+                request.departureDate(), request.numberOfGuests(), nightPrices, ReservationStatus.CONFIRMED,
                 ReservationChannel.ONLINE, recordedAt, onlineCancellationDeadline);
 
         return new ReservationConfirmation(reservationCode, request.arrivalDate(), request.departureDate(),
@@ -123,9 +138,12 @@ public class OnlineReservationService {
         return code;
     }
 
-    // UC-001 BR-004: Total price = number of nights times the nightly rate, in CHF.
-    static BigDecimal totalPrice(BigDecimal nightlyRate, long nights) {
-        return nightlyRate.multiply(BigDecimal.valueOf(nights));
+    static BigDecimal lowest(List<NightPrice> nightPrices) {
+        return nightPrices.stream().map(NightPrice::price).min(BigDecimal::compareTo).orElseThrow();
+    }
+
+    static BigDecimal highest(List<NightPrice> nightPrices) {
+        return nightPrices.stream().map(NightPrice::price).max(BigDecimal::compareTo).orElseThrow();
     }
 
     static long nights(LocalDate arrivalDate, LocalDate departureDate) {

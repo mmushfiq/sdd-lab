@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reception.ui;
 
 import ch.martinelli.edu.hrs.core.ui.HrsBrowserlessTest;
+import ch.martinelli.edu.hrs.db.tables.records.ReservationNightRecord;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.email.EmailService;
 import ch.martinelli.edu.hrs.email.RecordingEmailService;
@@ -44,6 +45,7 @@ import java.time.ZoneId;
 import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -73,6 +75,7 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
     DSLContext ctx;
 
     private Result<ReservationRecord> originalReservations;
+    private Result<ReservationNightRecord> originalNights;
 
     static Clock clock() {
         return Clock.fixed(Instant.parse("2030-06-01T10:00:00Z"), ZoneId.of("Europe/Zurich"));
@@ -85,7 +88,10 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
     @BeforeEach
     void rememberTestData() {
         EMAIL_SERVICE.reset();
-        originalReservations = ctx.selectFrom(RESERVATION).where(RESERVATION.ID.between(1801L, 1899L)).fetch();
+        originalReservations = ctx.selectFrom(RESERVATION).where(RESERVATION.ID.between(1801L, 1899L)
+                .or(RESERVATION.ID.between(3301L, 3399L))).fetch();
+        originalNights = ctx.selectFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.between(1801L, 1899L)
+                .or(RESERVATION_NIGHT.RESERVATION_ID.between(3301L, 3399L))).fetch();
     }
 
     @AfterEach
@@ -98,6 +104,11 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
             original.changed(RESERVATION.ID, false);
             ctx.update(RESERVATION).set(original).where(RESERVATION.ID.eq(original.getId())).execute();
         });
+        // The night prices recorded by a change are undone as well
+        ctx.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.between(1801L, 1899L)
+                .or(RESERVATION_NIGHT.RESERVATION_ID.between(3301L, 3399L))).execute();
+        originalNights.forEach(night -> night.changed(true));
+        ctx.batchInsert(originalNights).execute();
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -191,18 +202,67 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
 
     @Test
     @UseCase(id = "UC-005", businessRules = {"BR-005"})
-    void total_price_is_recalculated_with_the_current_nightly_rate() {
+    void kept_night_keeps_its_price_and_the_added_night_gets_the_current_nightly_rate() {
         // Reserved at an older nightly rate: 1 night for 120.00
         openChange("CHANGE0002");
 
         test(departureDate()).setValue(LocalDate.of(2031, 5, 17));
         checkChange();
 
-        // 2 nights at the current 150.00
+        // The night of 15 May keeps 120.00, the added night of 16 May gets the current 150.00
         assertThat(field("old-total-price")).isEqualTo("Old total price: CHF 120.00");
+        assertThat(field("new-total-price")).isEqualTo("New total price: CHF 270.00");
+        confirmChange();
+        assertThat(reservation("CHANGE0002").getTotalPrice()).isEqualByComparingTo(new BigDecimal("270.00"));
+        assertThat(nightPrices("CHANGE0002")).containsExactly(new BigDecimal("120.00"), new BigDecimal("150.00"));
+    }
+
+    @Test
+    @UseCase(id = "UC-005", businessRules = {"BR-005"})
+    void added_nights_in_a_season_get_the_season_rate_and_kept_nights_keep_their_price() {
+        // RIAD000003: 3 and 4 November at 90.00; Autumn 2030 (5 to 7 November) sets 160.00 for the Riad (V121)
+        openChange("RIAD000003");
+
+        test(departureDate()).setValue(LocalDate.of(2030, 11, 9));
+        checkChange();
+
+        // 90.00 + 90.00 + 3 x 160.00 + 100.00 (8 November, normal rate)
+        assertThat(field("old-total-price")).isEqualTo("Old total price: CHF 180.00");
+        assertThat(field("new-total-price")).isEqualTo("New total price: CHF 760.00");
+        confirmChange();
+        assertThat(nightPrices("RIAD000003")).containsExactly(new BigDecimal("90.00"), new BigDecimal("90.00"),
+                new BigDecimal("160.00"), new BigDecimal("160.00"), new BigDecimal("160.00"), new BigDecimal("100.00"));
+        assertThat(reservation("RIAD000003").getTotalPrice()).isEqualByComparingTo("760.00");
+    }
+
+    @Test
+    @UseCase(id = "UC-005", businessRules = {"BR-005"})
+    void nights_no_longer_part_of_the_reservation_are_removed() {
+        openChange("RIAD000003");
+
+        // The arrival moves from 3 to 4 November: the night of 3 November is removed, 4 November keeps 90.00
+        test(arrivalDate()).setValue(LocalDate.of(2030, 11, 4));
+        checkChange();
+        assertThat(field("new-total-price")).isEqualTo("New total price: CHF 90.00");
+        confirmChange();
+
+        assertThat(nightPrices("RIAD000003")).containsExactly(new BigDecimal("90.00"));
+        assertThat(reservation("RIAD000003").getTotalPrice()).isEqualByComparingTo("90.00");
+    }
+
+    @Test
+    @UseCase(id = "UC-005", businessRules = {"BR-005"})
+    void every_night_gets_the_current_nightly_rate_after_a_change_of_the_room_type() {
+        // RIAD000003: 3 and 4 November at 90.00 in the Riad
+        openChange("RIAD000003");
+
+        selectRoomType("Double Room");
+        checkChange();
+
+        // Both nights at the current 150.00 of the Double Room
         assertThat(field("new-total-price")).isEqualTo("New total price: CHF 300.00");
         confirmChange();
-        assertThat(reservation("CHANGE0002").getTotalPrice()).isEqualByComparingTo(new BigDecimal("300.00"));
+        assertThat(nightPrices("RIAD000003")).containsExactly(new BigDecimal("150.00"), new BigDecimal("150.00"));
     }
 
     @Test
@@ -336,6 +396,24 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
         assertThat(EMAIL_SERVICE.sentEmails()).singleElement().satisfies(email ->
                 assertThat(email.body()).contains("Departure date: 2030-06-05")
                         .doesNotContain("online cancellation", "cancelled online"));
+    }
+
+    @Test
+    @UseCase(id = "UC-005", scenario = "A2: Guest Already Checked In", businessRules = {"BR-005"})
+    void checked_in_guest_keeps_the_prices_of_the_reserved_nights_and_pays_the_current_rate_for_added_nights() {
+        // RIAD000002 is checked in to R02 until 4 June: 100.00, 2 x 180.00 (Late May 2030 season), 3 x 100.00
+        openChange("RIAD000002");
+
+        test(departureDate()).setValue(LocalDate.of(2030, 6, 6));
+        checkChange();
+
+        // 760.00 + 2 added nights at the current normal rate of 100.00
+        assertThat(field("new-total-price")).isEqualTo("New total price: CHF 960.00");
+        confirmChange();
+        assertThat(nightPrices("RIAD000002")).containsExactly(new BigDecimal("100.00"), new BigDecimal("180.00"),
+                new BigDecimal("180.00"), new BigDecimal("100.00"), new BigDecimal("100.00"), new BigDecimal("100.00"),
+                new BigDecimal("100.00"), new BigDecimal("100.00"));
+        assertThat(reservation("RIAD000002").getTotalPrice()).isEqualByComparingTo("960.00");
     }
 
     @Test
@@ -692,6 +770,14 @@ class UC005ChangeReservationTest extends HrsBrowserlessTest {
                 .filter(original -> original.getReservationCode().equals(reservationCode))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private List<BigDecimal> nightPrices(String reservationCode) {
+        return ctx.select(RESERVATION_NIGHT.NIGHT_PRICE).from(RESERVATION_NIGHT)
+                .join(RESERVATION).on(RESERVATION.ID.eq(RESERVATION_NIGHT.RESERVATION_ID))
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHT_PRICE);
     }
 
     private ReservationRecord reservation(String reservationCode) {

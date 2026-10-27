@@ -15,7 +15,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -37,7 +39,9 @@ import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
+import static ch.martinelli.edu.hrs.db.Tables.SEASON_RATE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -46,6 +50,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
 
     private static final LocalDate TODAY = LocalDate.of(2030, 6, 1);
+    private static final long RIAD = 3301;
+    private static final long AUTUMN_2030 = 3302;
     private static final RecordingEmailService EMAIL_SERVICE = new RecordingEmailService();
     /** Rows created by the tests get sequence values below the IDs of the test data. */
     private static final long FIRST_TEST_DATA_ID = 1001;
@@ -91,6 +97,11 @@ class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
         ctx.update(ROOM_TYPE)
                 .set(ROOM_TYPE.NIGHTLY_RATE, new BigDecimal("150.00"))
                 .where(ROOM_TYPE.ID.eq(1002L))
+                .execute();
+        // The season tests offer the Riad and change its season rate (V121); restore both
+        ctx.update(ROOM_TYPE).set(ROOM_TYPE.ACTIVE, false).where(ROOM_TYPE.ID.eq(RIAD)).execute();
+        ctx.update(SEASON_RATE).set(SEASON_RATE.NIGHTLY_RATE, new BigDecimal("160.00"))
+                .where(SEASON_RATE.SEASON_ID.eq(AUTUMN_2030)).and(SEASON_RATE.ROOM_TYPE_ID.eq(RIAD))
                 .execute();
     }
 
@@ -529,6 +540,70 @@ class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
                 .isEqualByComparingTo(new BigDecimal("450.00"));
     }
 
+    @Test
+    @UseCase(id = "UC-001", businessRules = {"BR-004"})
+    void stay_crossing_a_season_boundary_is_priced_night_by_night() {
+        // The season Autumn 2030 (5 to 7 November) sets 160.00 for the Riad (normal rate 100.00) and no season rate
+        // for the Double Room (V121)
+        ctx.update(ROOM_TYPE).set(ROOM_TYPE.ACTIVE, true).where(ROOM_TYPE.ID.eq(RIAD)).execute();
+        Component view = openView();
+        search(view, LocalDate.of(2030, 11, 4), LocalDate.of(2030, 11, 9), 2);
+
+        // Step 3: the lowest and the highest nightly rate when the nights have different nightly rates
+        assertThat(offeredRoomTypes(view)).contains("Double Room", "Riad");
+        assertThat(paragraphTexts(view)).contains(
+                "A riad around a quiet courtyard", "Nightly rate: CHF 100.00 to CHF 160.00",
+                "Total price for 5 nights: CHF 680.00",
+                // UC-025 BR-003: a room type without a season rate keeps its normal rate
+                "Nightly rate: CHF 150.00", "Total price for 5 nights: CHF 750.00");
+
+        // Step 5: the night price of every night
+        selectRoomType(view, "Riad");
+        assertThat($(ListItem.class, $(UnorderedList.class, view).withId("night-prices").single()).all())
+                .extracting(ListItem::getText)
+                .containsExactly("Night of Nov 4, 2030: CHF 100.00", "Night of Nov 5, 2030: CHF 160.00",
+                        "Night of Nov 6, 2030: CHF 160.00", "Night of Nov 7, 2030: CHF 160.00",
+                        "Night of Nov 8, 2030: CHF 100.00");
+        assertThat(paragraphTexts(view)).contains("Number of nights: 5", "Total price: CHF 680.00");
+
+        enterGuestDetails(view, "Clara", "Neu", "clara.neu@example.com", "+41 79 333 33 33");
+        confirm(view);
+        String reservationCode = reservationCode(view);
+        assertThat($(Paragraph.class, view).withId("total-price").single().getText())
+                .isEqualTo("Total price: CHF 680.00");
+
+        // Step 9: the night price of every night is recorded; the total price is their sum
+        assertThat(nightPrices(reservationCode)).containsExactly(new BigDecimal("100.00"), new BigDecimal("160.00"),
+                new BigDecimal("160.00"), new BigDecimal("160.00"), new BigDecimal("100.00"));
+        assertThat(reservation(reservationCode).getTotalPrice()).isEqualByComparingTo("680.00");
+
+        // BR-004: a season changed later does not change the recorded night prices
+        ctx.update(SEASON_RATE).set(SEASON_RATE.NIGHTLY_RATE, new BigDecimal("200.00"))
+                .where(SEASON_RATE.SEASON_ID.eq(AUTUMN_2030)).and(SEASON_RATE.ROOM_TYPE_ID.eq(RIAD))
+                .execute();
+        assertThat(nightPrices(reservationCode)).containsExactly(new BigDecimal("100.00"), new BigDecimal("160.00"),
+                new BigDecimal("160.00"), new BigDecimal("160.00"), new BigDecimal("100.00"));
+        assertThat(reservation(reservationCode).getTotalPrice()).isEqualByComparingTo("680.00");
+    }
+
+    @Test
+    @UseCase(id = "UC-001", businessRules = {"BR-004"})
+    void every_night_of_a_stay_without_season_has_the_normal_rate() {
+        Component view = openView();
+        search(view, LocalDate.of(2030, 6, 10), LocalDate.of(2030, 6, 13), 2);
+        selectRoomType(view, "Double Room");
+
+        assertThat($(ListItem.class, $(UnorderedList.class, view).withId("night-prices").single()).all())
+                .extracting(ListItem::getText)
+                .containsExactly("Night of Jun 10, 2030: CHF 150.00", "Night of Jun 11, 2030: CHF 150.00",
+                        "Night of Jun 12, 2030: CHF 150.00");
+        enterGuestDetails(view, "Clara", "Neu", "clara.neu@example.com", "+41 79 333 33 33");
+        confirm(view);
+
+        assertThat(nightPrices(reservationCode(view))).containsExactly(new BigDecimal("150.00"),
+                new BigDecimal("150.00"), new BigDecimal("150.00"));
+    }
+
     // ---------------------------------------------------------------------------------------------------------------
     // A5: Room type no longer available
     // ---------------------------------------------------------------------------------------------------------------
@@ -776,6 +851,18 @@ class UC001ReserveRoomOnlineTest extends HrsBrowserlessTest {
         String text = $(Paragraph.class, view).withId("reservation-code").single().getText();
         assertThat(text).startsWith("Reservation code: ");
         return text.substring("Reservation code: ".length());
+    }
+
+    private ReservationRecord reservation(String reservationCode) {
+        return ctx.selectFrom(RESERVATION).where(RESERVATION.RESERVATION_CODE.eq(reservationCode)).fetchSingle();
+    }
+
+    private List<BigDecimal> nightPrices(String reservationCode) {
+        return ctx.select(RESERVATION_NIGHT.NIGHT_PRICE).from(RESERVATION_NIGHT)
+                .join(RESERVATION).on(RESERVATION.ID.eq(RESERVATION_NIGHT.RESERVATION_ID))
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHT_PRICE);
     }
 
     private List<String> offeredRoomTypes(Component view) {

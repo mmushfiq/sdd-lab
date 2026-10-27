@@ -10,10 +10,12 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.db.Tables.GUEST;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
@@ -35,23 +37,60 @@ public class ReservationRepository {
         return ctx.fetchExists(RESERVATION, RESERVATION.RESERVATION_CODE.eq(reservationCode));
     }
 
-    public void insert(String reservationCode, Long guestId, Long roomTypeId, LocalDate arrivalDate,
-                       LocalDate departureDate, int numberOfGuests, BigDecimal totalPrice,
+    /**
+     * Records the reservation with the night price of every night; the total price is their sum (UC-001 BR-004).
+     */
+    public Long insert(String reservationCode, Long guestId, Long roomTypeId, LocalDate arrivalDate,
+                       LocalDate departureDate, int numberOfGuests, List<NightPrice> nightPrices,
                        ReservationStatus status, ReservationChannel channel, LocalDateTime createdAt,
                        LocalDateTime onlineCancellationDeadline) {
-        ctx.insertInto(RESERVATION)
+        Long reservationId = ctx.insertInto(RESERVATION)
                 .set(RESERVATION.RESERVATION_CODE, reservationCode)
                 .set(RESERVATION.GUEST_ID, guestId)
                 .set(RESERVATION.ROOM_TYPE_ID, roomTypeId)
                 .set(RESERVATION.ARRIVAL_DATE, arrivalDate)
                 .set(RESERVATION.DEPARTURE_DATE, departureDate)
                 .set(RESERVATION.NUMBER_OF_GUESTS, numberOfGuests)
-                .set(RESERVATION.TOTAL_PRICE, totalPrice)
+                .set(RESERVATION.TOTAL_PRICE, NightPrice.total(nightPrices))
                 .set(RESERVATION.STATUS, status.name())
                 .set(RESERVATION.CHANNEL, channel.name())
                 .set(RESERVATION.CREATED_AT, createdAt)
                 .set(RESERVATION.ONLINE_CANCELLATION_DEADLINE, onlineCancellationDeadline)
-                .execute();
+                .returning(RESERVATION.ID)
+                .fetchSingle(RESERVATION.ID);
+        insertNights(reservationId, nightPrices);
+        return reservationId;
+    }
+
+    /**
+     * The night prices of the reservation in date order.
+     */
+    public List<NightPrice> findNightPrices(Long reservationId) {
+        return ctx.select(RESERVATION_NIGHT.NIGHT_DATE, RESERVATION_NIGHT.NIGHT_PRICE)
+                .from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(Records.mapping(NightPrice::new));
+    }
+
+    /**
+     * Replaces the nights of the reservation with these night prices (UC-005 BR-005, UC-010 BR-002 and BR-003).
+     */
+    public void replaceNightPrices(Long reservationId, List<NightPrice> nightPrices) {
+        ctx.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId)).execute();
+        insertNights(reservationId, nightPrices);
+    }
+
+    private void insertNights(Long reservationId, List<NightPrice> nightPrices) {
+        if (nightPrices.isEmpty()) {
+            return;
+        }
+        var insert = ctx.insertInto(RESERVATION_NIGHT, RESERVATION_NIGHT.RESERVATION_ID, RESERVATION_NIGHT.NIGHT_DATE,
+                RESERVATION_NIGHT.NIGHT_PRICE);
+        for (NightPrice nightPrice : nightPrices) {
+            insert = insert.values(reservationId, nightPrice.night(), nightPrice.price());
+        }
+        insert.execute();
     }
 
     /**

@@ -255,7 +255,9 @@ public class CreateReservationView extends VerticalLayout {
                 LumoUtility.BorderRadius.MEDIUM, LumoUtility.Padding.MEDIUM, LumoUtility.Margin.Bottom.MEDIUM);
 
         card.add(new H3(roomType.name()));
-        card.add(new Paragraph("Nightly rate: " + chf(roomType.nightlyRate())));
+        // Step 3: the lowest and the highest nightly rate when the nights have different nightly rates
+        card.add(new Paragraph("Nightly rate: " + rateText(roomType.lowestNightlyRate(),
+                roomType.highestNightlyRate())));
         card.add(new Paragraph("Total price for " + nights(roomType.nights()) + ": " + chf(roomType.totalPrice())));
         card.add(new Paragraph("Available rooms: " + roomType.availableRooms()));
 
@@ -264,6 +266,10 @@ public class CreateReservationView extends VerticalLayout {
         select.addClickListener(_ -> selectRoomType(roomType));
         card.add(select);
         return card;
+    }
+
+    private static String rateText(BigDecimal lowest, BigDecimal highest) {
+        return lowest.compareTo(highest) == 0 ? chf(lowest) : chf(lowest) + " to " + chf(highest);
     }
 
     /**

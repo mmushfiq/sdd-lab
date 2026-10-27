@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -104,10 +105,10 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         test($(RouterLink.class).withText("Room types").single()).click();
         assertThat(getCurrentView()).isInstanceOf(RoomTypesView.class);
 
-        // Step 2: name, maximum number of guests, nightly rate, number of active rooms and whether active
+        // Step 2: name, maximum number of guests, normal rate, number of active rooms and whether active
         Grid<RoomTypeOverview> grid = grid();
         assertThat(grid.getColumns()).extracting(Grid.Column::getHeaderText)
-                .containsExactly("Name", "Max. guests", "Nightly rate", "Active rooms", "Status");
+                .containsExactly("Name", "Max. guests", "Normal rate", "Active rooms", "Status");
         assertThat(row("Double Room")).containsExactly("Double Room", "2", "CHF 150.00", "2", "Active");
         assertThat(row("Garden Room")).containsExactly("Garden Room", "3", "CHF 200.00", "2", "Inactive");
         assertThat(row("Suite")).containsExactly("Suite", "4", "CHF 400.00", "1", "Inactive");
@@ -138,20 +139,25 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         assertThat(offer("Garden Room")).isEmpty();
         openRoomTypes();
 
-        // Step 3: select an existing room type; step 4: new nightly rate and active
+        // Step 3: select an existing room type; step 4: new normal rate and active
         select("Garden Room");
         assertThat(nameField().getValue()).isEqualTo("Garden Room");
-        test(nightlyRateField()).setValue(new BigDecimal("220.00"));
+        test(normalRateField()).setValue(new BigDecimal("220.00"));
         test($(Checkbox.class).withCaption("Active").single()).click();
         save();
 
         assertThat(row("Garden Room")).containsExactly("Garden Room", "3", "CHF 220.00", "2", "Active");
         // New searches use the saved data: 2 nights at 220.00
         ReceptionRoomType offered = offer("Garden Room").orElseThrow();
-        assertThat(offered.nightlyRate()).isEqualByComparingTo("220.00");
+        assertThat(offered.lowestNightlyRate()).isEqualByComparingTo("220.00");
+        assertThat(offered.highestNightlyRate()).isEqualByComparingTo("220.00");
         assertThat(offered.totalPrice()).isEqualByComparingTo("440.00");
-        // BR-002: total prices of existing reservations are unchanged
+        // BR-002: night prices and total prices of existing reservations are unchanged
         assertThat(reservation("GARDEN0001").getTotalPrice()).isEqualByComparingTo("400.00");
+        assertThat(ctx.select(RESERVATION_NIGHT.NIGHT_PRICE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservation("GARDEN0001").getId()))
+                .fetch(RESERVATION_NIGHT.NIGHT_PRICE))
+                .allSatisfy(price -> assertThat(price).isEqualByComparingTo("200.00"));
     }
 
     @Test
@@ -188,7 +194,7 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         save();
 
         assertThat(nameField().isInvalid()).isTrue();
-        assertThat(nightlyRateField().isInvalid()).isTrue();
+        assertThat(normalRateField().isInvalid()).isTrue();
         assertThat(maxGuestsField().isInvalid()).isFalse();
         // The entered values are kept
         assertThat(maxGuestsField().getValue()).isEqualTo(2);
@@ -218,7 +224,7 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         assertThat(nameField().isInvalid()).isTrue();
         assertThat(maxGuestsField().isInvalid()).isTrue();
         assertThat(maxGuestsField().getErrorMessage()).isEqualTo("The maximum number of guests must be between 1 and 10");
-        assertThat(nightlyRateField().isInvalid()).isTrue();
+        assertThat(normalRateField().isInvalid()).isTrue();
 
         test(maxGuestsField()).setValue(0);
         save();
@@ -291,7 +297,7 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         RoomTypeRecord gardenBefore = roomType(GARDEN_ROOM);
         openRoomTypes();
         select("Garden Room");
-        test(nightlyRateField()).setValue(new BigDecimal("999.00"));
+        test(normalRateField()).setValue(new BigDecimal("999.00"));
 
         test($(Button.class).withText("Discard").single()).click();
 
@@ -361,15 +367,15 @@ class UC016MaintainRoomTypesTest extends HrsBrowserlessTest {
         return $(IntegerField.class).withCaption("Maximum number of guests").single();
     }
 
-    private BigDecimalField nightlyRateField() {
-        return $(BigDecimalField.class).withCaption("Nightly rate (CHF)").single();
+    private BigDecimalField normalRateField() {
+        return $(BigDecimalField.class).withCaption("Normal rate (CHF)").single();
     }
 
     private void enter(String name, String description, int maxGuests, String nightlyRate, boolean active) {
         test(nameField()).setValue(name);
         test($(TextArea.class).withCaption("Description").single()).setValue(description);
         test(maxGuestsField()).setValue(maxGuests);
-        test(nightlyRateField()).setValue(new BigDecimal(nightlyRate));
+        test(normalRateField()).setValue(new BigDecimal(nightlyRate));
         Checkbox activeBox = $(Checkbox.class).withCaption("Active").single();
         if (activeBox.getValue() != active) {
             test(activeBox).click();

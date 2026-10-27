@@ -4,6 +4,7 @@ import ch.martinelli.edu.hrs.management.ui.GuestErasureView;
 import ch.martinelli.edu.hrs.management.ui.RoomBlocksView;
 import ch.martinelli.edu.hrs.management.ui.RoomTypesView;
 import ch.martinelli.edu.hrs.management.ui.RoomsView;
+import ch.martinelli.edu.hrs.management.ui.SeasonsView;
 import ch.martinelli.edu.hrs.reception.ui.ArrivalsAndDeparturesView;
 import ch.martinelli.edu.hrs.reception.ui.CreateReservationView;
 import ch.martinelli.edu.hrs.reception.ui.MissedArrivalsView;
@@ -63,6 +64,8 @@ public class StaffLayout extends AppLayout {
                     new RouterLink("Revenue report", RevenueReportView.class),
                     // UC-016 step 1
                     new RouterLink("Room types", RoomTypesView.class),
+                    // UC-025 step 1
+                    new RouterLink("Seasons", SeasonsView.class),
                     // UC-017 step 1
                     new RouterLink("Rooms", RoomsView.class),
                     // UC-018 step 1

@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reception.ui;
 
 import ch.martinelli.edu.hrs.core.ui.HrsBrowserlessTest;
+import ch.martinelli.edu.hrs.db.tables.records.ReservationNightRecord;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.reception.CheckOutService;
@@ -30,8 +31,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,6 +59,7 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
 
     private Result<ReservationRecord> originalReservations;
     private Result<RoomRecord> originalRooms;
+    private Result<ReservationNightRecord> originalNights;
 
     static Clock clock() {
         return Clock.fixed(Instant.parse("2030-06-01T10:00:00Z"), ZoneId.of("Europe/Zurich"));
@@ -63,8 +67,12 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
 
     @BeforeEach
     void rememberTestData() {
-        originalReservations = ctx.selectFrom(RESERVATION).where(RESERVATION.ID.between(2201L, 2299L)).fetch();
-        originalRooms = ctx.selectFrom(ROOM).where(ROOM.ID.between(2201L, 2299L)).fetch();
+        originalReservations = ctx.selectFrom(RESERVATION).where(RESERVATION.ID.between(2201L, 2299L)
+                .or(RESERVATION.ID.between(3301L, 3399L))).fetch();
+        originalNights = ctx.selectFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.between(2201L, 2299L)
+                .or(RESERVATION_NIGHT.RESERVATION_ID.between(3301L, 3399L))).fetch();
+        originalRooms = ctx.selectFrom(ROOM).where(ROOM.ID.between(2201L, 2299L)
+                .or(ROOM.ID.between(3301L, 3399L))).fetch();
     }
 
     @AfterEach
@@ -80,6 +88,11 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
             original.changed(ROOM.ID, false);
             ctx.update(ROOM).set(original).where(ROOM.ID.eq(original.getId())).execute();
         });
+        // The night prices recorded by a check-out are undone as well
+        ctx.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.between(2201L, 2299L)
+                .or(RESERVATION_NIGHT.RESERVATION_ID.between(3301L, 3399L))).execute();
+        originalNights.forEach(night -> night.changed(true));
+        ctx.batchInsert(originalNights).execute();
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -159,7 +172,7 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
         assertThat(field("departure-date")).isEqualTo("New departure date: Jun 1, 2030");
         assertThat(field("nights")).isEqualTo("Number of nights: 2");
         assertThat(field("reserved-total-price")).isEqualTo("Reserved total price: CHF 500.00");
-        // 2 nights at 500.00 / 5 nights = 100.00
+        // The 2 nights stayed keep their night prices of 100.00 each
         assertThat(field("total-price")).isEqualTo("Total price to be paid: CHF 200.00");
 
         // A2 step 3: continues at step 5
@@ -176,6 +189,23 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
                 .and(RESERVATION.STATUS.in("CONFIRMED", "CHECKED_IN"))
                 .and(RESERVATION.DEPARTURE_DATE.gt(LocalDate.of(2030, 6, 2)))
                 .and(RESERVATION.ARRIVAL_DATE.le(LocalDate.of(2030, 6, 2))))).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-010", scenario = "A2: Early Check-out", businessRules = {"BR-002"})
+    void nights_stayed_keep_their_different_night_prices() {
+        // RIAD000002 until 4 June: 29 May 100.00, 30 and 31 May 180.00 (season), 1 to 3 June 100.00 each
+        openCheckOut("RIAD000002");
+
+        assertThat(field("reserved-total-price")).isEqualTo("Reserved total price: CHF 760.00");
+        assertThat(field("nights")).isEqualTo("Number of nights: 3");
+        assertThat(field("total-price")).isEqualTo("Total price to be paid: CHF 460.00");
+        confirmCheckOut();
+
+        // The nights from the new departure date on are removed
+        assertThat(nightPrices("RIAD000002")).containsExactly(new BigDecimal("100.00"), new BigDecimal("180.00"),
+                new BigDecimal("180.00"));
+        assertThat(reservation("RIAD000002").getTotalPrice()).isEqualByComparingTo("460.00");
     }
 
     @Test
@@ -208,15 +238,31 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
         assertThat(field("departure-date")).isEqualTo("New departure date: Jun 1, 2030");
         assertThat(field("nights")).isEqualTo("Number of nights: 5");
         assertThat(field("reserved-total-price")).isEqualTo("Reserved total price: CHF 300.00");
-        // 5 nights at 300.00 / 3 nights = 100.00
-        assertThat(field("total-price")).isEqualTo("Total price to be paid: CHF 500.00");
+        // The 3 reserved nights keep their 300.00; 30 and 31 May at the current 150.00 of the Chalet
+        assertThat(field("total-price")).isEqualTo("Total price to be paid: CHF 600.00");
 
         confirmCheckOut();
 
         ReservationRecord reservation = reservation("CHECKOUT03");
         assertThat(reservation.getStatus()).isEqualTo("CHECKED_OUT");
         assertThat(reservation.getDepartureDate()).isEqualTo(LocalDate.of(2030, 6, 1));
-        assertThat(reservation.getTotalPrice()).isEqualByComparingTo("500.00");
+        assertThat(reservation.getTotalPrice()).isEqualByComparingTo("600.00");
+        assertThat(nightPrices("CHECKOUT03")).containsExactly(new BigDecimal("100.00"), new BigDecimal("100.00"),
+                new BigDecimal("100.00"), new BigDecimal("150.00"), new BigDecimal("150.00"));
+    }
+
+    @Test
+    @UseCase(id = "UC-010", scenario = "A3: Overdue Check-out", businessRules = {"BR-003"})
+    void additional_nights_in_a_season_get_the_season_rate() {
+        // RIAD000001: 3 nights at 100.00 until 30 May; Late May 2030 sets 180.00 for 30 and 31 May (V121)
+        openCheckOut("RIAD000001");
+
+        assertThat(field("total-price")).isEqualTo("Total price to be paid: CHF 660.00");
+        confirmCheckOut();
+
+        assertThat(reservation("RIAD000001").getTotalPrice()).isEqualByComparingTo("660.00");
+        assertThat(nightPrices("RIAD000001")).containsExactly(new BigDecimal("100.00"), new BigDecimal("100.00"),
+                new BigDecimal("100.00"), new BigDecimal("180.00"), new BigDecimal("180.00"));
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -303,6 +349,14 @@ class UC010CheckOutGuestTest extends HrsBrowserlessTest {
 
     private String field(String id) {
         return $(Paragraph.class).withId(id).single().getText();
+    }
+
+    private List<BigDecimal> nightPrices(String reservationCode) {
+        return ctx.select(RESERVATION_NIGHT.NIGHT_PRICE).from(RESERVATION_NIGHT)
+                .join(RESERVATION).on(RESERVATION.ID.eq(RESERVATION_NIGHT.RESERVATION_ID))
+                .where(RESERVATION.RESERVATION_CODE.eq(reservationCode))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHT_PRICE);
     }
 
     private ReservationRecord reservation(String reservationCode) {

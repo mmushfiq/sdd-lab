@@ -80,7 +80,8 @@ public class RoomTypeRepository {
                 .fetchSingle(ROOM_TYPE.ID);
     }
 
-    // UC-016 BR-002: Only the room type changes; the total prices of existing reservations stay.
+    // UC-016 BR-002: A changed normal rate applies to nights recorded afterwards; night prices and total prices of
+    // existing reservations stay.
     public void update(Long roomTypeId, RoomTypeData data) {
         ctx.update(ROOM_TYPE)
                 .set(ROOM_TYPE.NAME, data.name())

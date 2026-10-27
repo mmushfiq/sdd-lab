@@ -59,7 +59,7 @@ public class RoomTypesView extends VerticalLayout {
     private final TextField name = new TextField("Name");
     private final TextArea description = new TextArea("Description");
     private final IntegerField maxGuests = new IntegerField("Maximum number of guests");
-    private final BigDecimalField nightlyRate = new BigDecimalField("Nightly rate (CHF)");
+    private final BigDecimalField nightlyRate = new BigDecimalField("Normal rate (CHF)");
     private final Checkbox active = new Checkbox("Active");
     private final Binder<RoomTypeInput> binder = new Binder<>();
 
@@ -87,13 +87,13 @@ public class RoomTypesView extends VerticalLayout {
     }
 
     /**
-     * Step 2: name, maximum number of guests, nightly rate, number of active rooms and whether active.
+     * Step 2: name, maximum number of guests, normal rate, number of active rooms and whether active.
      */
     private void createGrid() {
         grid.setId("room-types");
         grid.addColumn(RoomTypeOverview::name).setHeader("Name").setAutoWidth(true);
         grid.addColumn(RoomTypeOverview::maxGuests).setHeader("Max. guests").setAutoWidth(true);
-        grid.addColumn(roomType -> chf(roomType.nightlyRate())).setHeader("Nightly rate").setAutoWidth(true);
+        grid.addColumn(roomType -> chf(roomType.nightlyRate())).setHeader("Normal rate").setAutoWidth(true);
         grid.addColumn(RoomTypeOverview::activeRooms).setHeader("Active rooms").setAutoWidth(true);
         grid.addColumn(roomType -> roomType.active() ? "Active" : "Inactive").setHeader("Status").setAutoWidth(true);
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -134,11 +134,11 @@ public class RoomTypesView extends VerticalLayout {
                         "The maximum number of guests must be between " + RoomTypeService.MIN_GUESTS + " and "
                                 + RoomTypeService.MAX_GUESTS)
                 .bind(RoomTypeInput::getMaxGuests, RoomTypeInput::setMaxGuests);
-        // UC-016 A1: The nightly rate is required and not negative.
+        // UC-016 A1: The normal rate is required and not negative.
         binder.forField(nightlyRate)
-                .asRequired("Enter the nightly rate")
+                .asRequired("Enter the normal rate")
                 .withValidator(RoomTypeService::isValidNightlyRate,
-                        "The nightly rate must be 0 or more, with at most 2 decimals")
+                        "The normal rate must be 0 or more, with at most 2 decimals")
                 .bind(RoomTypeInput::getNightlyRate, RoomTypeInput::setNightlyRate);
         binder.forField(active).bind(RoomTypeInput::isActive, RoomTypeInput::setActive);
 

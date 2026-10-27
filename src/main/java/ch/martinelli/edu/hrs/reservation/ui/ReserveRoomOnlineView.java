@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.reservation.ui;
 
 import ch.martinelli.edu.hrs.reservation.AvailableRoomType;
 import ch.martinelli.edu.hrs.reservation.GuestDetails;
+import ch.martinelli.edu.hrs.reservation.NightPrice;
 import ch.martinelli.edu.hrs.reservation.OnlineReservationRequest;
 import ch.martinelli.edu.hrs.reservation.OnlineReservationService;
 import ch.martinelli.edu.hrs.reservation.ReservationConfirmation;
@@ -14,7 +15,9 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -258,7 +261,9 @@ public class ReserveRoomOnlineView extends VerticalLayout {
         if (roomType.description() != null && !roomType.description().isBlank()) {
             card.add(new Paragraph(roomType.description()));
         }
-        card.add(new Paragraph("Nightly rate: " + chf(roomType.nightlyRate())));
+        // Step 3: the lowest and the highest nightly rate when the nights have different nightly rates (BR-004)
+        card.add(new Paragraph("Nightly rate: " + rateText(roomType.lowestNightlyRate(),
+                roomType.highestNightlyRate())));
         card.add(new Paragraph("Total price for " + nights(roomType.nights()) + ": " + chf(roomType.totalPrice())));
 
         Button select = new Button("Select");
@@ -280,9 +285,25 @@ public class ReserveRoomOnlineView extends VerticalLayout {
                 new Paragraph("Room type: " + roomType.name()),
                 new Paragraph("Number of guests: " + currentSearch.numberOfGuests()),
                 new Paragraph("Number of nights: " + roomType.nights()),
+                nightPriceList(roomType.nightPrices()),
                 new Paragraph("Total price: " + chf(roomType.totalPrice())));
         reservationSection.setVisible(true);
         firstName.focus();
+    }
+
+    /**
+     * Step 5: the night price of every night (BR-004).
+     */
+    private UnorderedList nightPriceList(List<NightPrice> nightPrices) {
+        UnorderedList list = new UnorderedList();
+        list.setId("night-prices");
+        nightPrices.forEach(nightPrice -> list.add(new ListItem("Night of "
+                + dateFormatter.format(nightPrice.night()) + ": " + chf(nightPrice.price()))));
+        return list;
+    }
+
+    private static String rateText(BigDecimal lowest, BigDecimal highest) {
+        return lowest.compareTo(highest) == 0 ? chf(lowest) : chf(lowest) + " to " + chf(highest);
     }
 
     /**

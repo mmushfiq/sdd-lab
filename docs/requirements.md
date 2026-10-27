@@ -47,7 +47,7 @@ Source: [vision.md](vision.md) · Terms: [glossary.md](glossary.md)
 | FR-022 | View Revenue Report    | As a manager, I want to see the revenue per month and per room type for a chosen period so that I can run the business without manual spreadsheet work.                | High     | Implemented |
 | FR-023 | Maintain Staff Members | As a manager, I want to create, edit and deactivate staff members with their role so that only current employees can use the staff functions.                         | High     | Implemented |
 | FR-026 | Erase Guest Data       | As a manager, I want to erase or anonymise a guest's personal data on the guest's request so that the hotel meets its obligation under the right to erasure within 30 days. | High     | Implemented |
-| FR-027 | Maintain Seasonal Rates | As a manager, I want to define seasons as date ranges with their own nightly rate per room type so that prices rise in busy periods and fall in quiet ones without changing the normal rate by hand before and after each season. | High     | Open   |
+| FR-027 | Maintain Seasonal Rates | As a manager, I want to define seasons as date ranges with their own nightly rate per room type so that prices rise in busy periods and fall in quiet ones without changing the normal rate by hand before and after each season. | High     | Verified |
 
 ### Staff member
 

@@ -1,17 +1,19 @@
 package ch.martinelli.edu.hrs.reception;
 
 import ch.martinelli.edu.hrs.reservation.ChangeableReservation;
+import ch.martinelli.edu.hrs.reservation.NightPrice;
+import ch.martinelli.edu.hrs.reservation.NightlyRates;
 import ch.martinelli.edu.hrs.reservation.ReservationRepository;
 import ch.martinelli.edu.hrs.reservation.ReservationStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -22,14 +24,16 @@ import java.util.Optional;
 public class CheckOutService {
 
     private final ReservationRepository reservationRepository;
+    private final NightlyRates nightlyRates;
     private final RoomCleaningRepository roomCleaningRepository;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
-    public CheckOutService(ReservationRepository reservationRepository,
+    public CheckOutService(ReservationRepository reservationRepository, NightlyRates nightlyRates,
                            RoomCleaningRepository roomCleaningRepository, TransactionTemplate transactionTemplate,
                            Clock clock) {
         this.reservationRepository = reservationRepository;
+        this.nightlyRates = nightlyRates;
         this.roomCleaningRepository = roomCleaningRepository;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
@@ -64,9 +68,12 @@ public class CheckOutService {
             kind = CheckOutPreview.Kind.ON_TIME;
             newDeparture = reservation.departureDate();
         }
+        // UC-010 BR-002, BR-003: The total price becomes the sum of the night prices of the stay.
+        BigDecimal newTotalPrice = kind == CheckOutPreview.Kind.ON_TIME ? reservation.totalPrice()
+                : NightPrice.total(nightPricesFor(reservation, newDeparture));
         return new CheckOutPreview(reservation.reservationCode(), reservation.roomNumber(),
                 reservation.arrivalDate(), reservation.departureDate(), reservation.totalPrice(), newDeparture,
-                totalPriceFor(reservation, newDeparture), kind);
+                newTotalPrice, kind);
     }
 
     /**
@@ -85,20 +92,30 @@ public class CheckOutService {
             // UC-010 BR-004: The total price is recorded for collection; no payment is recorded.
             reservationRepository.checkOut(reservation.id(), result.newDepartureDate(), result.newTotalPrice(),
                     checkedOutAt);
+            if (result.kind() != CheckOutPreview.Kind.ON_TIME) {
+                reservationRepository.replaceNightPrices(reservation.id(),
+                        nightPricesFor(reservation, result.newDepartureDate()));
+            }
             // UC-010 BR-005: The room becomes dirty, regardless of its previous cleaning status.
             roomCleaningRepository.setDirty(reservation.roomId());
             return result;
         });
     }
 
-    // UC-010 BR-002, BR-003: New nights times the reserved total price divided by the reserved number of nights.
-    static BigDecimal totalPriceFor(ChangeableReservation reservation, LocalDate newDeparture) {
-        if (newDeparture.equals(reservation.departureDate())) {
-            return reservation.totalPrice();
+    /**
+     * The night prices of the stay up to the new departure date.
+     */
+    private List<NightPrice> nightPricesFor(ChangeableReservation reservation, LocalDate newDeparture) {
+        List<NightPrice> nightPrices = new ArrayList<>();
+        // UC-010 BR-002: The nights from the new departure date on are removed; the nights stayed keep their prices.
+        reservationRepository.findNightPrices(reservation.id()).stream()
+                .filter(nightPrice -> nightPrice.night().isBefore(newDeparture))
+                .forEach(nightPrices::add);
+        // UC-010 BR-003: Every additional night gets the nightly rate valid for it at check-out (UC-001 BR-004).
+        if (newDeparture.isAfter(reservation.departureDate())) {
+            nightPrices.addAll(NightPrice.of(nightlyRates.of(reservation.roomTypeId(), reservation.departureDate(),
+                    newDeparture)));
         }
-        long newNights = ChronoUnit.DAYS.between(reservation.arrivalDate(), newDeparture);
-        return reservation.totalPrice()
-                .multiply(BigDecimal.valueOf(newNights))
-                .divide(BigDecimal.valueOf(reservation.nights()), 2, RoundingMode.HALF_UP);
+        return nightPrices;
     }
 }
