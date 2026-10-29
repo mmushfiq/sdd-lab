@@ -3,23 +3,31 @@ id: 001-room-catalog
 unit: 001-room-catalog
 intent: 001-rooms-and-reservations
 type: simple-construction-bolt
-status: planned
+status: complete
 stories:
   - 001-manage-room-types
   - 002-delete-room-type
   - 003-manage-rooms
   - 004-set-room-out-of-service
-created: 2026-10-29T07:20:41Z
-started: null
-completed: null
+created: '2026-10-29T07:20:41Z'
+started: '2026-10-29T10:24:21Z'
+completed: '2026-10-29T10:36:26Z'
 current_stage: null
-stages_completed: []
-
+stages_completed:
+  - name: plan
+    completed: '2026-10-29T10:28:15Z'
+    artifact: implementation-plan.md
+  - name: implement
+    completed: '2026-10-29T10:32:56Z'
+    artifact: implementation-walkthrough.md
+  - name: test
+    completed: '2026-10-29T10:36:11Z'
+    artifact: test-walkthrough.md
 requires_bolts: []
-enables_bolts: [002-reservation]
+enables_bolts:
+  - 002-reservation
 requires_units: []
 blocks: false
-
 complexity:
   avg_complexity: 1
   avg_uncertainty: 1
@@ -51,9 +59,9 @@ The manager can maintain room types, rates and rooms, and mark rooms out of serv
 
 ## Stages
 
-- [ ] **1. plan**: Pending → implementation-plan.md
-- [ ] **2. implement**: Pending → src/main/java/ch/martinelli/edu/hrs/roomcatalog/, db/migration/V1__*.sql
-- [ ] **3. test**: Pending → test-walkthrough.md
+- [x] **1. plan**: Complete → implementation-plan.md
+- [x] **2. implement**: Complete → src/main/java/ch/martinelli/edu/hrs/roomcatalog/, db/migration/V1__*.sql
+- [x] **3. test**: Complete → test-walkthrough.md
 
 ## Dependencies
 
@@ -65,9 +73,9 @@ The manager can maintain room types, rates and rooms, and mark rooms out of serv
 
 ## Success Criteria
 
-- [ ] All stories implemented
-- [ ] All acceptance criteria met
-- [ ] Tests passing (`./mvnw verify`)
+- [x] All stories implemented
+- [x] All acceptance criteria met
+- [x] Tests passing (`./mvnw verify`)
 - [ ] Code reviewed
 
 ## Notes

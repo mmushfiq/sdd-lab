@@ -2,11 +2,11 @@
 unit: 001-room-catalog
 intent: 001-rooms-and-reservations
 phase: inception
-status: ready
+status: complete
 unit_type: backend
 default_bolt_type: simple-construction-bolt
-created: 2026-10-29T07:20:41Z
-updated: 2026-10-29T07:20:41Z
+created: '2026-10-29T07:20:41Z'
+updated: '2026-10-29T07:20:41Z'
 ---
 
 # Unit Brief: Room Catalog
