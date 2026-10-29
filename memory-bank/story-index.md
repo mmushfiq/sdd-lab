@@ -51,3 +51,89 @@ Status markers: none = planned, ✅ GENERATED = file created, ✅ COMPLETED = im
 ### 007-anonymize-guest-data.md ✅ GENERATED
 **Title**: Anonymize guest data on request · **Priority**: Should · **Bolt**: 003-reservation
 **Path**: `intents/001-rooms-and-reservations/units/002-reservation/stories/007-anonymize-guest-data.md`
+
+## 002-online-booking
+
+### Unit 001-guest-booking
+
+### 001-search-rooms-online.md ✅ GENERATED
+**Title**: to see which room types are free for my dates and number of guests · **Priority**: must · **Bolt**: 004-guest-booking
+**Path**: `intents/002-online-booking/units/001-guest-booking/stories/001-search-rooms-online.md`
+
+### 002-book-room-online.md ✅ GENERATED
+**Title**: to book a room type by entering my contact data · **Priority**: must · **Bolt**: 004-guest-booking
+**Path**: `intents/002-online-booking/units/001-guest-booking/stories/002-book-room-online.md`
+
+### 003-view-own-reservation.md ✅ GENERATED
+**Title**: to look up my reservation with booking number and email · **Priority**: must · **Bolt**: 004-guest-booking
+**Path**: `intents/002-online-booking/units/001-guest-booking/stories/003-view-own-reservation.md`
+
+### 004-cancel-own-reservation.md ✅ GENERATED
+**Title**: to cancel my reservation online · **Priority**: must · **Bolt**: 004-guest-booking
+**Path**: `intents/002-online-booking/units/001-guest-booking/stories/004-cancel-own-reservation.md`
+
+## 003-check-in-check-out-housekeeping
+
+### Unit 001-housekeeping
+
+### 001-view-cleaning-list.md ✅ GENERATED
+**Title**: to see on my tablet which rooms need cleaning · **Priority**: must · **Bolt**: 005-housekeeping
+**Path**: `intents/003-check-in-check-out-housekeeping/units/001-housekeeping/stories/001-view-cleaning-list.md`
+
+### 002-mark-room-cleaned.md ✅ GENERATED
+**Title**: to mark a room as cleaned with one tap · **Priority**: must · **Bolt**: 005-housekeeping
+**Path**: `intents/003-check-in-check-out-housekeeping/units/001-housekeeping/stories/002-mark-room-cleaned.md`
+
+### Unit 002-front-desk
+
+### 001-check-in-guest.md ✅ GENERATED
+**Title**: to check in an arriving guest · **Priority**: must · **Bolt**: 006-front-desk
+**Path**: `intents/003-check-in-check-out-housekeeping/units/002-front-desk/stories/001-check-in-guest.md`
+
+### 002-check-out-guest.md ✅ GENERATED
+**Title**: to check out a departing guest and see what they owe · **Priority**: must · **Bolt**: 006-front-desk
+**Path**: `intents/003-check-in-check-out-housekeeping/units/002-front-desk/stories/002-check-out-guest.md`
+
+### 003-room-overview.md ✅ GENERATED
+**Title**: to see all rooms and their state today in one view · **Priority**: must · **Bolt**: 006-front-desk
+**Path**: `intents/003-check-in-check-out-housekeeping/units/002-front-desk/stories/003-room-overview.md`
+
+### 004-include-stays-in-reservation-rules.md ✅ GENERATED
+**Title**: the reservation rules to account for guests who are checked in or have left · **Priority**: must · **Bolt**: 006-front-desk
+**Path**: `intents/003-check-in-check-out-housekeeping/units/002-front-desk/stories/004-include-stays-in-reservation-rules.md`
+
+## 004-staff-login-and-roles
+
+### Unit 001-staff-access
+
+### 001-log-in-and-out.md ✅ GENERATED
+**Title**: to log in with my username and password and log out again · **Priority**: must · **Bolt**: 007-staff-access
+**Path**: `intents/004-staff-login-and-roles/units/001-staff-access/stories/001-log-in-and-out.md`
+
+### 002-restrict-views-by-role.md ✅ GENERATED
+**Title**: each staff member to see only the functions of their role · **Priority**: must · **Bolt**: 007-staff-access
+**Path**: `intents/004-staff-login-and-roles/units/001-staff-access/stories/002-restrict-views-by-role.md`
+
+### 003-manage-staff-users.md ✅ GENERATED
+**Title**: to create, edit and deactivate staff accounts · **Priority**: must · **Bolt**: 008-staff-access
+**Path**: `intents/004-staff-login-and-roles/units/001-staff-access/stories/003-manage-staff-users.md`
+
+### 004-reset-staff-password.md ✅ GENERATED
+**Title**: to set a new password for a staff member · **Priority**: must · **Bolt**: 008-staff-access
+**Path**: `intents/004-staff-login-and-roles/units/001-staff-access/stories/004-reset-staff-password.md`
+
+## 005-reports
+
+### Unit 001-management-reports
+
+### 001-monthly-occupancy-report.md ✅ GENERATED
+**Title**: to see the occupancy of a month · **Priority**: must · **Bolt**: 009-management-reports
+**Path**: `intents/005-reports/units/001-management-reports/stories/001-monthly-occupancy-report.md`
+
+### 002-monthly-revenue-report.md ✅ GENERATED
+**Title**: to see the revenue of a month · **Priority**: must · **Bolt**: 009-management-reports
+**Path**: `intents/005-reports/units/001-management-reports/stories/002-monthly-revenue-report.md`
+
+### 003-report-by-room-type.md ✅ GENERATED
+**Title**: occupancy and revenue per room type · **Priority**: must · **Bolt**: 009-management-reports
+**Path**: `intents/005-reports/units/001-management-reports/stories/003-report-by-room-type.md`

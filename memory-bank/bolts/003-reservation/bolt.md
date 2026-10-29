@@ -16,7 +16,7 @@ current_stage: null
 stages_completed: []
 
 requires_bolts: [002-reservation]
-enables_bolts: []
+enables_bolts: [004-guest-booking, 005-housekeeping]
 requires_units: [001-room-catalog]
 blocks: true
 
@@ -63,7 +63,7 @@ Reception can change and cancel reservations; booked rooms can't be deleted or b
 - 002-reservation
 
 ### Enables
-- Intent 001 complete
+- Intent 001 complete; 004-guest-booking, 005-housekeeping
 
 ## Success Criteria
 

@@ -182,4 +182,4 @@ Source: `docs/hotel-requirements.md`. Online booking by guests, check-in/check-o
 
 | Question | Owner | Due Date | Resolution |
 |----------|-------|----------|------------|
-| Are seasonal or weekend rates needed later? | Manager | Before intent 005 | Pending |
+| Are seasonal or weekend rates needed later? | Manager | Before intent 005 | Resolved 2026-10-29: not needed, one rate per room type |
