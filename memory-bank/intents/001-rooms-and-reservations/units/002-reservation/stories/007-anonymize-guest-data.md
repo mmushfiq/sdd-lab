@@ -2,11 +2,11 @@
 id: 007-anonymize-guest-data
 unit: 002-reservation
 intent: 001-rooms-and-reservations
-status: ready
+status: complete
 priority: should
-created: 2026-10-29T07:20:41Z
+created: '2026-10-29T07:20:41Z'
 assigned_bolt: 003-reservation
-implemented: false
+implemented: true
 ---
 
 # Story: 007-anonymize-guest-data

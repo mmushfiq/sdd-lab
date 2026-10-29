@@ -7,8 +7,10 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 import static org.jooq.impl.DSL.lower;
@@ -17,8 +19,9 @@ import static org.jooq.impl.DSL.val;
 
 /**
  * Room types and rooms. Uniqueness and usage rules are checked here; the database constraints are the safety net.
- * Existence checks use count, not exists: H2 can return a stale EXISTS result after an uncommitted write in the
- * same transaction.
+ * Reads the reservation table to protect booked rooms (ADR-002) and locks the room row before taking it out of
+ * service (ADR-001). Existence checks use count, not exists: H2 can return a stale EXISTS result after an
+ * uncommitted write in the same transaction.
  */
 @Service
 @Transactional
@@ -83,10 +86,26 @@ public class RoomCatalogService {
     /**
      * Inserts the room when its id is null, otherwise updates it.
      *
-     * @throws RoomNumberExistsException if another room has the same number
+     * @throws RoomNumberExistsException          if another room has the same number
+     * @throws RoomHasFutureReservationsException if it is set out of service while it has future confirmed
+     *                                             reservations
      */
     public void saveRoom(RoomRecord room) {
         room.setNumber(room.getNumber().trim());
+        if (room.getId() != null && Boolean.TRUE.equals(room.getOutOfService())) {
+            // a booking committed in parallel is either seen here or rejected because the room is out of service
+            dsl.selectOne().from(ROOM).where(ROOM.ID.eq(room.getId())).forUpdate().execute();
+            var bookingNumbers = dsl.select(RESERVATION.BOOKING_NUMBER)
+                    .from(RESERVATION)
+                    .where(RESERVATION.ROOM_ID.eq(room.getId()))
+                    .and(RESERVATION.STATUS.eq("CONFIRMED"))
+                    .and(RESERVATION.DEPARTURE.gt(LocalDate.now()))
+                    .orderBy(RESERVATION.ARRIVAL)
+                    .fetch(RESERVATION.BOOKING_NUMBER);
+            if (!bookingNumbers.isEmpty()) {
+                throw new RoomHasFutureReservationsException(bookingNumbers);
+            }
+        }
         if (dsl.fetchCount(ROOM, ROOM.NUMBER.eq(room.getNumber())
                 .and(room.getId() == null ? noCondition() : ROOM.ID.ne(room.getId()))) > 0) {
             throw new RoomNumberExistsException();
@@ -98,7 +117,13 @@ public class RoomCatalogService {
         }
     }
 
+    /**
+     * @throws RoomHasReservationsException if the room has any reservation, in any status, past or future
+     */
     public void deleteRoom(long id) {
+        if (dsl.fetchCount(RESERVATION, RESERVATION.ROOM_ID.eq(id)) > 0) {
+            throw new RoomHasReservationsException();
+        }
         dsl.deleteFrom(ROOM).where(ROOM.ID.eq(id)).execute();
     }
 

@@ -19,7 +19,13 @@ Every operation that creates or moves a reservation onto a room runs in one `@Tr
 2. Re-checks out-of-service, capacity and overlapping CONFIRMED reservations (half-open interval)
 3. Inserts or updates the reservation
 
-A conflict raises `RoomNotAvailableException`. A concurrency test with two parallel bookings for the same room and nights must show exactly one success.
+A conflict raises `RoomNotAvailableException`.
+
+**Extension (bolt 003-reservation, 2026-10-29T11:48:01Z)**:
+
+- **Lifecycle changes** (change, cancel, anonymize) first lock the reservation row (`SELECT ... FROM reservation WHERE booking_number = ? FOR UPDATE`). A change then locks the target room row as above and excludes the reservation's own id from the overlap check.
+- **Lock order is always reservation row → room row.** Operations that need only one lock take only that one. No code may lock a room and then a reservation.
+- **Setting a room out of service** locks the room row before checking for future CONFIRMED reservations, so a booking committed in parallel is either seen by the check or rejected because the room is out of service. A concurrency test with two parallel bookings for the same room and nights must show exactly one success.
 
 ## Rationale
 
@@ -53,6 +59,6 @@ The room row is the natural serialization point: bookings for different rooms ne
 
 ## Related
 
-- **Stories**: 002-reservation/002-create-reservation; later 004-change-reservation, 002-online-booking/002-book-room-online
+- **Stories**: 002-reservation/002-create-reservation, 004-change-reservation, 006-protect-rooms-with-reservations; later 002-online-booking/002-book-room-online
 - **Standards**: candidate for `standards/data-stack.md` once a second write path uses it
 - **Previous ADRs**: none

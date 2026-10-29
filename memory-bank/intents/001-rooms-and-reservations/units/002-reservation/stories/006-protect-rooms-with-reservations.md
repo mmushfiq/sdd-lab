@@ -2,11 +2,11 @@
 id: 006-protect-rooms-with-reservations
 unit: 002-reservation
 intent: 001-rooms-and-reservations
-status: ready
+status: complete
 priority: must
-created: 2026-10-29T07:20:41Z
+created: '2026-10-29T07:20:41Z'
 assigned_bolt: 003-reservation
-implemented: false
+implemented: true
 ---
 
 # Story: 006-protect-rooms-with-reservations

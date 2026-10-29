@@ -1,9 +1,9 @@
 ---
 intent: 001-rooms-and-reservations
 phase: inception
-status: inception-complete
-created: 2026-10-29T07:18:10Z
-updated: 2026-10-29T07:40:42Z
+status: complete
+created: '2026-10-29T07:18:10Z'
+updated: '2026-10-29T07:40:42Z'
 ---
 
 # Requirements: Rooms and Reservations

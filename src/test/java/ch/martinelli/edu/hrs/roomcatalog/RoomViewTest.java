@@ -1,20 +1,33 @@
 package ch.martinelli.edu.hrs.roomcatalog;
 
 import ch.martinelli.edu.hrs.core.ui.HrsBrowserlessTest;
+import ch.martinelli.edu.hrs.reservation.Guest;
+import ch.martinelli.edu.hrs.reservation.ReservationService;
+import ch.martinelli.edu.hrs.reservation.ReservationTestData;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextField;
 import org.junit.jupiter.api.BeforeEach;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import static ch.martinelli.edu.hrs.reservation.ReservationTestData.stay;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
 class RoomViewTest extends HrsBrowserlessTest {
+
+    @Autowired
+    private ReservationService reservationService;
+
+    @Autowired
+    private DSLContext dsl;
 
     @BeforeEach
     void navigateToView() {
@@ -122,6 +135,42 @@ class RoomViewTest extends HrsBrowserlessTest {
         test(outOfServiceField()).click();
         clickButton("Save");
         assertThat(test(grid()).getCellText(0, 4)).isEqualTo("In service");
+    }
+
+    // 002-reservation / 006 protect rooms with reservations
+
+    @Test
+    void refusesToDeleteRoomWithReservations() {
+        book101();
+        test(grid()).select(0);
+        clickButton("Delete");
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(lastNotification())
+                .isEqualTo("Room has reservations and cannot be deleted; set it out of service instead");
+        assertThat(test(grid()).size()).isEqualTo(10);
+    }
+
+    @Test
+    void refusesOutOfServiceWithFutureReservationsAndListsThem() {
+        var bookingNumber = book101();
+        test(grid()).select(0);
+        test(outOfServiceField()).click();
+        clickButton("Save");
+
+        assertThat(lastNotification())
+                .isEqualTo("Room has future reservations and cannot be set out of service: " + bookingNumber);
+        assertThat(test(grid()).getCellText(0, 4)).isEqualTo("In service");
+    }
+
+    private String book101() {
+        var data = new ReservationTestData(dsl);
+        return reservationService.createReservation(data.roomId("101"), stay(3, 5), 1,
+                new Guest("Anna Müller", "anna@example.com", "000"));
+    }
+
+    private String lastNotification() {
+        return test($(Notification.class).last()).getText();
     }
 
     private void clickButton(String text) {

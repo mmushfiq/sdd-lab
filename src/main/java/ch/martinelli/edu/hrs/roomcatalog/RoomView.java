@@ -9,6 +9,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -98,18 +99,26 @@ public class RoomView extends HorizontalLayout {
         } catch (RoomNumberExistsException e) {
             number.setErrorMessage(e.getMessage());
             number.setInvalid(true);
+        } catch (RoomHasFutureReservationsException e) {
+            Notification.show(e.getMessage());
         }
     }
 
     private void confirmDelete() {
         var dialog = new ConfirmDialog("Delete room", "Delete room %s?".formatted(selected.number()),
-                "Delete", _ -> {
-                    roomCatalogService.deleteRoom(selected.id());
-                    refresh();
-                });
+                "Delete", _ -> delete(selected.id()));
         dialog.setCancelable(true);
         dialog.setConfirmButtonTheme("error primary");
         dialog.open();
+    }
+
+    private void delete(long id) {
+        try {
+            roomCatalogService.deleteRoom(id);
+            refresh();
+        } catch (RoomHasReservationsException e) {
+            Notification.show(e.getMessage());
+        }
     }
 
     private void refresh() {

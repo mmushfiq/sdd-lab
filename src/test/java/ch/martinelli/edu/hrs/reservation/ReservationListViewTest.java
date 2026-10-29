@@ -1,7 +1,13 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import ch.martinelli.edu.hrs.core.ui.HrsBrowserlessTest;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
@@ -103,6 +109,131 @@ class ReservationListViewTest extends HrsBrowserlessTest {
 
         assertThat(test(grid()).size()).isZero();
         assertThat(noReservations().isVisible()).isTrue();
+    }
+
+    // 003-reservation: list actions
+
+    @Test
+    void actionsFollowTheSelectedReservation() {
+        test(grid()).select(0);
+        assertThat(button("Change").isEnabled()).isTrue();
+        assertThat(button("Cancel reservation").isEnabled()).isTrue();
+        assertThat(button("Anonymize").isEnabled()).isFalse();
+
+        test($view(Checkbox.class).withLabel("Show cancelled").single()).click();
+        test(grid()).select(1);
+        assertThat(test(grid()).getRow(1).bookingNumber()).isEqualTo(rossi);
+        assertThat(button("Change").isEnabled()).isFalse();
+        assertThat(button("Cancel reservation").isEnabled()).isFalse();
+        assertThat(button("Anonymize").isEnabled()).isTrue();
+    }
+
+    @Test
+    void cancelsAfterYes() {
+        test(grid()).select(0);
+        test(button("Cancel reservation")).click();
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(lastNotification()).isEqualTo("Reservation cancelled");
+        assertThat(status(mueller)).isEqualTo("CANCELLED");
+        assertThat(test(grid()).size()).isEqualTo(1);
+    }
+
+    @Test
+    void keepsReservationWhenCancelIsAnsweredNo() {
+        test(grid()).select(0);
+        test(button("Cancel reservation")).click();
+        test($(ConfirmDialog.class).single()).cancel();
+
+        assertThat(status(mueller)).isEqualTo("CONFIRMED");
+        assertThat(test(grid()).size()).isEqualTo(2);
+    }
+
+    @Test
+    void anonymizesAfterYesAndShowsItAsAnonymized() {
+        test(textField("Booking number")).setValue(rossi);
+        test(grid()).select(0);
+        test(button("Anonymize")).click();
+        test($(ConfirmDialog.class).single()).confirm();
+
+        var grid = test(grid());
+        assertThat(grid.getCellText(0, 1)).isEqualTo("Anonymized");
+        assertThat(grid.getCellText(0, 7)).isEqualTo("CANCELLED (anonymized)");
+        grid.select(0);
+        assertThat(button("Anonymize").isEnabled()).isFalse();
+        assertThat(button("Change").isEnabled()).isFalse();
+    }
+
+    @Test
+    void keepsGuestDataWhenAnonymizeIsAnsweredNo() {
+        test(textField("Booking number")).setValue(rossi);
+        test(grid()).select(0);
+        test(button("Anonymize")).click();
+        test($(ConfirmDialog.class).single()).cancel();
+
+        assertThat(test(grid()).getCellText(0, 1)).isEqualTo("Carla Rossi");
+    }
+
+    @Test
+    void changesDatesInTheDialog() {
+        test(grid()).select(1);
+        test(button("Change")).click();
+        test(inDialog(DatePicker.class, "Departure")).setValue(day(8));
+        clickInDialog("Save");
+
+        assertThat(lastNotification()).isEqualTo("Reservation changed");
+        assertThat($(Dialog.class).exists()).isFalse();
+        var grid = test(grid());
+        assertThat(grid.getCellText(1, 0)).isEqualTo(meier);
+        assertThat(grid.getCellText(1, 4)).isEqualTo(day(8).toString());
+        assertThat(grid.getCellText(1, 6)).isEqualTo("450.00");
+    }
+
+    @Test
+    void reportsUnavailableRoomAndKeepsTheDialogOpen() {
+        test(grid()).select(1);
+        test(button("Change")).click();
+        test(inDialog(DatePicker.class, "Arrival")).setValue(day(2));
+        test(inDialog(DatePicker.class, "Departure")).setValue(day(4));
+        test(inDialog(ComboBox.class, "Room")).selectItem("101 (Single)");
+        clickInDialog("Save");
+
+        assertThat(lastNotification()).isEqualTo("Room is not available for these dates");
+        assertThat($(Dialog.class).exists()).isTrue();
+        assertThat(test(grid()).getCellText(1, 2)).isEqualTo("104");
+    }
+
+    @Test
+    void showsCapacityErrorInTheDialog() {
+        test(grid()).select(1);
+        test(button("Change")).click();
+        test(inDialog(IntegerField.class, "Guests")).setValue(3);
+        clickInDialog("Save");
+
+        var guests = inDialog(IntegerField.class, "Guests");
+        assertThat(guests.isInvalid()).isTrue();
+        assertThat(guests.getErrorMessage()).isEqualTo("This room allows at most 2 guests");
+    }
+
+    private Button button(String text) {
+        return $view(Button.class).withText(text).single();
+    }
+
+    private void clickInDialog(String text) {
+        test($(Button.class).from($(Dialog.class).single()).withText(text).single()).click();
+    }
+
+    private <T extends com.vaadin.flow.component.Component> T inDialog(Class<T> type, String label) {
+        return $(type).from($(Dialog.class).single()).withLabel(label).single();
+    }
+
+    private String lastNotification() {
+        return test($(Notification.class).last()).getText();
+    }
+
+    private String status(String bookingNumber) {
+        return dsl.select(RESERVATION.STATUS).from(RESERVATION).where(RESERVATION.BOOKING_NUMBER.eq(bookingNumber))
+                .fetchSingle(RESERVATION.STATUS);
     }
 
     private String book(String roomNumber, int arrivalInDays, int departureInDays, String name) {

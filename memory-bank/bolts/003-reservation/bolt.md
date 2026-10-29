@@ -3,23 +3,40 @@ id: 003-reservation
 unit: 002-reservation
 intent: 001-rooms-and-reservations
 type: ddd-construction-bolt
-status: planned
+status: complete
 stories:
   - 004-change-reservation
   - 005-cancel-reservation
   - 006-protect-rooms-with-reservations
   - 007-anonymize-guest-data
-created: 2026-10-29T07:20:41Z
-started: null
-completed: null
+created: '2026-10-29T07:20:41Z'
+started: '2026-10-29T11:08:26Z'
+completed: '2026-10-29T11:58:03Z'
 current_stage: null
-stages_completed: []
-
-requires_bolts: [002-reservation]
-enables_bolts: [004-guest-booking, 005-housekeeping]
-requires_units: [001-room-catalog]
+stages_completed:
+  - name: model
+    completed: '2026-10-29T11:13:14Z'
+    artifact: ddd-01-domain-model.md
+  - name: design
+    completed: '2026-10-29T11:14:58Z'
+    artifact: ddd-02-technical-design.md
+  - name: adr
+    completed: '2026-10-29T11:48:59Z'
+    artifact: adr-003-anonymize-guest-data-in-place.md (+ ADR-001 extended)
+  - name: implement
+    completed: '2026-10-29T11:53:54Z'
+    artifact: src/main/java/ch/martinelli/edu/hrs/reservation/, roomcatalog/RoomCatalogService.java
+  - name: test
+    completed: '2026-10-29T11:58:03Z'
+    artifact: ddd-03-test-report.md
+requires_bolts:
+  - 002-reservation
+enables_bolts:
+  - 004-guest-booking
+  - 005-housekeeping
+requires_units:
+  - 001-room-catalog
 blocks: true
-
 complexity:
   avg_complexity: 2
   avg_uncertainty: 1
@@ -51,11 +68,11 @@ Reception can change and cancel reservations; booked rooms can't be deleted or b
 
 ## Stages
 
-- [ ] **1. model**: Pending → ddd-01-domain-model.md
-- [ ] **2. design**: Pending → ddd-02-technical-design.md
-- [ ] **3. adr**: Pending (optional) → adr-*.md
-- [ ] **4. implement**: Pending → src/main/java/ch/martinelli/edu/hrs/reservation/
-- [ ] **5. test**: Pending → ddd-03-test-report.md
+- [x] **1. model**: Complete → ddd-01-domain-model.md
+- [x] **2. design**: Complete → ddd-02-technical-design.md
+- [x] **3. adr**: Complete (ADR-003, ADR-001 extended) → adr-*.md
+- [x] **4. implement**: Complete → src/main/java/ch/martinelli/edu/hrs/reservation/
+- [x] **5. test**: Complete → ddd-03-test-report.md
 
 ## Dependencies
 
@@ -67,7 +84,7 @@ Reception can change and cancel reservations; booked rooms can't be deleted or b
 
 ## Success Criteria
 
-- [ ] All stories implemented
-- [ ] All acceptance criteria met
-- [ ] Tests passing (`./mvnw verify`)
+- [x] All stories implemented
+- [x] All acceptance criteria met
+- [x] Tests passing (`./mvnw verify`)
 - [ ] Code reviewed
