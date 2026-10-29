@@ -2,11 +2,11 @@
 id: 002-create-reservation
 unit: 002-reservation
 intent: 001-rooms-and-reservations
-status: ready
+status: complete
 priority: must
-created: 2026-10-29T07:20:41Z
+created: '2026-10-29T07:20:41Z'
 assigned_bolt: 002-reservation
-implemented: false
+implemented: true
 ---
 
 # Story: 002-create-reservation

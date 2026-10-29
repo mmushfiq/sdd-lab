@@ -1,5 +1,7 @@
 package ch.martinelli.edu.hrs.core.ui;
 
+import ch.martinelli.edu.hrs.reservation.AvailabilityView;
+import ch.martinelli.edu.hrs.reservation.ReservationListView;
 import ch.martinelli.edu.hrs.roomcatalog.RoomTypeView;
 import ch.martinelli.edu.hrs.roomcatalog.RoomView;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -21,7 +23,9 @@ public class MainLayout extends AppLayout {
         addToNavbar(new DrawerToggle(), title);
 
         var nav = new SideNav();
-        nav.addItem(new SideNavItem("Rooms", RoomView.class), new SideNavItem("Room types", RoomTypeView.class));
+        nav.addItem(new SideNavItem("Availability", AvailabilityView.class),
+                new SideNavItem("Reservations", ReservationListView.class),
+                new SideNavItem("Rooms", RoomView.class), new SideNavItem("Room types", RoomTypeView.class));
         addToDrawer(nav);
     }
 }

@@ -3,22 +3,38 @@ id: 002-reservation
 unit: 002-reservation
 intent: 001-rooms-and-reservations
 type: ddd-construction-bolt
-status: planned
+status: complete
 stories:
   - 001-search-availability
   - 002-create-reservation
   - 003-find-reservations
-created: 2026-10-29T07:20:41Z
-started: null
-completed: null
+created: '2026-10-29T07:20:41Z'
+started: '2026-10-29T10:43:22Z'
+completed: '2026-10-29T11:05:55Z'
 current_stage: null
-stages_completed: []
-
-requires_bolts: [001-room-catalog]
-enables_bolts: [003-reservation]
-requires_units: [001-room-catalog]
+stages_completed:
+  - name: model
+    completed: '2026-10-29T10:46:42Z'
+    artifact: ddd-01-domain-model.md
+  - name: design
+    completed: '2026-10-29T10:47:34Z'
+    artifact: ddd-02-technical-design.md
+  - name: adr
+    completed: '2026-10-29T10:52:40Z'
+    artifact: adr-001-room-row-lock-against-double-booking.md, adr-002-direct-reads-of-room-catalog-tables.md
+  - name: implement
+    completed: '2026-10-29T10:56:17Z'
+    artifact: src/main/java/ch/martinelli/edu/hrs/reservation/
+  - name: test
+    completed: '2026-10-29T11:05:55Z'
+    artifact: ddd-03-test-report.md
+requires_bolts:
+  - 001-room-catalog
+enables_bolts:
+  - 003-reservation
+requires_units:
+  - 001-room-catalog
 blocks: true
-
 complexity:
   avg_complexity: 2
   avg_uncertainty: 1
@@ -49,11 +65,11 @@ Reception can search free rooms and book them for phone and walk-in guests, with
 
 ## Stages
 
-- [ ] **1. model**: Pending → ddd-01-domain-model.md
-- [ ] **2. design**: Pending → ddd-02-technical-design.md
-- [ ] **3. adr**: Pending (optional) → adr-*.md (candidate: room-row locking for double-booking protection)
-- [ ] **4. implement**: Pending → src/main/java/ch/martinelli/edu/hrs/reservation/
-- [ ] **5. test**: Pending → ddd-03-test-report.md
+- [x] **1. model**: Complete → ddd-01-domain-model.md
+- [x] **2. design**: Complete → ddd-02-technical-design.md
+- [x] **3. adr**: Complete (2 ADRs) → adr-*.md (candidate: room-row locking for double-booking protection)
+- [x] **4. implement**: Complete → src/main/java/ch/martinelli/edu/hrs/reservation/
+- [x] **5. test**: Complete → ddd-03-test-report.md
 
 ## Dependencies
 
@@ -65,7 +81,7 @@ Reception can search free rooms and book them for phone and walk-in guests, with
 
 ## Success Criteria
 
-- [ ] All stories implemented
-- [ ] All acceptance criteria met, incl. concurrency test
-- [ ] Playwright IT: search → book → see booking number
+- [x] All stories implemented
+- [x] All acceptance criteria met, incl. concurrency test
+- [x] Playwright IT: search → book → see booking number
 - [ ] Code reviewed

@@ -17,6 +17,8 @@ import static org.jooq.impl.DSL.val;
 
 /**
  * Room types and rooms. Uniqueness and usage rules are checked here; the database constraints are the safety net.
+ * Existence checks use count, not exists: H2 can return a stale EXISTS result after an uncommitted write in the
+ * same transaction.
  */
 @Service
 @Transactional
@@ -41,8 +43,8 @@ public class RoomCatalogService {
      */
     public void saveRoomType(RoomTypeRecord roomType) {
         roomType.setName(roomType.getName().trim());
-        if (dsl.fetchExists(ROOM_TYPE, ROOM_TYPE.NAME_LOWER.eq(lower(val(roomType.getName())))
-                .and(roomType.getId() == null ? noCondition() : ROOM_TYPE.ID.ne(roomType.getId())))) {
+        if (dsl.fetchCount(ROOM_TYPE, ROOM_TYPE.NAME_LOWER.eq(lower(val(roomType.getName())))
+                .and(roomType.getId() == null ? noCondition() : ROOM_TYPE.ID.ne(roomType.getId()))) > 0) {
             throw new RoomTypeNameExistsException();
         }
         if (roomType.getId() == null) {
@@ -57,7 +59,7 @@ public class RoomCatalogService {
      * @throws RoomTypeNotFoundException if the room type no longer exists
      */
     public void deleteRoomType(long id) {
-        if (dsl.fetchExists(ROOM, ROOM.ROOM_TYPE_ID.eq(id))) {
+        if (dsl.fetchCount(ROOM, ROOM.ROOM_TYPE_ID.eq(id)) > 0) {
             throw new RoomTypeInUseException();
         }
         if (dsl.deleteFrom(ROOM_TYPE).where(ROOM_TYPE.ID.eq(id)).execute() == 0) {
@@ -85,8 +87,8 @@ public class RoomCatalogService {
      */
     public void saveRoom(RoomRecord room) {
         room.setNumber(room.getNumber().trim());
-        if (dsl.fetchExists(ROOM, ROOM.NUMBER.eq(room.getNumber())
-                .and(room.getId() == null ? noCondition() : ROOM.ID.ne(room.getId())))) {
+        if (dsl.fetchCount(ROOM, ROOM.NUMBER.eq(room.getNumber())
+                .and(room.getId() == null ? noCondition() : ROOM.ID.ne(room.getId()))) > 0) {
             throw new RoomNumberExistsException();
         }
         if (room.getId() == null) {
