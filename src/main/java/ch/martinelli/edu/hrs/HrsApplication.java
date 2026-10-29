@@ -6,6 +6,10 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+
+import java.time.Clock;
+import java.time.ZoneId;
 
 @StyleSheet(Lumo.STYLESHEET)
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
@@ -17,4 +21,11 @@ public class HrsApplication implements AppShellConfigurator {
         SpringApplication.run(HrsApplication.class, args);
     }
 
+    /**
+     * Hotel time: "today" and the online cancellation deadline are in Europe/Zurich.
+     */
+    @Bean
+    Clock clock() {
+        return Clock.system(ZoneId.of("Europe/Zurich"));
+    }
 }

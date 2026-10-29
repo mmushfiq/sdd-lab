@@ -1,9 +1,9 @@
 ---
 intent: 002-online-booking
 phase: inception
-status: inception-complete
-created: 2026-10-29T07:58:01Z
-updated: 2026-10-29T07:58:01Z
+status: complete
+created: '2026-10-29T07:58:01Z'
+updated: '2026-10-29T07:58:01Z'
 ---
 
 # Requirements: Online Booking

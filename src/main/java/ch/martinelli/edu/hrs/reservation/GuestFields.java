@@ -8,7 +8,7 @@ import com.vaadin.flow.data.binder.Binder;
 /**
  * Name, email and phone of a guest with their validation, shared by the booking and change dialogs.
  */
-class GuestFields {
+public class GuestFields {
 
     private final TextField name = new TextField("Name");
     private final EmailField email = new EmailField("Email");
@@ -17,7 +17,7 @@ class GuestFields {
     /**
      * @param binder a validation-only binder: values are read with {@link #value()}
      */
-    GuestFields(Binder<Object> binder) {
+    public GuestFields(Binder<Object> binder) {
         bindText(binder, name, "Name", 100);
         // the field's built-in format check runs first in Binder, so it carries the message
         email.setI18n(new EmailField.EmailFieldI18n().setPatternErrorMessage("Enter a valid email address"));
@@ -29,11 +29,11 @@ class GuestFields {
         bindText(binder, phone, "Phone", 30);
     }
 
-    Component[] components() {
+    public Component[] components() {
         return new Component[]{name, email, phone};
     }
 
-    Guest value() {
+    public Guest value() {
         return new Guest(name.getValue().trim(), email.getValue().trim(), phone.getValue().trim());
     }
 

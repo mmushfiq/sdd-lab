@@ -2,11 +2,11 @@
 unit: 001-guest-booking
 intent: 002-online-booking
 phase: inception
-status: ready
+status: complete
 unit_type: backend
 default_bolt_type: simple-construction-bolt
-created: 2026-10-29T07:58:01Z
-updated: 2026-10-29T07:58:01Z
+created: '2026-10-29T07:58:01Z'
+updated: '2026-10-29T07:58:01Z'
 ---
 
 # Unit Brief: Guest Booking

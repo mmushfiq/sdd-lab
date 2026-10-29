@@ -2,11 +2,11 @@
 id: 003-view-own-reservation
 unit: 001-guest-booking
 intent: 002-online-booking
-status: ready
+status: complete
 priority: must
-created: 2026-10-29T07:58:01Z
+created: '2026-10-29T07:58:01Z'
 assigned_bolt: 004-guest-booking
-implemented: false
+implemented: true
 ---
 
 # Story: 003-view-own-reservation
