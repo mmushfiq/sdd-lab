@@ -14,9 +14,9 @@ Spring Boot 4.1 + Vaadin Flow 25.3
 Vaadin Flow builds the UI in server-side Java, so UI and business logic live in one codebase with no separate frontend or REST layer. Spring Boot provides dependency injection, configuration and the embedded server.
 
 ## Authentication
-None for now
+Spring Security + Vaadin login form, with roles (planned in intent `004-staff-login-and-roles`)
 
-The app is open, with no login. Add Spring Security (with Vaadin's login view) later if requirements introduce roles or protected actions.
+Staff log in with username and password; roles are Receptionist, Manager and Housekeeping. Until intent 004 is built, staff screens are open. Guests have no accounts: they find their own reservation with booking number + email.
 
 ## Infrastructure & Deployment
 Local only (workshop)
@@ -28,4 +28,4 @@ Maven, through the `mvnw` wrapper
 
 ## Decision Relationships
 - Vaadin Flow (server-side UI) means no API layer is needed between UI and services; views call Spring services directly.
-- Running locally with no auth keeps the workshop setup to zero external dependencies, together with the embedded database (see `data-stack.md`).
+- Running locally with an embedded database (see `data-stack.md`) keeps the workshop setup to zero external dependencies; Spring Security needs no external identity provider.
