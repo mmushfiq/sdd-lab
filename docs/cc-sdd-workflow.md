@@ -15,7 +15,7 @@ jOOQ, Flyway, Karibu and Playwright conventions go into steering files.
 
 | Step | Name                         | Command                                         | Status |
 |------|------------------------------|-------------------------------------------------|--------|
-| 0    | Branch and install           | `npx cc-sdd@latest --claude-skills --lang en`   | Open   |
+| 0    | Branch and install           | `npx cc-sdd@latest --claude-skills --lang en`   | Done   |
 | 1    | Steering                     | `/kiro-steering`, `/kiro-steering-custom`       | Open   |
 | 2    | Discovery                    | `/kiro-discovery`                               | Open   |
 | 3    | Spec batch                   | `/kiro-spec-batch`                              | Open   |
