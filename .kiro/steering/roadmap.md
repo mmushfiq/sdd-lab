@@ -47,6 +47,26 @@ per business area. Each slice delivers usable screens end to end (migration, jOO
   - **Open questions** in `domain.md` (guest access to own reservation, online cancel/change rules, no-show, rooms out
     of service, report definitions, guest data) are decided by the spec named in its brief.
 
+## Reserved Numbers per Spec
+
+Specs are written in parallel, so each one gets its own Flyway versions, test-data ID range and reservation date
+window (`testing.md`). Tests run with "today" fixed at 2026-06-01 (foundation). A spec's test reservations stay inside
+its date window, so availability and list tests of different specs never see each other's rows.
+
+| Spec | Main migrations | Test migrations | Test data IDs | Test reservation dates |
+|------|-----------------|-----------------|---------------|------------------------|
+| foundation | V1–V9 | V100–V109 | 1000–1999 | none |
+| reservation-core | V10–V19 | V110–V119 | 2000–2999 | 2027-02-01 – 2027-03-31, 2024-12 (retention) |
+| housekeeping | V20–V29 | V120–V129 | 3000–3999 | none |
+| guest-booking | V30–V39 | V130–V139 | 4000–4999 | 2027-04-01 – 2027-04-30 |
+| front-desk-reservations | V40–V49 | V140–V149 | 5000–5999 | 2027-05-01 – 2027-05-31 |
+| reception | V50–V59 | V150–V159 | 6000–6999 | 2026-05-25 – 2026-06-15 (around "today") |
+| management | V60–V69 | V160–V169 | 7000–7999 | 2027-06-01 – 2027-06-30 |
+| reports | V70–V79 | V170–V179 | 8000–8999 | 2026-01-01 – 2026-04-30 (past months) |
+
+Reservations that departed more than 90 days before "today" lose their guest data to reservation-core's retention
+job; tests that need guest data use dates after 2026-03-03.
+
 ## Specs (dependency order)
 - [ ] foundation -- Rooms and room types schema with the ten seeded rooms, staff login with roles, staff layout and navigation. Dependencies: none
 - [ ] reservation-core -- Reservation model and lifecycle, availability by date range and guests, create/change/cancel with no double booking. Dependencies: foundation

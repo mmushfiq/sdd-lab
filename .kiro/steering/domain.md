@@ -58,27 +58,56 @@ Reserved ──check-in──▶ Checked in ──check-out──▶ Checked out
    └──cancel──▶ Cancelled
 ```
 
-The vision names these steps; the exact status names and any further states are fixed in the spec that introduces
-reservations.
+Statuses (reservation-core): `RESERVED`, `CHECKED_IN`, `CHECKED_OUT`, `CANCELLED`. Allowed changes are exactly the
+arrows above; there is no no-show status.
 
 ## Reports
 
 | Term | Meaning | Avoid |
 |------|---------|-------|
 | **Occupancy** | Share of available room nights that were occupied in a period, shown in percent. | utilisation, load |
-| **Revenue** | Money earned from nights stayed in a period, at the nightly rates of those reservations. Payment itself is out of scope. | income, sales, turnover |
+| **Revenue** | The booked nights of stays in a period, each at the reservation's booked nightly rate. Payment itself is out of scope. | income, sales, turnover |
+
+## Decisions
+
+Answers the specs have fixed; the spec named in brackets owns each one.
+
+- **Reservation code** [reservation-core]: 8 random letters and digits, unique per reservation.
+- **Price** [reservation-core]: the nightly rate is fixed at booking time; price = nights × booked rate. Moving a
+  reservation to another room type takes that type's current rate.
+- **Guest data** [reservation-core]: name plus at least one of e-mail or phone; stored per reservation, no guest
+  profiles. Erased 90 days after departure (not while checked in); the reservation itself is kept for reports.
+- **Changes** [reservation-core]: only while Reserved, and only room, dates and number of guests. One room per
+  reservation; arrival dates in the past are refused.
+- **Initial cleaning status** [housekeeping]: all rooms start Clean; a room without a recorded status counts as Dirty.
+- **Cleaning list access** [housekeeping]: housekeepers and managers; receptionists are refused.
+- **Staff accounts** [foundation]: one role per staff member; staff are provisioned per environment, not through the
+  UI.
+- **Guest access** [guest-booking]: a guest opens their reservation with reservation code plus the e-mail stored with
+  it; online booking needs name and e-mail. Online cancel while Reserved until the day before arrival; no online
+  change; no confirmation e-mail.
+- **Reservation handling by staff** [front-desk-reservations]: receptionists only; online and desk reservations are
+  treated the same; guest data is not edited (cancel and re-create).
+- **No-show** [reception]: no own status. A Reserved reservation past its arrival date shows as **Late arrival**;
+  reception or the guest may cancel it, otherwise it stays Reserved and never counts as a stay.
+- **Check-in and check-out window** [reception]: check-in from the arrival date to the day before departure; check-out
+  any time while checked in. A checked-in guest past the departure date shows as **Overdue** and keeps the room.
+  No room move at check-in. Reception pages are for receptionists only.
+- **Stay record** [reception]: the actual check-in day and check-out day of a reservation. A reservation is a stay when
+  its status is Checked in or Checked out.
+- **Rooms out of service** [management]: not supported. A room can be removed only if it never had a reservation; a
+  room type only if no room uses it. Rate changes apply only to reservations created or moved afterwards.
+
+- **Report definitions** [reports]: an *occupied night* is a night actually stayed by a Checked in or Checked out
+  reservation (check-in day to the night before check-out; without a stay record, arrival to departure); Reserved
+  and Cancelled never count. *Room nights available* = current number of rooms × nights of the period. *Revenue*
+  counts each booked night of a stay at its booked rate in the month of that night; Overdue nights earn nothing.
+  Occupancy is rounded half up to one decimal; totals are computed from summed nights and amounts.
 
 ## Open Questions
 
-The vision does not settle these; the spec that needs one must decide it and record the answer here:
-
-- How a guest finds their own reservation online without a staff account (for example reservation code plus e-mail).
-- Whether and until when a guest may cancel online, and whether a guest may change a reservation online.
-- What happens to a reservation whose guest never arrives (no-show).
-- Whether rooms or room types can be taken out of service, and what that does to existing reservations.
-- Exact definitions for the reports: which nights count as occupied, which reservations count as revenue (checked
-  out only, or also checked in).
-- Which guest personal data a reservation needs (GDPR: as little as possible) and how long it is kept.
+The vision does not settle these; the spec that needs one must decide it and record the answer here. None are open
+at the moment.
 
 ---
 _Vocabulary only. Rules and flows belong in the specs' requirements._

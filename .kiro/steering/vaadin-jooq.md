@@ -10,8 +10,9 @@ How views, data access and schema changes are written in HRS. The layering and p
 
 ## Flyway Migrations
 
-- Location: `src/main/resources/db/migration`, named `V<n>__<snake_case_description>.sql`, `<n>` ascending
-  without gaps.
+- Location: `src/main/resources/db/migration`, named `V<n>__<snake_case_description>.sql`, `<n>` ascending.
+  Each spec uses the version block reserved for it in `roadmap.md`, so specs written in parallel never collide;
+  gaps between blocks are fine.
 - A committed migration is never edited. Changes go into a new migration.
 - One migration per coherent change (a feature's tables, a new column), not one per table.
 - Reference data that every environment needs (for example the ten rooms, room types) goes into main migrations;
