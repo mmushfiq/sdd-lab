@@ -24,7 +24,8 @@ openspec update                          # rewrites the /opsx:* files in this re
 #    → commit "Install OpenSpec <version>"
 
 # 1. Project context
-#    edit openspec/config.yaml (context + rules, see step 1)
+#    no OpenSpec command: edit openspec/config.yaml by hand (context + rules, see step 1)
+#    check every line against pom.xml, src/ and docs/vision.md; nothing validates the file
 #    → commit "Add OpenSpec project context"
 ```
 
@@ -85,7 +86,7 @@ Repeat steps 3–5 the same way for the other changes from step 2 (one session p
 | Step | Name                               | Command                                              | Status |
 |------|------------------------------------|------------------------------------------------------|--------|
 | 0    | Install                            | `openspec init --tools claude`                       | Done   |
-| 1    | Project context (= steering)       | edit `openspec/config.yaml`                          | Open   |
+| 1    | Project context (= steering)       | edit `openspec/config.yaml`                          | Done   |
 | 2    | Explore and plan the changes       | `/opsx:explore`                                      | Open   |
 | 3    | Per change: plan                   | `/opsx:new`, `/opsx:continue` ×4                     | Open   |
 | 4    | Per change: implement              | `/opsx:apply`                                        | Open   |
@@ -149,32 +150,32 @@ OpenSpec has no steering command. Everything project-wide goes into `openspec/co
 every artifact, `apply` and `archive`, `rules` only with the artifact they name. Keep it short: OpenSpec warns that
 long context makes the output worse.
 
-```yaml
-schema: spec-driven            # keep what init wrote
+The result for this PoC is [`openspec/config.yaml`](../openspec/config.yaml). It has three parts:
 
-context: |
-  Hotel Reservation System for one hotel; product vision in docs/vision.md.
-  Roles: Guest (no login), Receptionist, Manager, Housekeeper.
-  Stack: Java 25, Spring Boot 4, Vaadin 25 Flow (server-side Java views), jOOQ, Flyway, H2, Spring Security.
-  Base package ch.martinelli.edu.hrs, one package per feature area, views in <area>/ui.
-  Flyway migrations in src/main/resources/db/migration are never edited after commit; add a new one.
-  ./mvnw compile runs Flyway against H2 and generates the jOOQ classes; never edit generated code.
-  Tests: Vaadin Browserless tests (./mvnw test) for every view, one Playwright test *IT per feature (./mvnw verify).
-  Test data in src/test/resources/db/migration, one file per change. Tests use a fixed Clock.
+| Key          | Sent with                                   | Put in it                                             |
+|--------------|---------------------------------------------|-------------------------------------------------------|
+| `schema`     | –                                           | keep `spec-driven` from `init`                        |
+| `context`    | every artifact, `apply`, `archive`          | facts the agent cannot read from the code             |
+| `rules.<id>` | only the artifact `<id>` (`proposal`, `specs`, `design`, `tasks`) | checks that artifact must meet  |
+| `operations` | `apply` / `archive` (new in 1.16, optional) | advice on how to work, not what to produce            |
 
-rules:
-  specs:
-    - Every alternative or error flow from the vision is its own scenario
-    - Use the vision's terms for domain concepts; one name per concept
-  design:
-    - List new tables and columns with types and constraints
-  tasks:
-    - Every view task has a Browserless test task; every change has one Playwright test task
-    - The last task runs ./mvnw verify and must end green
-```
+There is no OpenSpec command for this step, and nothing validates the file: `openspec validate` only checks changes
+and specs, and `openspec instructions` needs a change. Tips:
 
-Check the field names against the config file `init` wrote and the docs
-(<https://openspec.dev/docs/configuration/config-yaml>) before you save it. Commit: "Add OpenSpec project context".
+- **Check every line against the repo, not against a plan.** The first draft listed Spring Security, but it is not in
+  `pom.xml`; the agent would have treated it as present. State what is missing and which change adds it.
+- **Use the vision's words.** The draft said "Housekeeper", the vision says "Housekeeping"; the context is the
+  glossary OpenSpec does not have.
+- **Name what already exists.** Point to existing base classes (`HrsBrowserlessTest`, `PlaywrightIT`) and the
+  generated jOOQ package, or the agent writes its own.
+- **Exact versions from `pom.xml`**, not "Spring Boot 4".
+- **Keep it short** (about 10 lines); put per-artifact checks in `rules`, not in `context`.
+- **`rules` keys must be artifact ids** of the schema (`openspec templates` lists them); an unknown key is only a
+  warning, so a typo silently does nothing.
+- **See it in use** from step 3 on: `openspec instructions specs --change <name>` prints the prompt with your context
+  and rules in it. Check this once for the first change.
+
+Commit: "Add OpenSpec project context".
 
 This file is what replaces the AIUP stack plugin; it has the biggest effect on the result.
 
