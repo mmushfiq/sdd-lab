@@ -17,12 +17,17 @@ The guest booking page and the page to find a reservation SHALL be usable withou
 ### Requirement: Guest searches availability
 The guest SHALL be able to search availability with arrival date, departure date and number of guests, with the
 same rules and the same available rooms as the availability search for reception. Guests SHALL see each room's
-room type, capacity, nightly rate and total price, but not its room number.
+room type, capacity and total price, but not its room number and no single nightly rate.
 
 #### Scenario: Guest sees free rooms
 - **WHEN** a guest searches from 10 March to 12 March for 2 guests
-- **THEN** the system lists the free rooms that fit 2 guests with room type, capacity, nightly rate and total price
+- **THEN** the system lists the free rooms that fit 2 guests with room type, capacity and total price
 - **AND** does not show their room numbers
+
+#### Scenario: Guest sees the seasonal price
+- **WHEN** "Double" has the base rate 140.00 and the seasonal rate "Christmas" from 20 December 2030 at 180.00
+- **AND** a guest searches from 18 December to 21 December 2030 for 2 guests
+- **THEN** the system lists "Double" with the total price 460.00
 
 #### Scenario: Guest search with invalid input
 - **WHEN** a guest searches with an arrival date in the past
@@ -71,8 +76,14 @@ reservation whose online cancellation deadline has not passed, the system SHALL 
 
 #### Scenario: Reservation found
 - **WHEN** a guest enters a reservation number and the matching email
-- **THEN** the system shows the reservation's room type, dates, number of guests, guest name, total price and
-  status
+- **THEN** the system shows the reservation's room type, dates, number of guests, guest name, price per night, total
+  price and status
+
+#### Scenario: Price per night shown to the guest
+- **WHEN** a guest finds their reservation from 18 December to 21 December 2030 with the night rates 140.00, 140.00
+  and 180.00
+- **THEN** the system shows the price per night "2 nights × CHF 140.00, 1 night × CHF 180.00"
+- **AND** the total price CHF 460.00
 
 #### Scenario: Wrong reservation number or email
 - **WHEN** a guest enters a reservation number that does not exist, or an email that does not match the reservation
