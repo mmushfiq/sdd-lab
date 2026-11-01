@@ -33,8 +33,8 @@ stays, so availability needs no change.
 
 ### 2. Service `FrontDeskService` in `ch.martinelli.edu.hrs.frontdesk`
 
-- `roomOverview(today)`: all rooms (join `room_type`) left-joined with the reservation that is `CHECKED_IN`, or else
-  `BOOKED` with `arrival_date = today`; state Occupied / Arrival today / Free.
+- `roomOverview()` (today from the injected `Clock`): all rooms (join `room_type`) left-joined with the reservation
+  that is `CHECKED_IN`, or else `BOOKED` with `arrival_date = today`; state Occupied / Arrival today / Free.
 - `checkIn(reservationId)`, one transaction with the room row locked (`FOR UPDATE`, as in `ReservationService`):
   status must be `BOOKED`, `arrival_date = today`, `cleaning_status = 'CLEAN'`, and no `CHECKED_IN` reservation
   on the room; then set `CHECKED_IN`. Errors use the spec's messages.

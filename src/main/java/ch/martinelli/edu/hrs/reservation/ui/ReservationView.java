@@ -73,6 +73,6 @@ public class ReservationView extends VerticalLayout {
     }
 
     public static String statusLabel(String status) {
-        return status.charAt(0) + status.substring(1).toLowerCase();
+        return (status.charAt(0) + status.substring(1).toLowerCase()).replace('_', ' ');
     }
 }

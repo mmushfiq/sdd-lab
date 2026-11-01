@@ -158,6 +158,18 @@ class ReservationViewTest extends HrsBrowserlessTest {
                 "LATER001|Ben Keller|105|2030-03-10|2030-03-12|Booked");
     }
 
+    // Scenario "Checked in reservation shown in the reservation list"
+    @Test
+    void shows_checked_in_and_checked_out_statuses() {
+        LocalDate today = LocalDate.now();
+        insert(ctx, "CHECKIN1", "104", today, today.plusDays(2), "Anna Meier", "CHECKED_IN");
+        insert(ctx, "CHECKOU1", "105", today.minusDays(1), today, "Ben Keller", "CHECKED_OUT");
+        open();
+
+        assertThat(rows()).extracting(r -> r.substring(r.lastIndexOf('|') + 1))
+                .containsExactly("Checked out", "Checked in");
+    }
+
     // Scenario "Search by guest name"
     @Test
     void search_by_guest_name() {
