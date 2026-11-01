@@ -45,11 +45,13 @@ openspec validate <change> --strict
 # 4. Implement
 /opsx:apply <change>
 
-# 5. Verify and archive
+# 5. Verify, merge request, archive
 ./mvnw verify
 /opsx:verify <change>
-/opsx:archive <change>
-#    → commit "Implement change <change> with tests"
+#    → commit "Implement change <change> with tests", open the merge request
+#    review fixes: /opsx:update <change> if behavior changes, fix code, ./mvnw verify, /opsx:verify <change>, push
+/opsx:archive <change>               # only after the merge request is approved
+#    → commit "Archive change <change>", push, merge
 ```
 
 Repeat steps 3–5 for every change from step 2 (one session per change, `/clear` in between).
@@ -86,7 +88,7 @@ Repeat steps 3–5 for every change from step 2 (one session per change, `/clear
 | 2    | Explore and plan the changes       | `/opsx:explore`                                      | Done   |
 | 3    | Per change: plan                   | `/opsx:new`, `/opsx:continue` ×4                     | Open   |
 | 4    | Per change: implement              | `/opsx:apply`                                        | Open   |
-| 5    | Per change: verify and archive     | `./mvnw verify`, `/opsx:verify`, `/opsx:archive`     | Open   |
+| 5    | Per change: verify, MR, archive    | `./mvnw verify`, `/opsx:verify`, `/opsx:archive`     | Open   |
 | 6    | Change requests                    | `/opsx:explore`, `/opsx:new` … `/opsx:archive`       | Open   |
 
 ---
@@ -220,22 +222,37 @@ in step 5.
 **Token budget:** run one change per session and `/clear` between changes. If the limit runs out, `/opsx:apply`
 picks up at the first unticked task.
 
-## Step 5 – Per change: verify and archive
+## Step 5 – Per change: verify, merge request, archive
 
-```bash
-./mvnw verify
 ```
-```
-/opsx:verify <change>        → does the code match proposal, specs, design and tasks?
+/opsx:verify <change>        → does the code match proposal, specs, design and tasks? (changes no files)
 /opsx:archive <change>       → merges delta specs into openspec/specs/, moves the change to archive/
 ```
+
+**When to run them in a merge request flow:** verify before the merge request and after every review fix; archive
+once, as the last commit of the same merge request, after it is approved.
+
+| When                          | Do                                                                                   |
+|-------------------------------|--------------------------------------------------------------------------------------|
+| Implementation done           | `./mvnw verify`, `/opsx:verify <change>`, fix findings                               |
+| Before opening the MR         | commit "Implement change <change> with tests", open the merge request                |
+| Review comments               | behavior changes → `/opsx:update <change>` first; fix code; `./mvnw verify`; `/opsx:verify <change>`; push |
+| MR approved                   | `/opsx:archive <change>`, commit "Archive change <change>", push, merge              |
+
+Why archive inside the merge request and not after the merge:
+
+- `main` gets the code and the updated `openspec/specs/` in one merge, so they never disagree. Archiving after the
+  merge leaves `main` with code that the main specs don't describe yet.
+- Reviewers can check the merged spec text too.
+- No second merge request just for the archive.
+
+If the team does not allow pushes after approval, archive just before opening the merge request instead. Review
+fixes that change behavior must then be made in `openspec/specs/` directly, because the change is already archived.
 
 ```bash
 openspec list --specs        # the capabilities now in the main specs
 openspec view                # dashboard
 ```
-
-Commit: "Implement change <change> with tests" (code + archive move + updated `openspec/specs/`).
 
 **Repeat steps 3–5 for every change** from step 2, in order. Then run the app with `./mvnw spring-boot:run` and open
 <http://localhost:8080>.
@@ -250,8 +267,8 @@ OpenSpec has to find the affected requirements itself:
 /opsx:new <change>
 /opsx:continue <change>  (×4)    → delta specs should be MODIFIED, not ADDED
 /opsx:apply <change>
-/opsx:verify <change>
-/opsx:archive <change>
+/opsx:verify <change>            → then merge request and review as in step 5
+/opsx:archive <change>           → after the merge request is approved
 ```
 
 Answer the stakeholder questions OpenSpec raises; do not hand it decisions it did not ask for.

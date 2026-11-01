@@ -69,15 +69,18 @@ hashes:
 
 | Class              | Package                              | Route        | Access              |
 |--------------------|--------------------------------------|--------------|---------------------|
-| `SecurityConfig`, `StaffUserDetailsService` | `ch.martinelli.edu.hrs.core.security` | – | – |
+| `SecurityConfig`, `StaffUserDetailsService`, `StaffUser` | `ch.martinelli.edu.hrs.core.security` | – | – |
 | `LoginView`        | `ch.martinelli.edu.hrs.core.ui`      | `login`      | `@AnonymousAllowed` |
 | `AccessDeniedView` | `ch.martinelli.edu.hrs.core.ui`      | error view   | –                   |
 | `StaffStartView`   | `ch.martinelli.edu.hrs.staff.ui`     | `staff`      | `@PermitAll`        |
 
 - `LoginView` uses Vaadin's `LoginForm` with an English i18n error text "Invalid username or password"; the
   `LoginForm` does not submit with an empty field. After login, the default target is `/staff`.
-- `StaffStartView` reads the user from `AuthenticationContext` and shows full name and role; its logout button calls
-  `AuthenticationContext.logout()`, which ends the session and returns to `login`.
+- `StaffUser` extends Spring Security's `User` and carries the full name and role, so the start page needs no second
+  query; `StaffUserDetailsService` returns it as the principal.
+- `StaffStartView` reads the `StaffUser` from `AuthenticationContext` and shows full name and role; its logout button
+  calls `AuthenticationContext.logout()`, which ends the session. `SecurityConfig` sets the logout target to `/login`
+  (`loginView(LoginView.class, "/login")`), because route `""` has no view yet.
 - `AccessDeniedView` implements `HasErrorParameter<com.vaadin.flow.router.AccessDeniedException>` and shows
   "Access denied", so a logged-in user without the role gets a clear message. Vaadin reroutes a denied navigation to
   "not found" by default; role-restricted views therefore also carry `@AccessDeniedErrorRouter`, which sends the
