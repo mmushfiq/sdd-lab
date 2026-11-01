@@ -63,9 +63,11 @@ rare unique-constraint violation the service generates a new number and retries 
 
 ### 5. Validation
 
-Bean validation on the form record (`@NotBlank` name and email, `@Email`, `@Min(1)` guests), plus service checks
-for dates (arrival not before today, departure after arrival), capacity and overlap. Service errors are a
-`ReservationException` with the spec's message text, shown in a `Notification` or on the field.
+Binder validators on the guest form (required name and email, `EmailValidator`), as in `add-room-management`; the
+project has no Bean Validation dependency. The service checks guests (at least 1), dates (arrival not before today,
+departure after arrival), a non-blank guest name and email (so `add-online-booking` can reuse it), capacity and
+overlap. Service errors are a `ReservationException` with the spec's message text: search errors and "No rooms
+available for these dates" appear in the dialog, save errors in an error `Notification`.
 
 ### 6. Services, views and packages
 

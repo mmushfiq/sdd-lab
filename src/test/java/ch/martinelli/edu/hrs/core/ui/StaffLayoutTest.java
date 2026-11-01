@@ -28,7 +28,7 @@ class StaffLayoutTest extends HrsBrowserlessTest {
     void receptionist_does_not_see_room_pages() {
         navigate(StaffStartView.class);
 
-        assertThat(navLabels()).containsExactly("Start");
+        assertThat(navLabels()).containsExactly("Start", "Reservations");
     }
 
     private List<String> navLabels() {

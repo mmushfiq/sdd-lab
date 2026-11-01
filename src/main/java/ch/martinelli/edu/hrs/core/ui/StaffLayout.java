@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.core.ui;
 
 import ch.martinelli.edu.hrs.core.security.StaffUser;
+import ch.martinelli.edu.hrs.reservation.ui.ReservationView;
 import ch.martinelli.edu.hrs.room.ui.RoomTypeView;
 import ch.martinelli.edu.hrs.room.ui.RoomView;
 import ch.martinelli.edu.hrs.staff.ui.StaffStartView;
@@ -27,6 +28,7 @@ public class StaffLayout extends AppLayout {
         SideNav nav = new SideNav();
         nav.setId("staff-nav");
         addItem(nav, accessChecker, "Start", StaffStartView.class);
+        addItem(nav, accessChecker, "Reservations", ReservationView.class);
         addItem(nav, accessChecker, "Room types", RoomTypeView.class);
         addItem(nav, accessChecker, "Rooms", RoomView.class);
         addToDrawer(nav);

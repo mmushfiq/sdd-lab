@@ -99,7 +99,7 @@ public class RoomTypeView extends VerticalLayout {
         edit(null);
     }
 
-    static String formatRate(BigDecimal rate) {
+    public static String formatRate(BigDecimal rate) {
         return "CHF " + rate.setScale(2);
     }
 }
