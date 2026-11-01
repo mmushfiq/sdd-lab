@@ -84,7 +84,7 @@ Repeat steps 3–5 the same way for the other changes from step 2 (one session p
 
 | Step | Name                               | Command                                              | Status |
 |------|------------------------------------|------------------------------------------------------|--------|
-| 0    | Install                            | `openspec init --tools claude`                       | Open   |
+| 0    | Install                            | `openspec init --tools claude`                       | Done   |
 | 1    | Project context (= steering)       | edit `openspec/config.yaml`                          | Open   |
 | 2    | Explore and plan the changes       | `/opsx:explore`                                      | Open   |
 | 3    | Per change: plan                   | `/opsx:new`, `/opsx:continue` ×4                     | Open   |
@@ -121,7 +121,7 @@ already added.
 
 ```bash
 npm install -g @fission-ai/openspec@latest           # needs Node >= 22.12 (installed: v24)
-openspec --version                                   # optional: write the version into this file
+openspec --version                                   # used in this PoC: 1.16.0
 openspec init --tools claude                         # creates openspec/ + the /opsx:* commands for Claude Code
 openspec config profile                              # choose the expanded workflow (new, continue, ff, verify …)
 openspec update                                      # regenerates the /opsx:* files for the chosen profile
@@ -131,6 +131,9 @@ openspec update                                      # regenerates the /opsx:* f
   Claude Code slash commands. `--tools claude` skips the tool picker.
 - The default profile only has `/opsx:propose`, `/opsx:explore`, `/opsx:apply` and a few more. `config profile`
   switches to the expanded set, and `update` rewrites the slash command files in the repo to match.
+- `config profile` needs a real terminal (it fails under Claude Code's `!` prefix). Choose "Workflows only" (keep
+  delivery `both`) and add New change, Continue change, Fast-forward and Verify change to the six core workflows.
+  The setting is global (`openspec config list`), not per repo.
 
 Check what `init` created (`openspec/`, `.claude/commands/opsx/` and/or `.claude/skills/openspec-*`) and commit it
 as "Install OpenSpec <version>".
