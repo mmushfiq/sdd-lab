@@ -328,7 +328,7 @@ Expected figures (R = room count read by the test; 10 in the standard test datab
   2 / 180.00.
 - Night 2026-02-12 alone: occupied 1, revenue 100.00; night 2026-02-13 alone: occupied 0, revenue 100.00.
 - Test-only rows (inserted in a test, deleted in `@AfterEach`): reservation 8100 in room 205, 2026-04-27 – 2026-04-29,
-  `CHECKED_IN`, rate 190.00, open stay from 2026-04-28; room `T8900` of type Single; a guest row for 8002.
+  `CHECKED_IN`, rate 190.00, open stay from 2026-04-28; room 8900 (number `T8900`, type Single); a guest row for 8002.
 
 ## Error Handling
 - Invalid period → `ReportPeriodException` with one of the three messages above; the view shows it in `period-message`
@@ -349,7 +349,7 @@ figures are those of the 2026-01-01 – 2026-04-30 window only, or a difference 
   - Open stay: with 8100 inserted, April 25–30 shows occupied 3 and revenue 380.00 (3.3, overdue nights, booked night
     before check-in earns); 2026-04-27 – 2026-06-01 minus the same period without 8100 gives +35 occupied nights
     (2026-04-28 up to and including tonight 2026-06-01) and +380.00 revenue (3.3, "including tonight").
-  - Room added: with room `T8900` inserted, available room nights of January are `(R + 1) × 31`, occupied unchanged
+  - Room added: with room 8900 (number `T8900`) inserted, available room nights of January are `(R + 1) × 31`, occupied unchanged
     (3.1).
   - `occupancyRate`: (1, 8) = 12.5, (1, 3) = 33.3, (2, 3) = 66.7, (1, 16) = 6.3, (0, 10) = 0.0, (3, 0) = null (3.6,
     3.7).

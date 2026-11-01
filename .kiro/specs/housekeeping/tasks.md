@@ -4,6 +4,10 @@ Prerequisite: the foundation spec is implemented (room schema and seed, security
 classes with fixed clock, test accounts). No task here runs in parallel: each builds on the previous one and tasks
 3.1 and 3.2 change the same view.
 
+Implementation note: the build migrates a persistent file database under `target/`. Implement reservation-core
+before housekeeping when possible; if reservation-core's V10 is merged after housekeeping's V20 was already applied
+locally, run `./mvnw clean` first (Flyway otherwise rejects the out-of-order version).
+
 - [ ] 1. Store the cleaning status of every room
   - Main migration version 20 creates the cleaning status table: one row per room at most, status limited to Dirty and Clean, a declared foreign key to the room that is removed together with the room
   - The same migration gives every room existing at that point the status Clean
@@ -14,7 +18,7 @@ classes with fixed clock, test accounts). No task here runs in parallel: each bu
   - Cleaning status vocabulary with display labels, the room-status result type and the unknown-room error carrying the room id
   - Repository reads the status of all rooms and of one room from the room table with the status joined, treating a missing status as Dirty and ordering by room number; it saves a status by upsert
   - Service answers "is clean", marks a room dirty or clean (idempotent, unknown room rejected with nothing written), returns the cleaning list (dirty only) and all statuses
-  - Service test: seeded rooms all Clean and listed in room-number order; mark dirty twice gives one list entry and "not clean"; mark clean empties the list and repeats without error; a test room 3000 without status row counts as Dirty until marked clean; unknown room 3999 is rejected by every method with the row count unchanged; a direct insert of an invalid status or of a second row for a room fails and leaves the status unchanged
+  - Service test (extends `HrsBrowserlessTest`, no own Spring context or clock bean): seeded rooms all Clean and listed in room-number order; mark dirty twice gives one list entry and "not clean"; mark clean empties the list and repeats without error; a test room 3000 without status row counts as Dirty until marked clean; unknown room 3999 is rejected by every method with the row count unchanged; a direct insert of an invalid status or of a second row for a room fails and leaves the status unchanged
   - Every test restores all rooms to Clean and removes room 3000 afterwards
   - Done when the service test passes and the repository is not visible outside the housekeeping package
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 3.2, 5.1, 5.2, 5.3, 5.4, 5.5_

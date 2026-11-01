@@ -18,7 +18,7 @@ inside views and services is in `vaadin-jooq.md`.
 | Type | Tool | Base class | Name | Runs with | Scope |
 |------|------|------------|------|-----------|-------|
 | View test | Vaadin Browserless | `core.ui.HrsBrowserlessTest` | `<View>Test` | `./mvnw test` | Every view: navigation, input, validation, grid content, notifications, role restrictions |
-| Service test | JUnit + `@SpringBootTest` | none | `<Service>Test` | `./mvnw test` | Rules that are hard to reach through a view (concurrency, scheduled jobs, edge dates) |
+| Service test | JUnit + Spring context | `core.ui.HrsBrowserlessTest` (one shared context, test clock) | `<Service>Test` | `./mvnw test` | Rules that are hard to reach through a view (concurrency, scheduled jobs, edge dates) |
 | Browser test | Playwright + Mopo | `core.ui.PlaywrightIT` | `<Feature>IT` | `./mvnw verify` | One main journey per feature in a real browser |
 
 - Browserless tests are the default: fast, server-side, with the full Spring context. Most acceptance criteria are
@@ -70,8 +70,10 @@ _Class, id and role names are examples; the real ones come from the specs' desig
 
 ## Time
 
-- "Today" in tests is fixed: the test context provides a fixed `java.time.Clock` bean (for example with `@TestBean`),
-  and code reads time only from the injected `Clock`.
+- "Today" in tests is fixed at 2026-06-01: the test base classes provide one `ch.martinelli.edu.hrs.core.TestClock`
+  bean (foundation), and code reads time only from the injected `Clock`.
+- A test that needs another "today" (deadlines, overdue stays) calls `testClock.setToday(...)`; the base classes reset
+  it after each test. Don't add your own clock beans: that would start an extra Spring context.
 - Pick test dates relative to that fixed day, never relative to the real current date.
 
 ## Security in Tests

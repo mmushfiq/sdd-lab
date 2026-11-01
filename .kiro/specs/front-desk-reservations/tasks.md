@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [ ] 1. Test data and shared building blocks
-- [ ] 1.1 Add the front-desk test data and the view test base
+- [ ] 1.1 Add the test data of this spec and the view test base
   - Prerequisite: foundation (security dependencies, clock, staff layout with role-filtered menu, test accounts, fixed test clock 2026-06-01) and reservation-core tasks 1.1, 1.2, 2 and 3.1–3.6 are implemented; every view of this spec calls the reservation service and lives in the staff layout
   - Add the test migration (version 140) with the five reservations of the design's test-data table (ids 5000–5004, 3–12 May 2027, rooms resolved by room number, codes DESK5000–DESK5004, obviously fake guest data; 5003 without guest data, 5004 with phone only)
   - Add the abstract view test base on top of the Browserless test base: a helper that creates a reservation through the reservation service for a room number, dates and number of guests, and a cleanup after each test that deletes every reservation arriving 15–31 May 2027
@@ -65,21 +65,21 @@
 
 - [ ] 4. Access and end-to-end validation
 - [ ] 4.1 Prove receptionist-only access and navigation
-  - FrontDeskAccessTest: the receptionist's staff navigation lists "Reservations" and "New reservation"; a manager and a housekeeper opening each of the four page addresses (list, new, reservation 5000, change of 5000) get the not-available view and no instance of the page, and their navigation lists neither entry; an anonymous visitor opening the list ends on the login page
+  - ReservationDeskAccessTest: the receptionist's staff navigation lists "Reservations" and "New reservation"; a manager and a housekeeper opening each of the four page addresses (list, new, reservation 5000, change of 5000) get the not-available view and no instance of the page, and their navigation lists neither entry; an anonymous visitor opening the list ends on the login page
   - If a refusal case fails, only the role annotations of the views may change here; behaviour changes go back to the task that owns the view
-  - Done when FrontDeskAccessTest passes
+  - Done when ReservationDeskAccessTest passes
   - _Depends: 2.1, 3.1, 3.2, 3.4_
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
 - [ ] 4.2 Browser test of the keyboard journey at desktop width
-  - FrontDeskReservationsIT at 1280×800 with a real login as the test receptionist: the arrival field has focus on the new-reservation page; with the keyboard only enter 25–27 May 2027 and 2 guests, Enter lists rooms, choose room 203, enter guest name and phone, Enter shows the reservation page Reserved; on the list Enter on a name search finds it and Enter in the code field opens it; cancel and confirm with the keyboard shows Cancelled; no horizontal scrolling on each of the four pages
+  - StaffReservationsIT at 1280×800 with a real login as the test receptionist: the arrival field has focus on the new-reservation page; with the keyboard only enter 25–27 May 2027 and 2 guests, Enter lists rooms, choose room 203, enter guest name and phone, Enter shows the reservation page Reserved; on the list Enter on a name search finds it and Enter in the code field opens it; cancel and confirm with the keyboard shows Cancelled; no horizontal scrolling on each of the four pages
   - Cleans up every reservation arriving 15–31 May 2027 after the test
-  - Done when `./mvnw verify` passes with FrontDeskReservationsIT counted in the failsafe reports
+  - Done when `./mvnw verify` passes with StaffReservationsIT counted in the failsafe reports
   - _Depends: 2.2, 3.1, 3.3, 3.4_
   - _Requirements: 8.2, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
 - [ ] 5. Final validation
   - Review the package: views import only public reservation-core types, foundation's layout and roles and Vaadin; no repository, jOOQ or database access, no rule code beyond the documented view checks (missing date, no room chosen, status message on the change page), no logger, and no notification that contains guest data
   - Run the full build with all tests
-  - Done when `./mvnw verify` passes and the surefire and failsafe reports list FrontDeskAccessTest, ReservationListViewTest, ReservationDetailViewTest, NewReservationViewTest, ChangeReservationViewTest and FrontDeskReservationsIT with no skipped tests
+  - Done when `./mvnw verify` passes and the surefire and failsafe reports list ReservationDeskAccessTest, ReservationListViewTest, ReservationDetailViewTest, NewReservationViewTest, ChangeReservationViewTest and StaffReservationsIT with no skipped tests
   - _Requirements: 10.1, 10.2, 10.3_

@@ -87,7 +87,7 @@ graph TB
 | UI | Vaadin 25.3 Flow: `Grid`, `Button`, `Notification`, `Span` | Cleaning list on tablet | Lumo utility classes only |
 | Service | Spring `@Service`, `@Transactional` | Status rules, contract for reception | — |
 | Data | Flyway `V20`, jOOQ `ROOM_CLEANING_STATUS`, `ROOM` | Status table, upsert | `onDuplicateKeyUpdate` → H2 `MERGE` |
-| Test | Browserless, `@SpringBootTest`, Playwright + Mopo | View, service, tablet journey | Foundation base classes |
+| Test | Browserless (`HrsBrowserlessTest`), Playwright + Mopo | View, service, tablet journey | Foundation base classes |
 
 ## File Structure Plan
 
@@ -106,7 +106,7 @@ src/main/resources/db/migration/
 └── V20__create_room_cleaning_status.sql   # table + one CLEAN row per existing room
 
 src/test/java/ch/martinelli/edu/hrs/housekeeping/
-├── HousekeepingServiceTest.java     # @SpringBootTest: contract, H5, constraints, unknown room (1.x, 5.x)
+├── HousekeepingServiceTest.java     # extends HrsBrowserlessTest: contract, H5, constraints, unknown room (1.x, 5.x)
 └── ui/
     ├── CleaningListViewTest.java    # Browserless: list, empty state, refresh, mark clean, access (2.x, 3.x, 4.x)
     └── HousekeepingIT.java          # Playwright: housekeeper journey at 768x1024 and 1280x800 (2.5, 3.1, 4.1)
@@ -282,7 +282,7 @@ Test classes name requirement IDs (`// housekeeping 3.1`). Tests that change sta
 `@AfterEach` (update every `room_cleaning_status` row and delete room `3000` and its row if present), so later specs
 start from H1. No test migration is needed.
 
-- **Service tests (`HousekeepingServiceTest`, `@SpringBootTest`)**
+- **Service tests (`HousekeepingServiceTest`, extends `HrsBrowserlessTest`: one shared context, test clock)**
   - Ten seeded rooms are all `CLEAN`, `findCleaningList()` empty, `findAllCleaningStatuses()` lists `101`…`205` in
     order with `CLEAN` (1.1, 1.2, 5.4).
   - `markDirty(id of 102)` → `isClean` false, list contains exactly one `102`; calling it twice still one entry (5.1,

@@ -9,7 +9,7 @@ collect input, call it and show its results and messages.
 **Users**: Receptionists at the reception desktop. Reception (specified in parallel) links to the reservation page by
 its address.
 
-**Impact**: Adds the package `ch.martinelli.edu.hrs.frontdesk.ui` with four views in the foundation's `StaffLayout`,
+**Impact**: Adds the package `ch.martinelli.edu.hrs.reservation.ui` with four views in the foundation's `StaffLayout`,
 two menu entries, one test-data migration `V140` and the tests. No main migration, no service, no change to
 foundation or reservation-core files.
 
@@ -28,7 +28,7 @@ foundation or reservation-core files.
 ## Boundary Commitments
 
 ### This Spec Owns
-- Package `ch.martinelli.edu.hrs.frontdesk.ui` and its four views; no other main-code package.
+- Package `ch.martinelli.edu.hrs.reservation.ui` and its four views; no other main-code package.
 - Routes and their parameters:
 
   | Route | View | Menu | Parameter |
@@ -39,8 +39,10 @@ foundation or reservation-core files.
   | `reservations/:reservationId([0-9]{1,18})/change` | `ChangeReservationView` | none | same |
 
 - The page address contract for other specs: a staff page opens a reservation with the URL path
-  `reservations/<reservation id>` (for example `UI.navigate("reservations/" + id)` or an `Anchor`); importing the
-  view classes is not required and not allowed by `structure.md`.
+  `reservations/<reservation id>`, where `<reservation id>` is `ReservationDetails.id()` (the reservation's database
+  id, not its code) written as plain decimal digits without sign or leading zeros (1–18 digits), for example
+  `reservations/5000` via `UI.navigate("reservations/" + id)` or an `Anchor`. Reception links to it from its arrivals
+  grid this way; importing the view classes is not required and not allowed by `structure.md`.
 - The UI texts listed in Error Handling that do not come from reservation-core.
 - Test data `V140__front_desk_reservations_test_data.sql` with ids 5000–5004; test reservations only in
   2027-05-01 – 2027-05-31 (fixed rows 1–14 May, rows created by tests 15–31 May). Reserved but unused: main
@@ -62,7 +64,9 @@ foundation or reservation-core files.
   `HrsBrowserlessTest` and `PlaywrightIT` (fixed today 2026-06-01), test accounts `reception1`, `manager1`,
   `housekeeper1` (password `test-password`), view `core.ui.LoginView` (tests only).
 - Vaadin 25.3 core components and Spring already in `pom.xml`; no new dependency.
-- Direction: `frontdesk.ui` → `reservation` (public types) and `core`. Nothing imports `frontdesk.ui`.
+- Direction: `reservation.ui` → `reservation` (public types) and `core`. Nothing imports `reservation.ui`.
+  `reservation.ui` is a different Java package from `reservation`, so reservation-core's package-private
+  `ReservationRepository` (and any other package-private type there) is not reachable from the views.
 
 ### Revalidation Triggers
 - Renaming a route or the `reservationId` parameter, or changing its id semantics (reception links).
@@ -119,7 +123,7 @@ graph TB
 
 ### Directory Structure
 ```
-src/main/java/ch/martinelli/edu/hrs/frontdesk/ui/
+src/main/java/ch/martinelli/edu/hrs/reservation/ui/
 ├── DeskFormats.java               # package-private: ISO DatePicker factory, amount format "0.00", error-span helper
 ├── ReservationListView.java       # route "reservations": search by name/dates, open by code, result grid
 ├── NewReservationView.java        # route "reservations/new": availability search, room choice, guest data, Reserve
@@ -129,14 +133,14 @@ src/main/java/ch/martinelli/edu/hrs/frontdesk/ui/
 src/test/resources/db/migration/
 └── V140__front_desk_reservations_test_data.sql   # reservations and guests 5000-5004 in May 2027
 
-src/test/java/ch/martinelli/edu/hrs/frontdesk/ui/
-├── FrontDeskViewTest.java         # abstract base: extends HrsBrowserlessTest, reserve() helper, @AfterEach cleanup 15-31 May 2027
-├── FrontDeskAccessTest.java       # 1.x: menu entries and refusals for all four routes
+src/test/java/ch/martinelli/edu/hrs/reservation/ui/
+├── ReservationDeskViewTest.java         # abstract base: extends HrsBrowserlessTest, reserve() helper, @AfterEach cleanup 15-31 May 2027
+├── ReservationDeskAccessTest.java       # 1.x: menu entries and refusals for all four routes
 ├── ReservationListViewTest.java   # 2.x, 3.x
 ├── ReservationDetailViewTest.java # 4.x, 8.x
 ├── NewReservationViewTest.java    # 5.x, 6.x, 10.1, 10.2
 ├── ChangeReservationViewTest.java # 7.x
-└── FrontDeskReservationsIT.java   # Playwright: keyboard journey, desktop width (9.x)
+└── StaffReservationsIT.java   # Playwright: keyboard journey, desktop width (9.x)
 ```
 
 ### Modified Files
@@ -238,11 +242,11 @@ sequenceDiagram
 
 | Component | Layer | Intent | Req Coverage | Key Dependencies | Contracts |
 |-----------|-------|--------|--------------|------------------|-----------|
-| DeskFormats | frontdesk.ui | Shared date picker, amount format, error span | 9.5, 10.1 (F5) | Vaadin (P0) | — |
-| ReservationListView | frontdesk.ui | Find reservations, open by code | 1.1–1.4, 2.1–2.8, 3.1, 3.2, 9.2, 9.3 | ReservationService (P0), Clock (P0), StaffLayout (P0) | State |
-| ReservationDetailView | frontdesk.ui | Show one reservation, Change, Cancel | 1.2, 1.4, 4.1–4.7, 8.1–8.5 | ReservationService (P0) | State |
-| NewReservationView | frontdesk.ui | Availability, room choice, guest data, Reserve | 1.1–1.4, 5.1–5.6, 6.1–6.5, 9.1, 9.2, 9.4 | ReservationService (P0), Clock (P0) | State |
-| ChangeReservationView | frontdesk.ui | Change dates, guests, room | 1.2, 1.4, 7.1–7.8, 9.1 | ReservationService (P0) | State |
+| DeskFormats | reservation.ui | Shared date picker, amount format, error span | 9.5, 10.1 (F5) | Vaadin (P0) | — |
+| ReservationListView | reservation.ui | Find reservations, open by code | 1.1–1.4, 2.1–2.8, 3.1, 3.2, 9.2, 9.3 | ReservationService (P0), Clock (P0), StaffLayout (P0) | State |
+| ReservationDetailView | reservation.ui | Show one reservation, Change, Cancel | 1.2, 1.4, 4.1–4.7, 8.1–8.5 | ReservationService (P0) | State |
+| NewReservationView | reservation.ui | Availability, room choice, guest data, Reserve | 1.1–1.4, 5.1–5.6, 6.1–6.5, 9.1, 9.2, 9.4 | ReservationService (P0), Clock (P0) | State |
+| ChangeReservationView | reservation.ui | Change dates, guests, room | 1.2, 1.4, 7.1–7.8, 9.1 | ReservationService (P0) | State |
 | V140 test data | Test | Fixed May 2027 reservations | test support | reservation-core V10 (P0) | — |
 
 All four views share these conventions (base contract, not repeated per view):
@@ -258,7 +262,7 @@ All four views share these conventions (base contract, not repeated per view):
 - Number of guests is an `IntegerField` (min 1, step buttons); an empty value is passed as `0` so the reservation
   rules give their own message ("Number of guests must be at least 1.").
 
-### UI (`frontdesk.ui`)
+### UI (`reservation.ui`)
 
 #### DeskFormats
 
@@ -381,7 +385,7 @@ Room ids by sub-select on `room.number`; guest id = reservation id; names `Desk 
 | 5004 | DESK5004 | 202 | 2027-05-10 | 2027-05-12 | 2 | RESERVED | name, phone only | "—" for e-mail, ordering |
 
 Fixed rows are never modified by tests. Tests create their own reservations through `ReservationService` or the views
-with arrival 2027-05-15 – 2027-05-31; `FrontDeskViewTest` and `FrontDeskReservationsIT` delete every reservation with
+with arrival 2027-05-15 – 2027-05-31; `ReservationDeskViewTest` and `StaffReservationsIT` delete every reservation with
 arrival in that window in `@AfterEach` (guest rows cascade).
 
 ## Error Handling
@@ -401,11 +405,14 @@ arrival in that window in `@AfterEach` (guest rows cascade).
   handler); nothing in the package logs.
 
 ## Testing Strategy
-Browserless classes extend `FrontDeskViewTest` (→ `HrsBrowserlessTest`, today 2026-06-01) with
+No test of this spec needs another "today": all use the fixed 2026-06-01 from foundation's `TestClock` and test data
+in May 2027, so none calls `testClock.setToday(...)` and none declares its own clock bean.
+
+Browserless classes extend `ReservationDeskViewTest` (→ `HrsBrowserlessTest`, today 2026-06-01) with
 `@WithMockUser(roles = "RECEPTIONIST")` unless stated, name requirement ids (`// front-desk-reservations 6.4`) and
 look components up by the ids above.
 
-- **FrontDeskAccessTest**: receptionist's `staff-navigation` lists "Reservations" and "New reservation" (1.1); manager
+- **ReservationDeskAccessTest**: receptionist's `staff-navigation` lists "Reservations" and "New reservation" (1.1); manager
   and housekeeper opening each of `reservations`, `reservations/new`, `reservations/5000`,
   `reservations/5000/change` get the not-available view and no instance of the view, and their menus lack both
   entries (1.2, 1.3); anonymous opening `reservations` ends on `LoginView` (1.4).
@@ -444,7 +451,7 @@ look components up by the ids above.
   unchanged; A cancelled through the service after opening → "A reservation with status Cancelled cannot be
   changed." (7.5); 5001 → "Reservation DESK5001 has status Checked in and can no longer be changed.", no `save`
   (7.6); 5999 → "Reservation not found." (7.7).
-- **FrontDeskReservationsIT** (Playwright, 1280×800, real login `reception1`): on `/reservations/new` the arrival
+- **StaffReservationsIT** (Playwright, 1280×800, real login `reception1`): on `/reservations/new` the arrival
   field has focus (9.1); keyboard only: type 2027-05-25, Tab, 2027-05-27, Tab, 2, Enter → rooms listed (9.2); Tab
   into the grid, Space selects 203, Tab to guest name, type name and phone, Enter → reservation page with Reserved
   (9.4, 9.5); on `/reservations` type the name, Enter → listed (9.2); type the code in the code field, Enter →

@@ -17,7 +17,7 @@ database, and tasks 2.1–2.3 extend the same service and test class.
   - Contract types for a report (month rows and total row) and the invalid-period exception
   - Read-only repository counts the rooms; the service validates the period against today from the shared clock (missing night, last before first, last after today) with the documented messages before any query
   - Build one row per calendar month of the period, clipped to the period, plus the total row over the whole period; nights include first and last night; available room nights = rooms × nights; occupied nights and revenue are zero until 2.2 and 2.3
-  - Service test cases: Jan–Apr 2026 gives four rows 2026-01 … 2026-04 and a total with 31·R, 28·R, 31·R, 30·R and 120·R available room nights (R read at test time); 2026-01-31 – 2026-02-01 gives two one-night rows; with a test-only room added the January row shows (R + 1) × 31 (room removed afterwards); the three refusals with their messages ("2026-06-01" named) and last night = today accepted
+  - Service test cases: Jan–Apr 2026 gives four rows 2026-01 … 2026-04 and a total with 31·R, 28·R, 31·R, 30·R and 120·R available room nights (R read at test time); 2026-01-31 – 2026-02-01 gives two one-night rows; with test-only room 8900 (number `T8900`) added the January row shows (R + 1) × 31 (room removed afterwards); the three refusals with their messages ("2026-06-01" named) and last night = today accepted
   - Done when these cases pass
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1_
 

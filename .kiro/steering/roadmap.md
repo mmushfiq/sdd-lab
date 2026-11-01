@@ -74,5 +74,5 @@ job; tests that need guest data use dates after 2026-03-03.
 - [ ] guest-booking -- Public availability search, online booking, guest views and cancels own reservation. Dependencies: reservation-core
 - [ ] front-desk-reservations -- Receptionist creates, changes and cancels reservations for walk-in and phone guests. Dependencies: reservation-core
 - [ ] reception -- Check-in (clean rooms only), check-out (room becomes dirty), room overview for reception. Dependencies: reservation-core, housekeeping
-- [ ] management -- Manager maintains rooms, room types, capacities and nightly rates. Dependencies: foundation, reservation-core
+- [ ] management -- Manager maintains rooms, room types, capacities and nightly rates. Dependencies: foundation, reservation-core, housekeeping
 - [ ] reports -- Occupancy and revenue reports for the manager by period. Dependencies: reservation-core, reception

@@ -59,7 +59,7 @@
 | Option | Description | Strengths | Risks / Limitations | Notes |
 |--------|-------------|-----------|---------------------|-------|
 | Views only (selected) | Four `@Route` views calling `ReservationService` directly | Thin, no duplicated rules, matches steering | Views hold some UI state (search results, options) | No own service: there is no rule to own |
-| Own facade service | `FrontDeskService` wrapping `ReservationService` | Place for future rules | Pure pass-through, speculative | Rejected (simplification) |
+| Own facade service | `ReservationDeskService` wrapping `ReservationService` | Place for future rules | Pure pass-through, speculative | Rejected (simplification) |
 | One page with dialogs | List with create/change/cancel dialogs | Fewer routes | No linkable reservation page for reception | Rejected: 4.6 needs an address |
 
 ## Design Decisions
@@ -71,11 +71,14 @@
 - **Rationale**: `product.md`/`domain.md` give reservations to the receptionist; brief says "receptionist-only".
   Adding the manager later is a one-line annotation change per view (revalidation trigger).
 
-### Decision: Package `ch.martinelli.edu.hrs.frontdesk.ui`
-- **Context**: `structure.md` maps a spec to one feature package; reservation-core owns `reservation`; guest-booking
-  is written in parallel and may add guest views.
-- **Selected**: views live in `frontdesk.ui`; there is no `frontdesk` service class because no rule belongs here.
-- **Rationale**: no file or package can collide with reservation-core or guest-booking; the name follows the spec.
+### Decision: Package `ch.martinelli.edu.hrs.reservation.ui`
+- **Context**: `structure.md` puts views in a `<feature>/ui` subpackage; reservation-core owns `reservation`;
+  `domain.md` lists "front desk" as an avoid word, so a `frontdesk` package is not allowed.
+- **Selected**: views and `DeskFormats` live in `reservation.ui`; no service class is added because no rule belongs here.
+- **Rationale**: follows the `<feature>/ui` pattern; `reservation.ui` is a different Java package from `reservation`,
+  so reservation-core's package-private `ReservationRepository` stays unreachable and only its public types are used.
+  Class names (`ReservationListView`, ...) do not collide with reservation-core's classes; guest-booking uses
+  `guestbooking`.
 
 ### Decision: No price preview when changing (F6)
 - **Context**: Only reservation-core knows whether the booked rate is kept (D2).

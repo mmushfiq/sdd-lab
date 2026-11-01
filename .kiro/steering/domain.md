@@ -9,6 +9,8 @@ The words HRS uses for its business, so that specs, code, UI texts and tests all
 - Code uses the English term in its singular form (`Reservation`, `RoomType`, `CleaningStatus`); UI labels use the
   same term in plain words ("Room type").
 - A new business term is added here before it appears in a spec.
+- Exception: the spec name `guest-booking` may appear as is in its package (`guestbooking`) and test class names
+  (`GuestBooking...`); classes for the screens still use the preferred terms (`BookView`, not `BookingView`).
 
 ## Roles
 
@@ -89,14 +91,14 @@ Answers the specs have fixed; the spec named in brackets owns each one.
 - **Reservation handling by staff** [front-desk-reservations]: receptionists only; online and desk reservations are
   treated the same; guest data is not edited (cancel and re-create).
 - **No-show** [reception]: no own status. A Reserved reservation past its arrival date shows as **Late arrival**;
-  reception or the guest may cancel it, otherwise it stays Reserved and never counts as a stay.
+  a receptionist may cancel it (the guest by contacting the hotel), otherwise it stays Reserved and never counts as a stay.
 - **Check-in and check-out window** [reception]: check-in from the arrival date to the day before departure; check-out
   any time while checked in. A checked-in guest past the departure date shows as **Overdue** and keeps the room.
   No room move at check-in. Reception pages are for receptionists only.
 - **Stay record** [reception]: the actual check-in day and check-out day of a reservation. A reservation is a stay when
   its status is Checked in or Checked out.
 - **Rooms out of service** [management]: not supported. A room can be removed only if it never had a reservation; a
-  room type only if no room uses it. Rate changes apply only to reservations created or moved afterwards.
+  room type only if no room uses it. Rate changes apply only to reservations created or moved to another room type afterwards.
 
 - **Report definitions** [reports]: an *occupied night* is a night actually stayed by a Checked in or Checked out
   reservation (check-in day to the night before check-out; without a stay record, arrival to departure); Reserved
