@@ -3,6 +3,7 @@ package ch.martinelli.edu.hrs.core.ui;
 import ch.martinelli.edu.hrs.core.security.StaffUser;
 import ch.martinelli.edu.hrs.frontdesk.ui.FrontDeskView;
 import ch.martinelli.edu.hrs.housekeeping.ui.CleaningListView;
+import ch.martinelli.edu.hrs.report.ui.ReportView;
 import ch.martinelli.edu.hrs.reservation.ui.ReservationView;
 import ch.martinelli.edu.hrs.room.ui.RoomTypeView;
 import ch.martinelli.edu.hrs.room.ui.RoomView;
@@ -35,6 +36,7 @@ public class StaffLayout extends AppLayout {
         addItem(nav, accessChecker, "Room types", RoomTypeView.class);
         addItem(nav, accessChecker, "Rooms", RoomView.class);
         addItem(nav, accessChecker, "Cleaning", CleaningListView.class);
+        addItem(nav, accessChecker, "Reports", ReportView.class);
         addToDrawer(nav);
 
         Span userName = new Span(authenticationContext.getAuthenticatedUser(StaffUser.class)

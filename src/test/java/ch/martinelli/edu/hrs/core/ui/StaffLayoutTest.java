@@ -18,7 +18,7 @@ class StaffLayoutTest extends HrsBrowserlessTest {
     void manager_sees_room_pages_in_navigation() {
         navigate(StaffStartView.class);
 
-        assertThat(navLabels()).containsExactly("Start", "Room types", "Rooms");
+        assertThat(navLabels()).containsExactly("Start", "Room types", "Rooms", "Reports");
         assertThat($(Span.class).id("layout-user-name").getText()).isEqualTo("Mark Manager");
         assertThat($(Button.class).id("layout-logout").getText()).isEqualTo("Log out");
     }
