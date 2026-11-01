@@ -5,12 +5,11 @@ context: |
   Roles: Guest (online, no login), Receptionist, Manager, Housekeeping (staff log in).
   Stack: Java 25, Spring Boot 4.1, Vaadin 25.3 Flow (server-side Java views), jOOQ, Flyway, H2.
   Spring Security is not in pom.xml yet; the first change that needs staff login adds it.
-  Base package ch.martinelli.edu.hrs, one package per feature area, views in <area>/ui.
+  Base package ch.martinelli.edu.hrs.
   Flyway migrations in src/main/resources/db/migration are never edited after commit; add a new one.
   ./mvnw compile runs Flyway against H2 and generates jOOQ classes into ch.martinelli.edu.hrs.db; never edit generated code.
   Tests: Browserless view tests extend core/ui/HrsBrowserlessTest (./mvnw test);
   Playwright tests extend core/ui/PlaywrightIT, named *IT (./mvnw verify).
-  Test data in src/test/resources/db/migration, one file per change. Tests use a fixed Clock.
 
 rules:
   specs:
