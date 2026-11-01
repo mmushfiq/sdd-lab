@@ -83,7 +83,7 @@ Repeat steps 3–5 for every change from step 2 (one session per change, `/clear
 |------|------------------------------------|------------------------------------------------------|--------|
 | 0    | Install                            | `openspec init --tools claude`                       | Done   |
 | 1    | Project context (= steering)       | edit `openspec/config.yaml`                          | Done   |
-| 2    | Explore and plan the changes       | `/opsx:explore`                                      | Open   |
+| 2    | Explore and plan the changes       | `/opsx:explore`                                      | Done   |
 | 3    | Per change: plan                   | `/opsx:new`, `/opsx:continue` ×4                     | Open   |
 | 4    | Per change: implement              | `/opsx:apply`                                        | Open   |
 | 5    | Per change: verify and archive     | `./mvnw verify`, `/opsx:verify`, `/opsx:archive`     | Open   |
@@ -163,11 +163,17 @@ Commit: "Add OpenSpec project context". This file has the biggest effect on the 
 `explore` only thinks and discusses, it writes nothing. Let OpenSpec propose the split and the order, and answer the
 open questions it raises from the vision. Steer only if it suggests one huge change.
 
-Agreed changes (fill in after step 2):
+Agreed changes:
 
-| # | Change name | Capabilities | Status |
-|---|-------------|--------------|--------|
-|   |             |              |        |
+| # | Change name                  | Capabilities                   | Status |
+|---|------------------------------|--------------------------------|--------|
+| 1 | `add-staff-login`            | `staff-access`                 | Open   |
+| 2 | `add-room-management`        | `room-management`              | Open   |
+| 3 | `add-reception-reservations` | `reservations`, `availability` | Open   |
+| 4 | `add-online-booking`         | `online-booking`               | Open   |
+| 5 | `add-housekeeping`           | `housekeeping`                 | Open   |
+| 6 | `add-check-in-out`           | `check-in-out`                 | Open   |
+| 7 | `add-reports`                | `reports`                      | Open   |
 
 ## Step 3 – Per change: plan (human review at each artifact)
 
