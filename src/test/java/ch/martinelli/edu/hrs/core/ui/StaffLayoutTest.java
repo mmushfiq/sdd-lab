@@ -31,6 +31,14 @@ class StaffLayoutTest extends HrsBrowserlessTest {
         assertThat(navLabels()).containsExactly("Start", "Reservations");
     }
 
+    @Test
+    @WithUserDetails("housekeeping")
+    void housekeeping_sees_cleaning_list() {
+        navigate(StaffStartView.class);
+
+        assertThat(navLabels()).containsExactly("Start", "Cleaning");
+    }
+
     private List<String> navLabels() {
         return $(SideNavItem.class).all().stream().map(SideNavItem::getLabel).toList();
     }

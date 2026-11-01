@@ -51,9 +51,9 @@ class RoomServiceTest {
     // Scenarios "Room created" and "Room type of a room changed"
     @Test
     void creates_and_updates_room() {
-        service.saveRoom(new RoomRecord(null, "111", roomType("Double").getId()));
+        service.saveRoom(newRoom(null, "111", roomType("Double").getId()));
         RoomRecord room104 = room("104");
-        service.saveRoom(new RoomRecord(room104.getId(), "104", roomType("Family").getId()));
+        service.saveRoom(newRoom(room104.getId(), "104", roomType("Family").getId()));
 
         assertThat(room("111").getRoomTypeId()).isEqualTo(roomType("Double").getId());
         assertThat(room("104").getRoomTypeId()).isEqualTo(roomType("Family").getId());
@@ -65,11 +65,30 @@ class RoomServiceTest {
     void duplicate_room_number_is_reported() {
         Long single = roomType("Single").getId();
 
-        assertThatThrownBy(() -> service.saveRoom(new RoomRecord(null, "101", single)))
+        assertThatThrownBy(() -> service.saveRoom(newRoom(null, "101", single)))
                 .isInstanceOf(RoomService.DuplicateException.class)
                 .hasMessage("A room with this number already exists");
-        assertThatThrownBy(() -> service.saveRoom(new RoomRecord(room("102").getId(), "101", single)))
+        assertThatThrownBy(() -> service.saveRoom(newRoom(room("102").getId(), "101", single)))
                 .hasMessage("A room with this number already exists");
+    }
+
+    // Scenario "New room is clean"
+    @Test
+    void new_room_is_clean() {
+        service.saveRoom(newRoom(null, "111", roomType("Double").getId()));
+
+        assertThat(room("111").getCleaningStatus()).isEqualTo("CLEAN");
+    }
+
+    // Sets only the given fields, so the database fills in the defaults
+    private static RoomRecord newRoom(Long id, String number, Long roomTypeId) {
+        RoomRecord room = new RoomRecord();
+        if (id != null) {
+            room.setId(id);
+        }
+        room.setRoomNumber(number);
+        room.setRoomTypeId(roomTypeId);
+        return room;
     }
 
     private RoomTypeRecord roomType(String name) {

@@ -53,6 +53,17 @@ class RoomTableTest {
         assertThat(ctx.fetchCount(ROOM.join(ROOM_TYPE).on(ROOM.ROOM_TYPE_ID.eq(ROOM_TYPE.ID)))).isEqualTo(10);
     }
 
+    @Test
+    void unknown_cleaning_status_is_rejected() {
+        assertThatThrownBy(() -> ctx.update(ROOM).set(ROOM.CLEANING_STATUS, "WET").where(ROOM.ROOM_NUMBER.eq("101")).execute())
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void installed_rooms_are_clean() {
+        assertThat(ctx.fetchCount(ROOM, ROOM.CLEANING_STATUS.eq("CLEAN"))).isEqualTo(10);
+    }
+
     private void insertRoomType(String name, int capacity, String nightlyRate) {
         ctx.insertInto(ROOM_TYPE)
                 .set(ROOM_TYPE.NAME, name)
