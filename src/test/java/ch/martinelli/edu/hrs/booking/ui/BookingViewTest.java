@@ -55,7 +55,7 @@ class BookingViewTest extends HrsBrowserlessTest {
         assertThat($(Button.class).id("search-rooms").isVisible()).isTrue();
     }
 
-    // Scenario "Guest sees free rooms": room type, capacity, nightly rate and total price, no room numbers
+    // Scenario "Guest sees free rooms": room type, capacity and total price, no room numbers and no nightly rate
     @Test
     void search_shows_free_rooms_with_total_price_without_room_numbers() {
         navigate(BookingView.class);
@@ -64,11 +64,22 @@ class BookingViewTest extends HrsBrowserlessTest {
         // Rooms 104-108 are Double, 109-110 Family
         assertThat(cards()).hasSize(7);
         assertThat(cardTexts(cards().getFirst()))
-                .containsExactly("Up to 2 guests", "Nightly rate: CHF 140.00", "Total price: CHF 280.00");
+                .containsExactly("Up to 2 guests", "Total price: CHF 280.00");
         assertThat(cards().getFirst().getElement().getTextRecursively()).startsWith("Double");
         assertThat(cards().getLast().getElement().getTextRecursively()).startsWith("Family");
         assertThat($(FlexLayout.class).id("room-results").getElement().getTextRecursively())
                 .doesNotContainPattern("1[01]\\d");
+    }
+
+    // Scenario "Guest sees the seasonal price"
+    @Test
+    void guest_sees_the_seasonal_total_price() {
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+        navigate(BookingView.class);
+        search(DECEMBER_18, DECEMBER_21, 2);
+
+        assertThat(cards().getFirst().getElement().getTextRecursively()).startsWith("Double");
+        assertThat(cardTexts(cards().getFirst())).contains("Total price: CHF 460.00");
     }
 
     // Scenario "Guest search with invalid input"

@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.report;
 
 import ch.martinelli.edu.hrs.frontdesk.FrontDeskService;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,15 @@ import java.util.List;
 import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
+import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.min;
+import static org.jooq.impl.DSL.month;
+import static org.jooq.impl.DSL.sum;
 
 /**
- * Monthly occupancy and revenue, computed live from the stays that were checked in.
+ * Monthly occupancy and revenue, computed live from the saved nights of the stays that were checked in.
  */
 @Service
 @Transactional(readOnly = true)
@@ -50,19 +55,19 @@ public class ReportService {
         BigDecimal[] revenue = new BigDecimal[12];
         Arrays.fill(revenue, BigDecimal.ZERO);
 
-        ctx.selectFrom(RESERVATION)
+        // Each night row is one occupied room-night with its saved rate
+        Field<Integer> nightMonth = month(RESERVATION_NIGHT.NIGHT_DATE);
+        ctx.select(nightMonth, count(), sum(RESERVATION_NIGHT.NIGHTLY_RATE))
+                .from(RESERVATION_NIGHT)
+                .join(RESERVATION).on(RESERVATION.ID.eq(RESERVATION_NIGHT.RESERVATION_ID))
                 .where(RESERVATION.STATUS.in(FrontDeskService.CHECKED_IN, FrontDeskService.CHECKED_OUT))
-                .and(RESERVATION.ARRIVAL_DATE.lt(end))
-                .and(RESERVATION.DEPARTURE_DATE.gt(start))
+                .and(RESERVATION_NIGHT.NIGHT_DATE.ge(start))
+                .and(RESERVATION_NIGHT.NIGHT_DATE.lt(end))
+                .groupBy(nightMonth)
                 .forEach(r -> {
-                    for (LocalDate night = r.getArrivalDate(); night.isBefore(r.getDepartureDate());
-                         night = night.plusDays(1)) {
-                        if (night.getYear() == year) {
-                            int m = night.getMonthValue() - 1;
-                            nights[m]++;
-                            revenue[m] = revenue[m].add(r.getNightlyRate());
-                        }
-                    }
+                    int m = r.value1() - 1;
+                    nights[m] = r.value2();
+                    revenue[m] = r.value3();
                 });
 
         int rooms = ctx.fetchCount(ROOM);

@@ -9,10 +9,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.insert;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -23,6 +23,7 @@ class ReportIT extends PlaywrightIT {
 
     @AfterEach
     void cleanUp() {
+        ctx.deleteFrom(RESERVATION_NIGHT).execute();
         ctx.deleteFrom(RESERVATION).execute();
     }
 
@@ -36,9 +37,8 @@ class ReportIT extends PlaywrightIT {
         int year = LocalDate.now().getYear();
         // April: 3 nights at 140.00 + 2 nights at 220.00 = 860.00; 5 / (10 rooms x 30 days) = 1.7 %
         insert(ctx, "REPORT01", "104", LocalDate.of(year, 4, 1), LocalDate.of(year, 4, 4), "Anna", "CHECKED_OUT");
-        insert(ctx, "REPORT02", "109", LocalDate.of(year, 4, 10), LocalDate.of(year, 4, 12), "Ben", "CHECKED_OUT");
-        ctx.update(RESERVATION).set(RESERVATION.NIGHTLY_RATE, new BigDecimal("220.00"))
-                .where(RESERVATION.RESERVATION_NUMBER.eq("REPORT02")).execute();
+        insert(ctx, "REPORT02", "109", LocalDate.of(year, 4, 10), LocalDate.of(year, 4, 12), "Ben", "CHECKED_OUT",
+                "220.00", "220.00");
 
         page.navigate(url("login"));
         page.getByLabel("Username").fill("manager");

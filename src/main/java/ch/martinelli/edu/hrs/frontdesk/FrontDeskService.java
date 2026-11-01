@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
@@ -115,8 +116,8 @@ public class FrontDeskService {
     }
 
     /**
-     * Checks out a Checked in reservation, shortens an early stay to the nights actually stayed (at least one) and
-     * makes the room dirty.
+     * Checks out a Checked in reservation, shortens an early stay to the nights actually stayed (at least one), drops
+     * the rates of the nights not stayed and makes the room dirty.
      */
     public void checkOut(long reservationId) {
         ReservationRecord reservation = ctx.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservationId));
@@ -129,6 +130,8 @@ public class FrontDeskService {
         reservation.setDepartureDate(departure.isBefore(minDeparture) ? minDeparture : departure);
         reservation.setStatus(CHECKED_OUT);
         reservation.update();
+        ctx.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                .and(RESERVATION_NIGHT.NIGHT_DATE.ge(reservation.getDepartureDate())).execute();
         ctx.update(ROOM).set(ROOM.CLEANING_STATUS, HousekeepingService.DIRTY)
                 .where(ROOM.ID.eq(reservation.getRoomId())).execute();
     }

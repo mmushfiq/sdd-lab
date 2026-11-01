@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 class ReceptionReservationIT extends PlaywrightIT {
@@ -26,6 +27,7 @@ class ReceptionReservationIT extends PlaywrightIT {
 
     @AfterEach
     void deleteReservations() {
+        ctx.deleteFrom(RESERVATION_NIGHT).execute();
         ctx.deleteFrom(RESERVATION).execute();
     }
 

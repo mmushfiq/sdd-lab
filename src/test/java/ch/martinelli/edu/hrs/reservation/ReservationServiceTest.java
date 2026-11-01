@@ -12,9 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
+import static ch.martinelli.edu.hrs.db.Tables.SEASONAL_RATE;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -46,7 +48,7 @@ class ReservationServiceTest {
         assertThat(saved.getGuestName()).isEqualTo("Anna Meier");
         assertThat(saved.getGuestEmail()).isEqualTo("anna@example.com");
         assertThat(saved.getGuestPhone()).isEqualTo("+41 79 000 00 00");
-        assertThat(saved.getNightlyRate()).isEqualByComparingTo("140.00");
+        assertThat(rates(created)).containsExactly("140.00", "140.00");
         assertThat(saved.getReservationNumber()).isEqualTo(created.getReservationNumber());
     }
 
@@ -109,38 +111,93 @@ class ReservationServiceTest {
                 .hasMessage("Departure date must be after arrival date");
     }
 
+    // Scenario "Stay across the start of a season"
+    @Test
+    void stay_across_the_start_of_a_season_saves_the_rate_of_each_night() {
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+
+        ReservationRecord created = service.create(stay("104", DECEMBER_18, DECEMBER_21, 2), ANNA);
+
+        assertThat(rates(created)).containsExactly("140.00", "140.00", "180.00");
+        assertThat(AvailabilityService.totalPrice(service.nights(created.getId()))).isEqualByComparingTo("460.00");
+    }
+
     // Scenario "Rate change after booking"
     @Test
     void rate_is_kept_after_rate_change() {
         ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
-        ctx.update(ROOM_TYPE).set(ROOM_TYPE.NIGHTLY_RATE, new BigDecimal("150.00"))
-                .where(ROOM_TYPE.NAME.eq("Double")).execute();
+        setBaseRate("Double", "150.00");
 
-        assertThat(reload(created).getNightlyRate()).isEqualByComparingTo("140.00");
+        assertThat(rates(created)).containsExactly("140.00", "140.00");
+    }
+
+    // Requirement "Change a seasonal rate", scenario "Existing reservation keeps its rates"
+    @Test
+    void rates_are_kept_after_seasonal_rate_change() {
+        long christmas = insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+        ReservationRecord created = service.create(stay("104", DECEMBER_20, DECEMBER_21, 2), ANNA);
+
+        ctx.update(SEASONAL_RATE).set(SEASONAL_RATE.NIGHTLY_RATE, new BigDecimal("190.00"))
+                .where(SEASONAL_RATE.ID.eq(christmas)).execute();
+
+        assertThat(rates(created)).containsExactly("180.00");
+    }
+
+    // Requirement "Delete a seasonal rate", scenario "Reservation after deletion unchanged"
+    @Test
+    void rates_are_kept_after_seasonal_rate_deletion() {
+        long christmas = insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+        ReservationRecord created = service.create(stay("104", DECEMBER_20, DECEMBER_21, 2), ANNA);
+
+        ctx.deleteFrom(SEASONAL_RATE).where(SEASONAL_RATE.ID.eq(christmas)).execute();
+
+        assertThat(rates(created)).containsExactly("180.00");
     }
 
     // Scenario "Moved to another room type"
     @Test
-    void move_to_another_room_type_takes_its_current_rate() {
+    void move_to_another_room_type_takes_its_current_rates() {
         ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
 
         service.change(created.getId(), stay("109", MARCH_10, MARCH_12, 2));
 
-        ReservationRecord changed = reload(created);
-        assertThat(changed.getRoomId()).isEqualTo(roomId(ctx, "109"));
-        assertThat(changed.getNightlyRate()).isEqualByComparingTo("220.00");
+        assertThat(reload(created).getRoomId()).isEqualTo(roomId(ctx, "109"));
+        assertThat(rates(created)).containsExactly("220.00", "220.00");
     }
 
-    // A move within the same room type keeps the saved rate
+    // A move within the same room type keeps the saved rates
     @Test
-    void move_within_room_type_keeps_saved_rate() {
+    void move_within_room_type_keeps_saved_rates() {
         ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
-        ctx.update(ROOM_TYPE).set(ROOM_TYPE.NIGHTLY_RATE, new BigDecimal("150.00"))
-                .where(ROOM_TYPE.NAME.eq("Double")).execute();
+        setBaseRate("Double", "150.00");
 
         service.change(created.getId(), stay("105", MARCH_10, MARCH_12, 2));
 
-        assertThat(reload(created).getNightlyRate()).isEqualByComparingTo("140.00");
+        assertThat(rates(created)).containsExactly("140.00", "140.00");
+    }
+
+    // Scenario "Extended into a season"
+    @Test
+    void extended_into_a_season_keeps_old_nights_and_prices_new_ones() {
+        setBaseRate("Double", "130.00");
+        ReservationRecord created = service.create(stay("104", DECEMBER_18, DECEMBER_20, 2), ANNA);
+        setBaseRate("Double", "140.00");
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+
+        service.change(created.getId(), stay("104", DECEMBER_18, LocalDate.of(2030, 12, 22), 2));
+
+        assertThat(rates(created)).containsExactly("130.00", "130.00", "180.00", "180.00");
+    }
+
+    // A shortened stay no longer has the removed nights
+    @Test
+    void shortened_stay_drops_the_removed_nights() {
+        ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_13, 2), ANNA);
+
+        service.change(created.getId(), stay("104", MARCH_11, MARCH_13, 2));
+
+        assertThat(service.nights(created.getId())).extracting(AvailabilityService.NightRate::night)
+                .containsExactly(MARCH_11, MARCH_12);
     }
 
     // Scenario "Dates extended": the reservation itself does not count as an overlap
@@ -337,6 +394,15 @@ class ReservationServiceTest {
         ctx.update(RESERVATION).set(RESERVATION.CANCELLATION_HOURS_BEFORE, 14).where(RESERVATION.ID.eq(r.getId()))
                 .execute();
         return reload(r);
+    }
+
+    private List<String> rates(ReservationRecord r) {
+        return service.nights(r.getId()).stream().map(n -> n.rate().setScale(2).toPlainString()).toList();
+    }
+
+    private void setBaseRate(String roomTypeName, String rate) {
+        ctx.update(ROOM_TYPE).set(ROOM_TYPE.NIGHTLY_RATE, new BigDecimal(rate))
+                .where(ROOM_TYPE.NAME.eq(roomTypeName)).execute();
     }
 
     private ReservationRecord reload(ReservationRecord r) {

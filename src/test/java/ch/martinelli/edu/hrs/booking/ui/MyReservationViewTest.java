@@ -53,10 +53,20 @@ class MyReservationViewTest extends HrsBrowserlessTest {
 
         assertThat(details()).containsExactly("Reservation number: FOUND001", "Room type: Double",
                 "Arrival: 2030-03-11", "Departure: 2030-03-13", "Guests: 1", "Guest name: Anna Meier",
-                "Total price: CHF 280.00", "Status: Booked",
+                "Price per night: 2 nights × CHF 140.00", "Total price: CHF 280.00", "Status: Booked",
                 "Free online cancellation until 9 March 2030, 14:00 (Zurich time)");
         assertThat(message()).isEmpty();
         assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isTrue();
+    }
+
+    // Scenario "Price per night shown to the guest"
+    @Test
+    void shows_the_price_per_night() {
+        insert(ctx, "SEASON01", "104", DECEMBER_18, DECEMBER_21, "Anna Meier", "BOOKED", "140.00", "140.00", "180.00");
+        find("SEASON01", "guest@example.com");
+
+        assertThat(details()).contains("Price per night: 2 nights × CHF 140.00, 1 night × CHF 180.00",
+                "Total price: CHF 460.00");
     }
 
     // Scenario "Wrong reservation number or email": same message, no data

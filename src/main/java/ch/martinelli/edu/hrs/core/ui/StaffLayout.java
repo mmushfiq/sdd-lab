@@ -7,6 +7,7 @@ import ch.martinelli.edu.hrs.report.ui.ReportView;
 import ch.martinelli.edu.hrs.reservation.ui.ReservationView;
 import ch.martinelli.edu.hrs.room.ui.RoomTypeView;
 import ch.martinelli.edu.hrs.room.ui.RoomView;
+import ch.martinelli.edu.hrs.room.ui.SeasonalRateView;
 import ch.martinelli.edu.hrs.staff.ui.StaffStartView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -34,6 +35,7 @@ public class StaffLayout extends AppLayout {
         addItem(nav, accessChecker, "Front desk", FrontDeskView.class);
         addItem(nav, accessChecker, "Reservations", ReservationView.class);
         addItem(nav, accessChecker, "Room types", RoomTypeView.class);
+        addItem(nav, accessChecker, "Seasonal rates", SeasonalRateView.class);
         addItem(nav, accessChecker, "Rooms", RoomView.class);
         addItem(nav, accessChecker, "Cleaning", CleaningListView.class);
         addItem(nav, accessChecker, "Reports", ReportView.class);

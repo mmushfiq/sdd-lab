@@ -52,7 +52,7 @@ public class RoomView extends VerticalLayout {
         grid.addColumn(RoomRecord::getRoomNumber).setHeader("Room number");
         grid.addColumn(r -> type(r).getName()).setHeader("Room type");
         grid.addColumn(r -> type(r).getCapacity()).setHeader("Capacity");
-        grid.addColumn(r -> RoomTypeView.formatRate(type(r).getNightlyRate())).setHeader("Nightly rate");
+        grid.addColumn(r -> RoomTypeView.formatRate(type(r).getNightlyRate())).setHeader("Base rate");
         grid.setAllRowsVisible(true);
         grid.asSingleSelect().addValueChangeListener(e -> edit(e.getValue()));
 

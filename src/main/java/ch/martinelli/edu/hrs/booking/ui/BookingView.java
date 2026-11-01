@@ -27,6 +27,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static ch.martinelli.edu.hrs.room.ui.RoomTypeView.formatRate;
@@ -149,7 +150,6 @@ public class BookingView extends VerticalLayout {
         choose.addClassName("choose-room");
         Div card = new Div(new H3(room.roomTypeName()),
                 new Paragraph("Up to " + room.capacity() + " guests"),
-                new Paragraph("Nightly rate: " + formatRate(room.nightlyRate())),
                 new Paragraph("Total price: " + formatRate(room.totalPrice())),
                 choose);
         card.addClassName("room-card");
@@ -187,11 +187,12 @@ public class BookingView extends VerticalLayout {
             return;
         }
         // After create's transaction committed, so a mail failure cannot undo the booking
-        confirmationEmail.send(created, chosen.roomTypeName());
-        showConfirmation(created);
+        BigDecimal totalPrice = AvailabilityService.totalPrice(reservationService.nights(created.getId()));
+        confirmationEmail.send(created, chosen.roomTypeName(), totalPrice);
+        showConfirmation(created, totalPrice);
     }
 
-    private void showConfirmation(ReservationRecord created) {
+    private void showConfirmation(ReservationRecord created, BigDecimal totalPrice) {
         searchStep.setVisible(false);
         results.setVisible(false);
         guestStep.setVisible(false);
@@ -205,8 +206,7 @@ public class BookingView extends VerticalLayout {
                 new Paragraph("Arrival: " + created.getArrivalDate()),
                 new Paragraph("Departure: " + created.getDepartureDate()),
                 new Paragraph("Guests: " + created.getNumberOfGuests()),
-                new Paragraph("Total price: " + formatRate(AvailabilityService.totalPrice(created.getNightlyRate(),
-                        created.getArrivalDate(), created.getDepartureDate()))),
+                new Paragraph("Total price: " + formatRate(totalPrice)),
                 new Paragraph(KEEP_NUMBER));
         confirmation.setVisible(true);
     }

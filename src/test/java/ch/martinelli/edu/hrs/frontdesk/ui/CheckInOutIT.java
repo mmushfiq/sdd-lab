@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.insert;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
@@ -24,6 +25,7 @@ class CheckInOutIT extends PlaywrightIT {
 
     @AfterEach
     void cleanUp() {
+        ctx.deleteFrom(RESERVATION_NIGHT).execute();
         ctx.deleteFrom(RESERVATION).execute();
         ctx.update(ROOM).set(ROOM.CLEANING_STATUS, HousekeepingService.CLEAN).execute();
     }

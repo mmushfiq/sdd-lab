@@ -12,7 +12,6 @@ import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,7 +19,6 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.insert;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,9 +47,8 @@ class ReportViewTest extends HrsBrowserlessTest {
                     "Guest " + i, "CHECKED_OUT");
         }
         insert(ctx, "REV00001", "107", LocalDate.of(2031, 5, 1), LocalDate.of(2031, 5, 4), "Anna", "CHECKED_OUT");
-        insert(ctx, "REV00002", "109", LocalDate.of(2031, 5, 10), LocalDate.of(2031, 5, 12), "Ben", "CHECKED_OUT");
-        ctx.update(RESERVATION).set(RESERVATION.NIGHTLY_RATE, new BigDecimal("220.00"))
-                .where(RESERVATION.RESERVATION_NUMBER.eq("REV00002")).execute();
+        insert(ctx, "REV00002", "109", LocalDate.of(2031, 5, 10), LocalDate.of(2031, 5, 12), "Ben", "CHECKED_OUT",
+                "220.00", "220.00");
 
         navigate(ReportView.class);
 

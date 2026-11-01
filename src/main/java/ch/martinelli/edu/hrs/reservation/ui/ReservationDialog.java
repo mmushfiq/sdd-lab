@@ -3,6 +3,7 @@ package ch.martinelli.edu.hrs.reservation.ui;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService.AvailableRoom;
+import ch.martinelli.edu.hrs.reservation.AvailabilityService.NightRate;
 import ch.martinelli.edu.hrs.reservation.ReservationException;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.reservation.ReservationService.Guest;
@@ -70,7 +71,8 @@ class ReservationDialog extends Dialog {
 
         if (reservation != null) {
             setHeaderTitle("Reservation " + reservation.getReservationNumber());
-            add(details(reservation, roomNumbers.get(reservation.getRoomId())));
+            add(details(reservation, roomNumbers.get(reservation.getRoomId()),
+                    reservationService.nights(reservation.getId())));
             if (!ReservationService.BOOKED.equals(reservation.getStatus())) {
                 return;
             }
@@ -90,7 +92,6 @@ class ReservationDialog extends Dialog {
         rooms.addColumn(AvailableRoom::roomNumber).setHeader("Room");
         rooms.addColumn(AvailableRoom::roomTypeName).setHeader("Room type");
         rooms.addColumn(AvailableRoom::capacity).setHeader("Capacity");
-        rooms.addColumn(r -> formatRate(r.nightlyRate())).setHeader("Nightly rate");
         rooms.addColumn(r -> formatRate(r.totalPrice())).setHeader("Total price");
         rooms.setAllRowsVisible(true);
         rooms.setVisible(false);
@@ -137,7 +138,7 @@ class ReservationDialog extends Dialog {
         }
     }
 
-    private static Div details(ReservationRecord r, String roomNumber) {
+    private static Div details(ReservationRecord r, String roomNumber, List<NightRate> nights) {
         Div details = new Div(
                 new Paragraph("Reservation number: " + r.getReservationNumber()),
                 new Paragraph("Status: " + ReservationView.statusLabel(r.getStatus())),
@@ -148,9 +149,8 @@ class ReservationDialog extends Dialog {
                 new Paragraph("Guest name: " + r.getGuestName()),
                 new Paragraph("Email: " + r.getGuestEmail()),
                 new Paragraph("Phone: " + (r.getGuestPhone() == null ? "" : r.getGuestPhone())),
-                new Paragraph("Nightly rate: " + formatRate(r.getNightlyRate())),
-                new Paragraph("Total price: " + formatRate(
-                        AvailabilityService.totalPrice(r.getNightlyRate(), r.getArrivalDate(), r.getDepartureDate()))));
+                new Paragraph("Price per night: " + ReservationView.pricePerNight(nights)),
+                new Paragraph("Total price: " + formatRate(AvailabilityService.totalPrice(nights))));
         details.setId("reservation-details");
         return details;
     }

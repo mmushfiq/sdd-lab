@@ -1,7 +1,6 @@
 package ch.martinelli.edu.hrs.booking;
 
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
-import ch.martinelli.edu.hrs.reservation.AvailabilityService;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +9,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 import static ch.martinelli.edu.hrs.room.ui.RoomTypeView.formatRate;
 
@@ -30,7 +31,7 @@ public class BookingConfirmationEmail {
         this.from = from;
     }
 
-    public void send(ReservationRecord reservation, String roomTypeName) {
+    public void send(ReservationRecord reservation, String roomTypeName, BigDecimal totalPrice) {
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setFrom(from);
         mail.setTo(reservation.getGuestEmail());
@@ -52,8 +53,7 @@ public class BookingConfirmationEmail {
                 You need your reservation number and this email address to view or cancel your reservation.
                 """.formatted(reservation.getGuestName(), reservation.getReservationNumber(), roomTypeName,
                 reservation.getArrivalDate(), reservation.getDepartureDate(), reservation.getNumberOfGuests(),
-                formatRate(AvailabilityService.totalPrice(reservation.getNightlyRate(),
-                        reservation.getArrivalDate(), reservation.getDepartureDate())),
+                formatRate(totalPrice),
                 ReservationService.cancellationText(ReservationService.onlineCancellationDeadline(reservation))));
         try {
             mailSender.send(mail);

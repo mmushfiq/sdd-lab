@@ -89,8 +89,9 @@ class ReservationViewTest extends HrsBrowserlessTest {
 
         Grid<AvailableRoom> rooms = availableRooms();
         int row = rowOf(rooms, "104");
-        assertThat(IntStream.range(0, 5).mapToObj(c -> test(rooms).getCellText(row, c)).toList())
-                .containsExactly("104", "Double", "2", "CHF 140.00", "CHF 280.00");
+        assertThat(rooms.getColumns()).hasSize(4);
+        assertThat(IntStream.range(0, 4).mapToObj(c -> test(rooms).getCellText(row, c)).toList())
+                .containsExactly("104", "Double", "2", "CHF 280.00");
     }
 
     // Scenario "Missing guest data"
@@ -201,8 +202,20 @@ class ReservationViewTest extends HrsBrowserlessTest {
                 .extracting(Paragraph::getText).containsExactly(
                         "Reservation number: " + r.getReservationNumber(), "Status: Booked", "Room: 104",
                         "Arrival: 2030-03-10", "Departure: 2030-03-12", "Guests: 2", "Guest name: Anna Meier",
-                        "Email: anna@example.com", "Phone: +41 79 000 00 00", "Nightly rate: CHF 140.00",
-                        "Total price: CHF 280.00");
+                        "Email: anna@example.com", "Phone: +41 79 000 00 00",
+                        "Price per night: 2 nights × CHF 140.00", "Total price: CHF 280.00");
+    }
+
+    // Scenario "Price per night shown"
+    @Test
+    void shows_price_per_night_and_total() {
+        insert(ctx, "SEASON01", "104", DECEMBER_18, DECEMBER_21, "Anna Meier", "BOOKED", "140.00", "140.00", "180.00");
+        open();
+        test(grid).clickRow(0);
+
+        assertThat($(Paragraph.class).from($(Div.class).id("reservation-details")).all())
+                .extracting(Paragraph::getText)
+                .contains("Price per night: 2 nights × CHF 140.00, 1 night × CHF 180.00", "Total price: CHF 460.00");
     }
 
     // Scenario "Dates extended"
@@ -230,7 +243,8 @@ class ReservationViewTest extends HrsBrowserlessTest {
         chooseRoom("109");
         click("save-reservation");
 
-        assertThat(reload(r).getNightlyRate()).isEqualByComparingTo("220.00");
+        assertThat(reservationService.nights(r.getId())).extracting(n -> n.rate().toPlainString())
+                .containsExactly("220.00", "220.00");
         assertThat(rows().getFirst()).contains("|109|");
     }
 

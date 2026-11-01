@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -131,6 +132,10 @@ class FrontDeskServiceTest {
         assertThat(reload(r).getDepartureDate()).isEqualTo(MARCH_12);
         assertThat(availabilityService.findAvailableRooms(MARCH_12, MARCH_14, 2, null))
                 .extracting(AvailableRoom::roomNumber).contains("105");
+        // Nights not stayed no longer have a saved rate
+        assertThat(ctx.select(RESERVATION_NIGHT.NIGHT_DATE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(r.getId())).orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHT_DATE)).containsExactly(MARCH_10, MARCH_11);
     }
 
     // Scenario "Check-out on the arrival day"

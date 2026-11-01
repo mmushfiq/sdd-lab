@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CyclicBarrier;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,6 +32,7 @@ class ReservationConcurrencyTest {
 
     @AfterEach
     void deleteReservations() {
+        ctx.deleteFrom(RESERVATION_NIGHT).execute();
         ctx.deleteFrom(RESERVATION).execute();
     }
 

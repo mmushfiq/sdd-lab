@@ -41,7 +41,7 @@ class RoomManagementIT extends PlaywrightIT {
         page.waitForURL(url("room-types"));
         page.getByText("Double", new Page.GetByTextOptions().setExact(true)).click();
         assertThat(page.getByLabel("Name")).hasValue("Double");
-        page.getByLabel("Nightly rate").fill("150.00");
+        page.getByLabel("Base rate").fill("150.00");
         page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save")).click();
         assertThat(page.getByText("CHF 150.00")).isVisible();
 

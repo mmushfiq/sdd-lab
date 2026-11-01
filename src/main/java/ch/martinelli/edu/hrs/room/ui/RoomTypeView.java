@@ -36,7 +36,7 @@ public class RoomTypeView extends VerticalLayout {
     private final Grid<RoomTypeRecord> grid = new Grid<>();
     private final TextField name = new TextField("Name");
     private final IntegerField capacity = new IntegerField("Capacity");
-    private final BigDecimalField nightlyRate = new BigDecimalField("Nightly rate");
+    private final BigDecimalField baseRate = new BigDecimalField("Base rate");
     private final Binder<RoomTypeRecord> binder = new Binder<>();
     private Long editedId;
 
@@ -46,21 +46,21 @@ public class RoomTypeView extends VerticalLayout {
         grid.setId("room-types");
         grid.addColumn(RoomTypeRecord::getName).setHeader("Name");
         grid.addColumn(RoomTypeRecord::getCapacity).setHeader("Capacity");
-        grid.addColumn(t -> formatRate(t.getNightlyRate())).setHeader("Nightly rate");
+        grid.addColumn(t -> formatRate(t.getNightlyRate())).setHeader("Base rate");
         grid.setAllRowsVisible(true);
         grid.asSingleSelect().addValueChangeListener(e -> edit(e.getValue()));
 
         name.setMaxLength(50);
-        nightlyRate.setPrefixComponent(new Span("CHF"));
+        baseRate.setPrefixComponent(new Span("CHF"));
         binder.forField(name).asRequired("Name is required")
                 .withValidator(v -> !v.isBlank(), "Name is required")
                 .bind(RoomTypeRecord::getName, RoomTypeRecord::setName);
         binder.forField(capacity).asRequired("Capacity is required")
                 .withValidator(c -> c >= 1, "Capacity must be at least 1")
                 .bind(RoomTypeRecord::getCapacity, RoomTypeRecord::setCapacity);
-        binder.forField(nightlyRate).asRequired("Nightly rate is required")
-                .withValidator(r -> r.signum() > 0, "Nightly rate must be greater than zero")
-                .withValidator(r -> r.stripTrailingZeros().scale() <= 2, "Nightly rate has at most two decimals")
+        binder.forField(baseRate).asRequired("Base rate is required")
+                .withValidator(r -> r.signum() > 0, "Base rate must be greater than zero")
+                .withValidator(r -> r.stripTrailingZeros().scale() <= 2, "Base rate has at most two decimals")
                 .bind(RoomTypeRecord::getNightlyRate, RoomTypeRecord::setNightlyRate);
 
         Button save = new Button("Save", _ -> save());
@@ -69,7 +69,7 @@ public class RoomTypeView extends VerticalLayout {
         Button newType = new Button("New room type", _ -> grid.asSingleSelect().clear());
         newType.setId("new-room-type");
 
-        add(new H2("Room types"), grid, new FormLayout(name, capacity, nightlyRate), new HorizontalLayout(save, newType));
+        add(new H2("Room types"), grid, new FormLayout(name, capacity, baseRate), new HorizontalLayout(save, newType));
         refresh();
     }
 

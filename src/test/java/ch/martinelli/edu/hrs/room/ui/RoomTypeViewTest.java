@@ -27,7 +27,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
     Grid<RoomTypeRecord> grid;
     TextField name;
     IntegerField capacity;
-    BigDecimalField nightlyRate;
+    BigDecimalField baseRate;
 
     @SuppressWarnings("unchecked")
     private void open() {
@@ -35,7 +35,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
         grid = $(Grid.class).id("room-types");
         name = $(TextField.class).withLabel("Name").single();
         capacity = $(IntegerField.class).withLabel("Capacity").single();
-        nightlyRate = $(BigDecimalField.class).withLabel("Nightly rate").single();
+        baseRate = $(BigDecimalField.class).withLabel("Base rate").single();
     }
 
     // Scenario "Manager lists room types"
@@ -61,7 +61,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
         open();
         test(grid).select(0);
         assertThat(name.getValue()).isEqualTo("Double");
-        nightlyRate.setValue(new BigDecimal("150.00"));
+        baseRate.setValue(new BigDecimal("150.00"));
         save();
 
         assertThat(rows()).contains("Double|2|CHF 150.00");
@@ -101,8 +101,8 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
         assertThat(name.getErrorMessage()).isEqualTo("Name is required");
         assertThat(capacity.isInvalid()).isTrue();
         assertThat(capacity.getErrorMessage()).isEqualTo("Capacity must be at least 1");
-        assertThat(nightlyRate.isInvalid()).isTrue();
-        assertThat(nightlyRate.getErrorMessage()).isEqualTo("Nightly rate must be greater than zero");
+        assertThat(baseRate.isInvalid()).isTrue();
+        assertThat(baseRate.getErrorMessage()).isEqualTo("Base rate must be greater than zero");
         assertThat(test(grid).size()).isEqualTo(3);
     }
 
@@ -137,7 +137,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
     private void fill(String nameValue, int capacityValue, String rate) {
         test(name).setValue(nameValue);
         capacity.setValue(capacityValue);
-        nightlyRate.setValue(new BigDecimal(rate));
+        baseRate.setValue(new BigDecimal(rate));
     }
 
     private void save() {

@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.booking.ui;
 
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService;
+import ch.martinelli.edu.hrs.reservation.AvailabilityService.NightRate;
 import ch.martinelli.edu.hrs.reservation.ReservationException;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.reservation.ReservationService.GuestReservation;
@@ -19,6 +20,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+
+import java.util.List;
 
 import static ch.martinelli.edu.hrs.room.ui.RoomTypeView.formatRate;
 
@@ -69,6 +72,7 @@ public class MyReservationView extends VerticalLayout {
     // The email that found the reservation; cancel uses it, not the field, which the guest may have edited since
     private void show(GuestReservation found, String bookingEmail) {
         ReservationRecord r = found.reservation();
+        List<NightRate> nights = reservationService.nights(r.getId());
         details.add(
                 new Paragraph("Reservation number: " + r.getReservationNumber()),
                 new Paragraph("Room type: " + found.roomTypeName()),
@@ -76,8 +80,8 @@ public class MyReservationView extends VerticalLayout {
                 new Paragraph("Departure: " + r.getDepartureDate()),
                 new Paragraph("Guests: " + r.getNumberOfGuests()),
                 new Paragraph("Guest name: " + r.getGuestName()),
-                new Paragraph("Total price: " + formatRate(
-                        AvailabilityService.totalPrice(r.getNightlyRate(), r.getArrivalDate(), r.getDepartureDate()))),
+                new Paragraph("Price per night: " + ReservationView.pricePerNight(nights)),
+                new Paragraph("Total price: " + formatRate(AvailabilityService.totalPrice(nights))),
                 new Paragraph("Status: " + ReservationView.statusLabel(r.getStatus())));
         if (reservationService.guestMayCancel(r)) {
             Button cancel = new Button("Cancel reservation", _ -> confirmCancel(r, bookingEmail));

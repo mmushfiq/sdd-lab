@@ -4,8 +4,10 @@ import ch.martinelli.edu.hrs.core.ui.StaffLayout;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService;
+import ch.martinelli.edu.hrs.reservation.AvailabilityService.NightRate;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.room.RoomService;
+import ch.martinelli.edu.hrs.room.ui.RoomTypeView;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
@@ -18,6 +20,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AccessDeniedErrorRouter;
 import jakarta.annotation.security.RolesAllowed;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -74,5 +78,23 @@ public class ReservationView extends VerticalLayout {
 
     public static String statusLabel(String status) {
         return (status.charAt(0) + status.substring(1).toLowerCase()).replace('_', ' ');
+    }
+
+    /**
+     * Consecutive nights with the same rate grouped in date order, e.g. "2 nights × CHF 140.00, 1 night × CHF 180.00".
+     */
+    public static String pricePerNight(List<NightRate> nights) {
+        List<String> groups = new ArrayList<>();
+        int count = 0;
+        for (int i = 0; i < nights.size(); i++) {
+            count++;
+            boolean last = i == nights.size() - 1;
+            if (last || nights.get(i + 1).rate().compareTo(nights.get(i).rate()) != 0) {
+                groups.add(count + (count == 1 ? " night × " : " nights × ")
+                        + RoomTypeView.formatRate(nights.get(i).rate()));
+                count = 0;
+            }
+        }
+        return String.join(", ", groups);
     }
 }

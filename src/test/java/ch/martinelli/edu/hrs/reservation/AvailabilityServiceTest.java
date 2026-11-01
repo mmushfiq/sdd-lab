@@ -81,8 +81,50 @@ class AvailabilityServiceTest {
 
         assertThat(room104.roomTypeName()).isEqualTo("Double");
         assertThat(room104.capacity()).isEqualTo(2);
-        assertThat(room104.nightlyRate()).isEqualByComparingTo("140.00");
         assertThat(room104.totalPrice()).isEqualByComparingTo("280.00");
+    }
+
+    // Requirement "Search result details", scenario "Total price across the start of a season"
+    @Test
+    void total_price_across_the_start_of_a_season() {
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+
+        AvailableRoom room104 = service.findAvailableRooms(DECEMBER_18, DECEMBER_21, 2, null).stream()
+                .filter(r -> r.roomNumber().equals("104")).findFirst().orElseThrow();
+
+        assertThat(room104.totalPrice()).isEqualByComparingTo("460.00");
+    }
+
+    // Requirement "Rate of a night", scenario "Night inside a season"
+    @Test
+    void night_inside_a_season_has_the_seasonal_rate() {
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+
+        assertThat(rates("Double", LocalDate.of(2030, 12, 24), LocalDate.of(2030, 12, 25))).containsExactly("180.00");
+    }
+
+    // Requirement "Rate of a night", scenario "Night outside every season"; the last night is still covered
+    @Test
+    void night_after_the_last_night_has_the_base_rate() {
+        insertSeasonalRate(ctx, "Double", "Christmas", DECEMBER_20, JANUARY_6, "180.00");
+
+        assertThat(rates("Double", JANUARY_6, LocalDate.of(2031, 1, 8))).containsExactly("180.00", "140.00");
+    }
+
+    // Requirement "Rate of a night", scenario "Season cheaper than the base rate"
+    @Test
+    void season_cheaper_than_the_base_rate() {
+        insertSeasonalRate(ctx, "Double", "November", LocalDate.of(2030, 11, 1), LocalDate.of(2030, 11, 30), "110.00");
+
+        assertThat(rates("Double", LocalDate.of(2030, 11, 15), LocalDate.of(2030, 11, 16))).containsExactly("110.00");
+    }
+
+    // Requirement "Rate of a night", scenario "Season of another room type"
+    @Test
+    void season_of_another_room_type_is_ignored() {
+        insertSeasonalRate(ctx, "Family", "Christmas", DECEMBER_20, JANUARY_6, "280.00");
+
+        assertThat(rates("Double", LocalDate.of(2030, 12, 24), LocalDate.of(2030, 12, 25))).containsExactly("140.00");
     }
 
     // Scenario "Arrival date in the past"
@@ -119,6 +161,11 @@ class AvailabilityServiceTest {
 
         assertThat(service.findAvailableRooms(MARCH_10, MARCH_13, 2, id))
                 .extracting(AvailableRoom::roomNumber).contains("104");
+    }
+
+    private List<String> rates(String roomTypeName, LocalDate arrival, LocalDate departure) {
+        return service.nightRates(roomTypeId(ctx, roomTypeName), arrival, departure).stream()
+                .map(n -> n.rate().setScale(2).toPlainString()).toList();
     }
 
     private List<String> roomNumbers(LocalDate arrival, LocalDate departure, int guests) {

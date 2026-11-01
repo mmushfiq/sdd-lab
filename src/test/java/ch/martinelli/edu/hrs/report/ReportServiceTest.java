@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 
-import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.insert;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,7 +71,7 @@ class ReportServiceTest {
     @Test
     void revenue_from_saved_rates_survives_rate_change() {
         insert(ctx, "REV00001", "104", day(4, 1), day(4, 4), "Anna", "CHECKED_OUT");
-        insertWithRate("REV00002", "109", day(4, 10), day(4, 12), "220.00");
+        insert(ctx, "REV00002", "109", day(4, 10), day(4, 12), "Ben", "CHECKED_OUT", "220.00", "220.00");
 
         assertThat(month(reportService.yearReport(YEAR), Month.APRIL).revenue()).isEqualByComparingTo("860.00");
 
@@ -81,6 +80,16 @@ class ReportServiceTest {
         MonthFigures april = month(reportService.yearReport(YEAR), Month.APRIL);
         assertThat(april.revenue()).isEqualByComparingTo("860.00");
         assertThat(april.revenue().scale()).isEqualTo(2);
+    }
+
+    // Scenario "Stay with different rates across two months"
+    @Test
+    void each_night_counts_its_own_rate_in_its_month() {
+        insert(ctx, "NEWYEAR1", "104", LocalDate.of(2030, 12, 31), LocalDate.of(2031, 1, 3), "Anna", "CHECKED_OUT",
+                "180.00", "180.00", "140.00");
+
+        assertThat(month(reportService.yearReport(2030), Month.DECEMBER).revenue()).isEqualByComparingTo("180.00");
+        assertThat(month(reportService.yearReport(2031), Month.JANUARY).revenue()).isEqualByComparingTo("320.00");
     }
 
     // Scenario "Year without stays"
@@ -110,12 +119,6 @@ class ReportServiceTest {
         assertThat(report.total().revenue()).isEqualByComparingTo("980.00");
         // 7 / (10 rooms x 365 days) = 0.19 %
         assertThat(report.total().occupancyPercent()).isEqualByComparingTo("0.2");
-    }
-
-    private void insertWithRate(String number, String room, LocalDate arrival, LocalDate departure, String rate) {
-        insert(ctx, number, room, arrival, departure, "Guest", "CHECKED_OUT");
-        ctx.update(RESERVATION).set(RESERVATION.NIGHTLY_RATE, new BigDecimal(rate))
-                .where(RESERVATION.RESERVATION_NUMBER.eq(number)).execute();
     }
 
     private static LocalDate day(int month, int day) {

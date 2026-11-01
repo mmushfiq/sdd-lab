@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
+import ch.martinelli.edu.hrs.reservation.AvailabilityService.NightRate;
 import ch.martinelli.edu.hrs.db.tables.records.RoomTypeRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -10,6 +11,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -19,9 +21,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
@@ -77,7 +81,7 @@ public class ReservationService {
     }
 
     /**
-     * Saves a Booked reservation at the room type's current nightly rate and returns it with its reservation number.
+     * Saves a Booked reservation with the current rate of each night and returns it with its reservation number.
      */
     public ReservationRecord create(Stay stay, Guest guest) {
         if (guest.name() == null || guest.name().isBlank()) {
@@ -95,13 +99,14 @@ public class ReservationService {
         reservation.setGuestName(guest.name().strip());
         reservation.setGuestEmail(guest.email().strip());
         reservation.setGuestPhone(guest.phone() == null || guest.phone().isBlank() ? null : guest.phone().strip());
-        reservation.setNightlyRate(roomType.getNightlyRate());
         reservation.setStatus(BOOKED);
         reservation.setCancellationHoursBefore(CANCELLATION_HOURS_BEFORE);
         for (int attempt = 1; ; attempt++) {
             reservation.setReservationNumber(newReservationNumber());
             try {
                 reservation.insert();
+                insertNights(reservation.getId(),
+                        availabilityService.nightRates(roomType.getId(), stay.arrival(), stay.departure()));
                 return reservation;
             } catch (DuplicateKeyException e) {
                 if (attempt == NUMBER_ATTEMPTS) {
@@ -112,23 +117,43 @@ public class ReservationService {
     }
 
     /**
-     * Changes dates, room and guests of a Booked reservation. The nightly rate stays unless the room type changes;
-     * then it becomes the new room type's current rate.
+     * Changes dates, room and guests of a Booked reservation. Nights it already had keep their saved rate, added
+     * nights get their current rate; a move to another room type gives every night that type's current rate.
      */
     public ReservationRecord change(long reservationId, Stay stay) {
         ReservationRecord reservation = findBooked(reservationId);
         RoomTypeRecord newType = checkStay(stay, reservationId);
         Long oldTypeId = ctx.select(ROOM.ROOM_TYPE_ID).from(ROOM).where(ROOM.ID.eq(reservation.getRoomId()))
                 .fetchSingle(ROOM.ROOM_TYPE_ID);
-        if (!newType.getId().equals(oldTypeId)) {
-            reservation.setNightlyRate(newType.getNightlyRate());
-        }
+        boolean sameType = newType.getId().equals(oldTypeId);
+        Map<LocalDate, BigDecimal> saved = sameType
+                ? ctx.select(RESERVATION_NIGHT.NIGHT_DATE, RESERVATION_NIGHT.NIGHTLY_RATE).from(RESERVATION_NIGHT)
+                        .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                        .fetchMap(RESERVATION_NIGHT.NIGHT_DATE, RESERVATION_NIGHT.NIGHTLY_RATE)
+                : Map.of();
+        List<NightRate> nights = availabilityService.nightRates(newType.getId(), stay.arrival(), stay.departure())
+                .stream()
+                .map(n -> saved.containsKey(n.night()) ? new NightRate(n.night(), saved.get(n.night())) : n)
+                .toList();
+        ctx.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId)).execute();
+        insertNights(reservationId, nights);
         reservation.setRoomId(stay.roomId());
         reservation.setArrivalDate(stay.arrival());
         reservation.setDepartureDate(stay.departure());
         reservation.setNumberOfGuests(stay.guests());
         reservation.update();
         return reservation;
+    }
+
+    /**
+     * The saved rate of each night of the reservation, in date order.
+     */
+    @Transactional(readOnly = true)
+    public List<NightRate> nights(long reservationId) {
+        return ctx.select(RESERVATION_NIGHT.NIGHT_DATE, RESERVATION_NIGHT.NIGHTLY_RATE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(r -> new NightRate(r.value1(), r.value2()));
     }
 
     public void cancel(long reservationId) {
@@ -230,6 +255,15 @@ public class ReservationService {
             throw new ReservationException(ROOM_NOT_AVAILABLE);
         }
         return roomType;
+    }
+
+    private void insertNights(long reservationId, List<NightRate> nights) {
+        ctx.batch(nights.stream()
+                .map(n -> ctx.insertInto(RESERVATION_NIGHT)
+                        .set(RESERVATION_NIGHT.RESERVATION_ID, reservationId)
+                        .set(RESERVATION_NIGHT.NIGHT_DATE, n.night())
+                        .set(RESERVATION_NIGHT.NIGHTLY_RATE, n.rate()))
+                .toList()).execute();
     }
 
     private ReservationRecord findBooked(long reservationId) {
