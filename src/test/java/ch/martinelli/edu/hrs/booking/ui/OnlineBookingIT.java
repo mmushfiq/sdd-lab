@@ -1,0 +1,69 @@
+package ch.martinelli.edu.hrs.booking.ui;
+
+import ch.martinelli.edu.hrs.core.ui.PlaywrightIT;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
+import org.jooq.DSLContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
+
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+
+class OnlineBookingIT extends PlaywrightIT {
+
+    // Date format of the en-US browser locale
+    private static final DateTimeFormatter BROWSER_DATE = DateTimeFormatter.ofPattern("M/d/yyyy");
+
+    @Autowired
+    DSLContext ctx;
+
+    @AfterEach
+    void deleteReservations() {
+        ctx.deleteFrom(RESERVATION).execute();
+    }
+
+    // Scenarios "Guest opens the booking page", "Guest books successfully", "Reservation found" and
+    // "Guest cancels before the arrival date"
+    @Test
+    void guest_books_finds_and_cancels_without_login() {
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        page.navigate("http://localhost:" + localServerPort + "/");
+
+        fillDate("Arrival", tomorrow);
+        fillDate("Departure", tomorrow.plusDays(2));
+        page.getByLabel("Guests").fill("2");
+        page.locator("#search-rooms").click();
+        page.locator(".choose-room").first().click();
+        page.getByLabel("Name", new Page.GetByLabelOptions().setExact(true)).fill("Anna Meier");
+        page.getByLabel("Email").fill("anna@example.com");
+        page.locator("#book").click();
+
+        Locator number = page.locator("#reservation-number");
+        assertThat(number).hasText(Pattern.compile("\\w{8}"));
+        String reservationNumber = number.textContent();
+
+        page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("My reservation")).click();
+        page.getByLabel("Reservation number").fill(reservationNumber);
+        page.getByLabel("Email").fill("anna@example.com");
+        page.locator("#find-reservation").click();
+        assertThat(page.getByText("Status: Booked")).isVisible();
+
+        page.locator("#guest-cancel-reservation").click();
+        page.locator("vaadin-confirm-dialog").getByRole(AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Cancel reservation")).click();
+        assertThat(page.getByText("Status: Cancelled")).isVisible();
+    }
+
+    private void fillDate(String label, LocalDate date) {
+        Locator field = page.getByLabel(label, new Page.GetByLabelOptions().setExact(true));
+        field.fill(date.format(BROWSER_DATE));
+        field.press("Enter");
+    }
+}

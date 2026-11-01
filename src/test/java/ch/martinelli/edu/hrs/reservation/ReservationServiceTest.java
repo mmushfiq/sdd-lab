@@ -202,6 +202,67 @@ class ReservationServiceTest {
                 .containsExactly("TODAY001");
     }
 
+    // Requirement "Guest finds their reservation": number and email ignore case and surrounding spaces
+    @Test
+    void finds_reservation_for_guest() {
+        ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+        String number = created.getReservationNumber();
+
+        assertThat(service.findForGuest(number, "anna@example.com")).hasValueSatisfying(g -> {
+            assertThat(g.reservation().getId()).isEqualTo(created.getId());
+            assertThat(g.roomTypeName()).isEqualTo("Double");
+        });
+        assertThat(service.findForGuest(" " + number.toLowerCase() + " ", " ANNA@Example.com ")).isPresent();
+    }
+
+    // Scenario "Wrong reservation number or email": both give the same empty result
+    @Test
+    void unknown_number_or_wrong_email_finds_nothing() {
+        ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+
+        assertThat(service.findForGuest("ZZZZZZZZ", "anna@example.com")).isEmpty();
+        assertThat(service.findForGuest(created.getReservationNumber(), "other@example.com")).isEmpty();
+        assertThat(service.findForGuest(null, null)).isEmpty();
+    }
+
+    // Scenario "Guest cancels before the arrival date"
+    @Test
+    void guest_cancels_before_arrival() {
+        ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+
+        service.cancelByGuest(created.getReservationNumber(), "Anna@example.com");
+
+        assertThat(reload(created).getStatus()).isEqualTo("CANCELLED");
+        service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+    }
+
+    // Scenario "Cancel on or after the arrival date": checked in the service, not only in the view
+    @Test
+    void guest_cannot_cancel_on_or_after_arrival_day() {
+        LocalDate today = LocalDate.now();
+        ReservationRecord arrivesToday = insert(ctx, "TODAY001", "104", today, today.plusDays(2), "Anna", "BOOKED");
+        ReservationRecord arrivedYesterday = insert(ctx, "YESTER01", "105", today.minusDays(1), today.plusDays(1),
+                "Anna", "BOOKED");
+
+        assertThatThrownBy(() -> service.cancelByGuest("TODAY001", "guest@example.com"))
+                .hasMessage("Please contact the hotel to cancel on or after the arrival date");
+        assertThatThrownBy(() -> service.cancelByGuest("YESTER01", "guest@example.com"))
+                .hasMessage("Please contact the hotel to cancel on or after the arrival date");
+        assertThat(reload(arrivesToday).getStatus()).isEqualTo("BOOKED");
+        assertThat(reload(arrivedYesterday).getStatus()).isEqualTo("BOOKED");
+    }
+
+    // Scenario "Cancelled reservation found": no second cancel; unknown reservation rejected
+    @Test
+    void guest_cannot_cancel_cancelled_or_unknown_reservation() {
+        insert(ctx, "CANCEL01", "104", MARCH_10, MARCH_12, "Anna", "CANCELLED");
+
+        assertThatThrownBy(() -> service.cancelByGuest("CANCEL01", "guest@example.com"))
+                .hasMessage(ReservationService.NOT_BOOKED);
+        assertThatThrownBy(() -> service.cancelByGuest("CANCEL01", "other@example.com"))
+                .hasMessage("No reservation found for this reservation number and email");
+    }
+
     private Stay stay(String roomNumber, LocalDate arrival, LocalDate departure, int guests) {
         return new Stay(roomId(ctx, roomNumber), arrival, departure, guests);
     }

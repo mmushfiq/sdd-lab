@@ -4,6 +4,7 @@ import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomTypeRecord;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,8 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
@@ -34,6 +37,8 @@ public class ReservationService {
     public static final String NOT_BOOKED = "Only Booked reservations can be changed or cancelled";
     public static final String GUEST_NAME_REQUIRED = "Guest name is required";
     public static final String EMAIL_REQUIRED = "Email is required";
+    public static final String NOT_FOUND = "No reservation found for this reservation number and email";
+    public static final String CONTACT_HOTEL = "Please contact the hotel to cancel on or after the arrival date";
 
     static final String NUMBER_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int NUMBER_LENGTH = 8;
@@ -54,6 +59,9 @@ public class ReservationService {
     }
 
     public record Guest(String name, String email, String phone) {
+    }
+
+    public record GuestReservation(ReservationRecord reservation, String roomTypeName) {
     }
 
     /**
@@ -114,6 +122,44 @@ public class ReservationService {
         ReservationRecord reservation = findBooked(reservationId);
         reservation.setStatus(CANCELLED);
         reservation.update();
+    }
+
+    /**
+     * The reservation with this number and booking email, both matched ignoring case and surrounding spaces. An
+     * unknown number and a wrong email both give an empty result.
+     */
+    @Transactional(readOnly = true)
+    public Optional<GuestReservation> findForGuest(String reservationNumber, String email) {
+        if (reservationNumber == null || email == null) {
+            return Optional.empty();
+        }
+        return ctx.select(RESERVATION, ROOM_TYPE.NAME).from(RESERVATION)
+                .join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
+                .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
+                // CHAR column would bind the input as padded CHAR(8), so compare on VARCHAR
+                .where(RESERVATION.RESERVATION_NUMBER.cast(SQLDataType.VARCHAR(8))
+                        .eq(reservationNumber.strip().toUpperCase(Locale.ROOT)))
+                .and(DSL.lower(RESERVATION.GUEST_EMAIL).eq(email.strip().toLowerCase(Locale.ROOT)))
+                .fetchOptional(r -> new GuestReservation(r.value1(), r.value2()));
+    }
+
+    /**
+     * A guest may cancel only a Booked reservation, and only before its arrival date.
+     */
+    public boolean guestMayCancel(ReservationRecord reservation) {
+        return BOOKED.equals(reservation.getStatus()) && LocalDate.now(clock).isBefore(reservation.getArrivalDate());
+    }
+
+    public void cancelByGuest(String reservationNumber, String email) {
+        ReservationRecord reservation = findForGuest(reservationNumber, email)
+                .orElseThrow(() -> new ReservationException(NOT_FOUND)).reservation();
+        if (!BOOKED.equals(reservation.getStatus())) {
+            throw new ReservationException(NOT_BOOKED);
+        }
+        if (!guestMayCancel(reservation)) {
+            throw new ReservationException(CONTACT_HOTEL);
+        }
+        cancel(reservation.getId());
     }
 
     /**
