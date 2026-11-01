@@ -74,8 +74,12 @@ races.
 - `StaffLayout` is an `AppLayout` with a `SideNav`; it adds an item only when `AccessAnnotationChecker` allows the
   current user to open that view, and shows the user's name with the logout button. `StaffStartView` moves into
   this layout (`@Route(value = "staff", layout = StaffLayout.class)`); its own logout button stays.
-- Both views: a `Grid` with the list and a form below/beside it (`Binder` with bean validation messages) for create
-  and edit. No delete button.
+  `StaffLayout` carries `@PermitAll`, because Vaadin also checks the access annotation of a route's layout.
+- Both views: a `Grid` with the list and a form below it for create and edit. No delete button.
+- Field checks use the `Binder`'s own validators (`asRequired`, `withValidator`), not Bean Validation, so no
+  validation dependency is added. A value of only spaces counts as empty. Each invalid field shows its message.
+- "A room type with this name already exists" and "A room with this number already exists" are shown as an error
+  notification.
 - Nightly rates are shown as `CHF 140.00`.
 
 ## Risks / Trade-offs

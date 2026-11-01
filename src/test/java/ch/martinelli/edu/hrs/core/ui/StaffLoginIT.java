@@ -24,10 +24,11 @@ class StaffLoginIT extends PlaywrightIT {
     void log_in_log_out_and_staff_page_needs_login_again() {
         logIn("reception", "reception");
         page.waitForURL(url("staff"));
-        assertThat(page.getByText("Rita Reception")).isVisible();
-        assertThat(page.getByText("Receptionist")).isVisible();
+        // The staff layout shows the name and a logout button too; use the start page's own ones.
+        assertThat(page.locator("#staff-full-name")).hasText("Rita Reception");
+        assertThat(page.locator("#staff-role")).hasText("Receptionist");
 
-        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Log out")).click();
+        page.locator("#logout").click();
         page.waitForURL(url("login"));
 
         page.navigate(url("staff"));

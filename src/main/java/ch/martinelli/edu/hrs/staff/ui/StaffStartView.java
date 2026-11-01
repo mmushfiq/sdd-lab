@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.staff.ui;
 
 import ch.martinelli.edu.hrs.core.security.StaffUser;
+import ch.martinelli.edu.hrs.core.ui.StaffLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -10,7 +11,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import jakarta.annotation.security.PermitAll;
 
-@Route(StaffStartView.ROUTE)
+@Route(value = StaffStartView.ROUTE, layout = StaffLayout.class)
 @PageTitle("Staff")
 @PermitAll
 public class StaffStartView extends VerticalLayout {
