@@ -1,5 +1,6 @@
 package ch.martinelli.edu.hrs.booking.ui;
 
+import ch.martinelli.edu.hrs.booking.BookingConfirmationEmail;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService.AvailableRoom;
@@ -49,6 +50,7 @@ public class BookingView extends VerticalLayout {
 
     private final AvailabilityService availabilityService;
     private final ReservationService reservationService;
+    private final BookingConfirmationEmail confirmationEmail;
 
     private final DatePicker arrival = new DatePicker("Arrival");
     private final DatePicker departure = new DatePicker("Departure");
@@ -67,9 +69,11 @@ public class BookingView extends VerticalLayout {
     private Stay searched;
     private AvailableRoom chosen;
 
-    public BookingView(AvailabilityService availabilityService, ReservationService reservationService) {
+    public BookingView(AvailabilityService availabilityService, ReservationService reservationService,
+                       BookingConfirmationEmail confirmationEmail) {
         this.availabilityService = availabilityService;
         this.reservationService = reservationService;
+        this.confirmationEmail = confirmationEmail;
 
         guests.setMin(1);
         guests.setStepButtonsVisible(true);
@@ -182,6 +186,8 @@ public class BookingView extends VerticalLayout {
             message.setText(e.getMessage());
             return;
         }
+        // After create's transaction committed, so a mail failure cannot undo the booking
+        confirmationEmail.send(created, chosen.roomTypeName());
         showConfirmation(created);
     }
 

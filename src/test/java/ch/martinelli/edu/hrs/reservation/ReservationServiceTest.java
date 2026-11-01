@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
@@ -245,11 +246,76 @@ class ReservationServiceTest {
                 "Anna", "BOOKED");
 
         assertThatThrownBy(() -> service.cancelByGuest("TODAY001", "guest@example.com"))
-                .hasMessage("Please contact the hotel to cancel on or after the arrival date");
+                .hasMessage("The online cancellation deadline has passed. Please contact the hotel to cancel.");
         assertThatThrownBy(() -> service.cancelByGuest("YESTER01", "guest@example.com"))
-                .hasMessage("Please contact the hotel to cancel on or after the arrival date");
+                .hasMessage("The online cancellation deadline has passed. Please contact the hotel to cancel.");
         assertThat(reload(arrivesToday).getStatus()).isEqualTo("BOOKED");
         assertThat(reload(arrivedYesterday).getStatus()).isEqualTo("BOOKED");
+    }
+
+    // Requirement "Online cancellation deadline", scenario "New reservation"
+    @Test
+    void new_reservation_has_48_hour_deadline() {
+        ReservationRecord created = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+
+        assertThat(reload(created).getCancellationHoursBefore()).isEqualTo(48);
+        assertThat(ReservationService.onlineCancellationDeadline(created))
+                .isEqualTo(LocalDateTime.of(2030, 3, 8, 14, 0));
+    }
+
+    // Scenario "Reservation from before the rule": migration V6 gave existing rows 14 hours
+    @Test
+    void reservation_from_before_the_rule_has_midnight_deadline() {
+        ReservationRecord old = oldRule(insert(ctx, "OLDRULE1", "104", MARCH_10, MARCH_12, "Anna", "BOOKED"));
+
+        assertThat(ReservationService.onlineCancellationDeadline(old)).isEqualTo(LocalDateTime.of(2030, 3, 10, 0, 0));
+    }
+
+    // Requirement "Guest cancels their reservation": cancel allowed until one minute before the deadline, not at it
+    @Test
+    void guest_may_cancel_only_before_the_deadline() {
+        ReservationRecord newRule = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+        ReservationRecord old = oldRule(insert(ctx, "OLDRULE1", "105", MARCH_10, MARCH_12, "Anna", "BOOKED"));
+
+        assertThat(ReservationService.guestMayCancel(newRule, LocalDateTime.of(2030, 3, 8, 13, 59))).isTrue();
+        assertThat(ReservationService.guestMayCancel(newRule, LocalDateTime.of(2030, 3, 8, 14, 0))).isFalse();
+        // Scenario "Reservation from before the rule cancelled the day before arrival"
+        assertThat(ReservationService.guestMayCancel(old, LocalDateTime.of(2030, 3, 9, 20, 0))).isTrue();
+        assertThat(ReservationService.guestMayCancel(old, LocalDateTime.of(2030, 3, 9, 23, 59))).isTrue();
+        assertThat(ReservationService.guestMayCancel(old, LocalDateTime.of(2030, 3, 10, 0, 0))).isFalse();
+    }
+
+    // Scenario "Cancel after the deadline but before the arrival date": checked in the service
+    @Test
+    void guest_cannot_cancel_after_deadline_before_arrival() {
+        LocalDate tomorrow = LocalDate.now(ReservationService.HOTEL_ZONE).plusDays(1);
+        ReservationRecord r = insert(ctx, "TOMORR01", "104", tomorrow, tomorrow.plusDays(2), "Anna", "BOOKED");
+
+        assertThatThrownBy(() -> service.cancelByGuest("TOMORR01", "guest@example.com"))
+                .hasMessage("The online cancellation deadline has passed. Please contact the hotel to cancel.");
+        assertThat(reload(r).getStatus()).isEqualTo("BOOKED");
+    }
+
+    // Requirement "Changed reservation keeps its deadline rule"
+    @Test
+    void changed_reservation_keeps_its_deadline_rule() {
+        LocalDate march20 = LocalDate.of(2030, 3, 20);
+        ReservationRecord newRule = service.create(stay("104", MARCH_10, MARCH_12, 2), ANNA);
+        ReservationRecord old = oldRule(insert(ctx, "OLDRULE1", "105", MARCH_10, MARCH_12, "Anna", "BOOKED"));
+
+        service.change(newRule.getId(), stay("104", march20, march20.plusDays(2), 2));
+        service.change(old.getId(), stay("105", march20, march20.plusDays(2), 1));
+
+        assertThat(ReservationService.onlineCancellationDeadline(reload(newRule)))
+                .isEqualTo(LocalDateTime.of(2030, 3, 18, 14, 0));
+        assertThat(ReservationService.onlineCancellationDeadline(reload(old)))
+                .isEqualTo(LocalDateTime.of(2030, 3, 20, 0, 0));
+    }
+
+    @Test
+    void cancellation_text_shows_the_exact_deadline() {
+        assertThat(ReservationService.cancellationText(LocalDateTime.of(2030, 3, 8, 14, 0)))
+                .isEqualTo("Free online cancellation until 8 March 2030, 14:00 (Zurich time)");
     }
 
     // Scenario "Cancelled reservation found": no second cancel; unknown reservation rejected
@@ -265,6 +331,12 @@ class ReservationServiceTest {
 
     private Stay stay(String roomNumber, LocalDate arrival, LocalDate departure, int guests) {
         return new Stay(roomId(ctx, roomNumber), arrival, departure, guests);
+    }
+
+    private ReservationRecord oldRule(ReservationRecord r) {
+        ctx.update(RESERVATION).set(RESERVATION.CANCELLATION_HOURS_BEFORE, 14).where(RESERVATION.ID.eq(r.getId()))
+                .execute();
+        return reload(r);
     }
 
     private ReservationRecord reload(ReservationRecord r) {

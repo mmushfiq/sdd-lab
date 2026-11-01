@@ -13,6 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -38,7 +42,15 @@ public class ReservationService {
     public static final String GUEST_NAME_REQUIRED = "Guest name is required";
     public static final String EMAIL_REQUIRED = "Email is required";
     public static final String NOT_FOUND = "No reservation found for this reservation number and email";
-    public static final String CONTACT_HOTEL = "Please contact the hotel to cancel on or after the arrival date";
+    public static final String CONTACT_HOTEL =
+            "The online cancellation deadline has passed. Please contact the hotel to cancel.";
+
+    public static final ZoneId HOTEL_ZONE = ZoneId.of("Europe/Zurich");
+    public static final LocalTime CHECK_IN_TIME = LocalTime.of(14, 0);
+    // Reservations created before this rule keep 14 (= 00:00 on the arrival date), set by migration V6
+    static final int CANCELLATION_HOURS_BEFORE = 48;
+    private static final DateTimeFormatter DEADLINE_FORMAT =
+            DateTimeFormatter.ofPattern("d MMMM yyyy, HH:mm", Locale.ENGLISH);
 
     static final String NUMBER_CHARACTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int NUMBER_LENGTH = 8;
@@ -85,6 +97,7 @@ public class ReservationService {
         reservation.setGuestPhone(guest.phone() == null || guest.phone().isBlank() ? null : guest.phone().strip());
         reservation.setNightlyRate(roomType.getNightlyRate());
         reservation.setStatus(BOOKED);
+        reservation.setCancellationHoursBefore(CANCELLATION_HOURS_BEFORE);
         for (int attempt = 1; ; attempt++) {
             reservation.setReservationNumber(newReservationNumber());
             try {
@@ -144,10 +157,26 @@ public class ReservationService {
     }
 
     /**
-     * A guest may cancel only a Booked reservation, and only before its arrival date.
+     * A guest may cancel only a Booked reservation, and only before its online cancellation deadline.
      */
     public boolean guestMayCancel(ReservationRecord reservation) {
-        return BOOKED.equals(reservation.getStatus()) && LocalDate.now(clock).isBefore(reservation.getArrivalDate());
+        return guestMayCancel(reservation, LocalDateTime.now(clock.withZone(HOTEL_ZONE)));
+    }
+
+    static boolean guestMayCancel(ReservationRecord reservation, LocalDateTime nowInHotelZone) {
+        return BOOKED.equals(reservation.getStatus()) && nowInHotelZone.isBefore(onlineCancellationDeadline(reservation));
+    }
+
+    /**
+     * Check-in on the arrival date minus the reservation's hours, in hotel time. Wall-clock arithmetic, so the
+     * deadline stays at the same time of day across a daylight saving switch.
+     */
+    public static LocalDateTime onlineCancellationDeadline(ReservationRecord reservation) {
+        return reservation.getArrivalDate().atTime(CHECK_IN_TIME).minusHours(reservation.getCancellationHoursBefore());
+    }
+
+    public static String cancellationText(LocalDateTime deadline) {
+        return "Free online cancellation until " + DEADLINE_FORMAT.format(deadline) + " (Zurich time)";
     }
 
     public void cancelByGuest(String reservationNumber, String email) {

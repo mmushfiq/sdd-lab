@@ -39,9 +39,10 @@ New column:
 | `reservation` | `cancellation_hours_before`  | INT  | NOT NULL, DEFAULT 48, CHECK (value >= 0)      |
 
 Migration `V6__add_reservation_cancellation_hours_before.sql`: add the column with DEFAULT 14 so every existing row
-gets the old rule, then change the default to 48 so every row inserted afterwards gets the new rule. `create` does not
-set the column; `change` does not touch it, so a moved reservation keeps its rule and the deadline follows the new
-arrival date (reservations spec).
+gets the old rule, then change the default to 48 so every row inserted afterwards gets the new rule. `create` sets 48
+explicitly, because jOOQ does not read database defaults back after an insert and the returned record must carry the
+value for the confirmation email; the database default stays as a safety net. `change` does not touch the column, so
+a moved reservation keeps its rule and the deadline follows the new arrival date (reservations spec).
 
 Alternatives:
 - Store the deadline timestamp: `change` would have to know which rule the row was created with, so the rule is

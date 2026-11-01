@@ -15,8 +15,13 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -25,6 +30,9 @@ import java.util.List;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 @Transactional
 @WithAnonymousUser
@@ -35,6 +43,9 @@ class BookingViewTest extends HrsBrowserlessTest {
 
     @Autowired
     DSLContext ctx;
+
+    @MockitoBean
+    JavaMailSender mailSender;
 
     // Scenario "Guest opens the booking page"
     @Test
@@ -144,6 +155,33 @@ class BookingViewTest extends HrsBrowserlessTest {
         assertThat($(Button.class).withId("search-rooms").exists()).isFalse();
     }
 
+    // Requirement "Booking confirmation email", scenario "Email sent after booking"
+    @Test
+    void booking_sends_confirmation_email_with_deadline() {
+        book("Anna Meier", "anna@example.com");
+
+        ArgumentCaptor<SimpleMailMessage> sent = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(sent.capture());
+        ReservationRecord saved = ctx.fetchSingle(RESERVATION);
+        assertThat(sent.getValue().getTo()).containsExactly("anna@example.com");
+        assertThat(sent.getValue().getText()).contains(
+                "Reservation number: " + saved.getReservationNumber(), "Room type: Double",
+                "Arrival: 2030-03-10", "Departure: 2030-03-12", "Guests: 2", "Total price: CHF 280.00",
+                "Free online cancellation until 8 March 2030, 14:00 (Zurich time)");
+    }
+
+    // Scenario "Email cannot be sent": booking is saved and confirmed anyway
+    @Test
+    void failed_email_keeps_booking_and_confirmation() {
+        doThrow(new MailSendException("mail server down")).when(mailSender).send(any(SimpleMailMessage.class));
+
+        book("Anna Meier", "anna@example.com");
+
+        ReservationRecord saved = ctx.fetchSingle(RESERVATION);
+        assertThat(saved.getStatus()).isEqualTo("BOOKED");
+        assertThat($(Span.class).id("reservation-number").getText()).isEqualTo(saved.getReservationNumber());
+    }
+
     // Scenario "Room taken while the guest was booking"
     @Test
     void room_taken_meanwhile_shows_message_and_results_again() {
@@ -163,6 +201,15 @@ class BookingViewTest extends HrsBrowserlessTest {
         assertThat(cards()).hasSize(6);
         assertThat($(IntegerField.class).withLabel("Guests").single().getValue()).isEqualTo(2);
         assertThat($(Button.class).withId("book").exists()).isFalse();
+    }
+
+    private void book(String name, String email) {
+        navigate(BookingView.class);
+        search(MARCH_10, MARCH_12, 2);
+        chooseFirstRoom();
+        test(field("Name")).setValue(name);
+        test(field("Email")).setValue(email);
+        test($(Button.class).id("book")).click();
     }
 
     private void search(LocalDate arrival, LocalDate departure, int guests) {

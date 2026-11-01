@@ -1,6 +1,7 @@
 package ch.martinelli.edu.hrs.booking.ui;
 
 import ch.martinelli.edu.hrs.core.ui.PlaywrightIT;
+import ch.martinelli.edu.hrs.reservation.ReservationService;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
@@ -8,6 +9,8 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -24,20 +27,25 @@ class OnlineBookingIT extends PlaywrightIT {
     @Autowired
     DSLContext ctx;
 
+    // No mail server in the test environment
+    @MockitoBean
+    JavaMailSender mailSender;
+
     @AfterEach
     void deleteReservations() {
         ctx.deleteFrom(RESERVATION).execute();
     }
 
-    // Scenarios "Guest opens the booking page", "Guest books successfully", "Reservation found" and
-    // "Guest cancels before the arrival date"
+    // Scenarios "Guest opens the booking page", "Guest books successfully", "Reservation found",
+    // "Last cancellation time shown" and "Guest cancels before the arrival date"
     @Test
     void guest_books_finds_and_cancels_without_login() {
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        // Far enough ahead that the 48-hour online cancellation deadline has not passed
+        LocalDate arrival = LocalDate.now(ReservationService.HOTEL_ZONE).plusDays(5);
         page.navigate("http://localhost:" + localServerPort + "/");
 
-        fillDate("Arrival", tomorrow);
-        fillDate("Departure", tomorrow.plusDays(2));
+        fillDate("Arrival", arrival);
+        fillDate("Departure", arrival.plusDays(2));
         page.getByLabel("Guests").fill("2");
         page.locator("#search-rooms").click();
         page.locator(".choose-room").first().click();
@@ -54,6 +62,8 @@ class OnlineBookingIT extends PlaywrightIT {
         page.getByLabel("Email").fill("anna@example.com");
         page.locator("#find-reservation").click();
         assertThat(page.getByText("Status: Booked")).isVisible();
+        assertThat(page.locator("#cancellation-deadline"))
+                .hasText(ReservationService.cancellationText(arrival.minusDays(2).atTime(14, 0)));
 
         page.locator("#guest-cancel-reservation").click();
         page.locator("vaadin-confirm-dialog").getByRole(AriaRole.BUTTON,

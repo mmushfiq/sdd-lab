@@ -24,7 +24,7 @@ import static ch.martinelli.edu.hrs.room.ui.RoomTypeView.formatRate;
 
 /**
  * Public page where a guest finds their reservation by reservation number plus booking email and may cancel it
- * before the arrival date.
+ * before its online cancellation deadline.
  */
 @Route(value = MyReservationView.ROUTE, layout = GuestLayout.class)
 @PageTitle("My reservation")
@@ -83,7 +83,10 @@ public class MyReservationView extends VerticalLayout {
             Button cancel = new Button("Cancel reservation", _ -> confirmCancel(r, bookingEmail));
             cancel.setId("guest-cancel-reservation");
             cancel.addThemeVariants(ButtonVariant.ERROR);
-            details.add(cancel);
+            Paragraph deadline = new Paragraph(ReservationService.cancellationText(
+                    ReservationService.onlineCancellationDeadline(r)));
+            deadline.setId("cancellation-deadline");
+            details.add(deadline, cancel);
         } else if (ReservationService.BOOKED.equals(r.getStatus())) {
             message.setText(ReservationService.CONTACT_HOTEL);
         }

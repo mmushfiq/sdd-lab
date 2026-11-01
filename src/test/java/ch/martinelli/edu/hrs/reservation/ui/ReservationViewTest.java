@@ -22,7 +22,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -32,6 +34,7 @@ import java.util.stream.IntStream;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.reservation.ReservationTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @Transactional
 @WithUserDetails("reception")
@@ -42,6 +45,9 @@ class ReservationViewTest extends HrsBrowserlessTest {
 
     @Autowired
     DSLContext ctx;
+
+    @MockitoBean
+    JavaMailSender mailSender;
 
     Grid<ReservationRecord> grid;
 
@@ -70,6 +76,8 @@ class ReservationViewTest extends HrsBrowserlessTest {
         assertThat($(Dialog.class).exists()).isFalse();
         assertThat(rows()).containsExactly(
                 saved.getReservationNumber() + "|Anna Meier|104|2030-03-10|2030-03-12|Booked");
+        // Scenario "Reservation made by reception": no confirmation email
+        verifyNoInteractions(mailSender);
     }
 
     // Requirement "Search result details", scenario "Total price shown"

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -28,12 +29,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WithAnonymousUser
 class MyReservationViewTest extends HrsBrowserlessTest {
 
-    // Today is 10 March 2030
+    // Today is 1 March 2030, 09:00 in Zurich
     @TestBean
     Clock clock;
 
+    static final LocalDate MARCH_1 = LocalDate.of(2030, 3, 1);
+    static final LocalDate MARCH_2 = LocalDate.of(2030, 3, 2);
+    static final String DEADLINE_PASSED =
+            "The online cancellation deadline has passed. Please contact the hotel to cancel.";
+
     static Clock clock() {
-        return Clock.fixed(Instant.parse("2030-03-10T08:00:00Z"), ZoneId.of("Europe/Zurich"));
+        return Clock.fixed(Instant.parse("2030-03-01T08:00:00Z"), ZoneId.of("Europe/Zurich"));
     }
 
     @Autowired
@@ -47,7 +53,8 @@ class MyReservationViewTest extends HrsBrowserlessTest {
 
         assertThat(details()).containsExactly("Reservation number: FOUND001", "Room type: Double",
                 "Arrival: 2030-03-11", "Departure: 2030-03-13", "Guests: 1", "Guest name: Anna Meier",
-                "Total price: CHF 280.00", "Status: Booked");
+                "Total price: CHF 280.00", "Status: Booked",
+                "Free online cancellation until 9 March 2030, 14:00 (Zurich time)");
         assertThat(message()).isEmpty();
         assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isTrue();
     }
@@ -98,21 +105,59 @@ class MyReservationViewTest extends HrsBrowserlessTest {
 
         assertThat(details()).contains("Status: Cancelled");
         assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isFalse();
+        assertThat($(Paragraph.class).withId("cancellation-deadline").exists()).isFalse();
     }
 
     // Scenario "Cancel on or after the arrival date"
     @Test
     void on_arrival_day_asks_to_contact_the_hotel() {
-        insert(ctx, "TODAY001", "104", MARCH_10, MARCH_12, "Anna Meier", "BOOKED");
-        insert(ctx, "STAYING1", "105", MARCH_8, MARCH_11, "Ben Keller", "BOOKED");
+        insert(ctx, "TODAY001", "104", MARCH_1, MARCH_2, "Anna Meier", "BOOKED");
+        insert(ctx, "STAYING1", "105", MARCH_1.minusDays(2), MARCH_2, "Ben Keller", "BOOKED");
 
         find("TODAY001", "guest@example.com");
-        assertThat(message()).isEqualTo("Please contact the hotel to cancel on or after the arrival date");
+        assertThat(message()).isEqualTo(DEADLINE_PASSED);
         assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isFalse();
 
         find("STAYING1", "guest@example.com");
-        assertThat(message()).isEqualTo("Please contact the hotel to cancel on or after the arrival date");
+        assertThat(message()).isEqualTo(DEADLINE_PASSED);
         assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isFalse();
+    }
+
+    // Scenario "Last cancellation time shown"
+    @Test
+    void shows_the_last_cancellation_time() {
+        insert(ctx, "FOUND001", "104", MARCH_10, MARCH_12, "Anna Meier", "BOOKED");
+        find("FOUND001", "guest@example.com");
+
+        assertThat($(Paragraph.class).id("cancellation-deadline").getText())
+                .isEqualTo("Free online cancellation until 8 March 2030, 14:00 (Zurich time)");
+    }
+
+    // Scenario "Cancel after the deadline but before the arrival date": tomorrow's deadline was yesterday 14:00
+    @Test
+    void after_the_deadline_before_arrival_asks_to_contact_the_hotel() {
+        insert(ctx, "TOMORR01", "104", MARCH_2, MARCH_2.plusDays(2), "Anna Meier", "BOOKED");
+        find("TOMORR01", "guest@example.com");
+
+        assertThat(message()).isEqualTo(DEADLINE_PASSED);
+        assertThat($(Button.class).withId("guest-cancel-reservation").exists()).isFalse();
+        assertThat($(Paragraph.class).withId("cancellation-deadline").exists()).isFalse();
+    }
+
+    // Scenario "Reservation from before the rule cancelled the day before arrival": deadline 00:00 on 2 March
+    @Test
+    void reservation_from_before_the_rule_is_cancelled_the_day_before_arrival() {
+        ReservationRecord r = insert(ctx, "OLDRULE1", "104", MARCH_2, MARCH_2.plusDays(2), "Anna Meier", "BOOKED");
+        ctx.update(RESERVATION).set(RESERVATION.CANCELLATION_HOURS_BEFORE, 14).where(RESERVATION.ID.eq(r.getId()))
+                .execute();
+        find("OLDRULE1", "guest@example.com");
+
+        assertThat($(Paragraph.class).id("cancellation-deadline").getText())
+                .isEqualTo("Free online cancellation until 2 March 2030, 00:00 (Zurich time)");
+        test($(Button.class).id("guest-cancel-reservation")).click();
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(reload(r).getStatus()).isEqualTo("CANCELLED");
     }
 
     // Cancel acts on the reservation shown, even if the guest edits the fields after finding it
