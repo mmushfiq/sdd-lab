@@ -12,57 +12,87 @@ archive → change requests**
 
 Short list of every command in order; details for each step are further down.
 
-```bash
-# 0. Install (docs/vision.md is already on this branch)
-npm install -g @fission-ai/openspec@latest   # installs the openspec CLI on your machine
-openspec --version                       # optional: note the version
-openspec init --tools claude             # creates openspec/ and the /opsx:* commands for Claude Code
-openspec config profile                  # choose the expanded workflow (adds /opsx:new, /opsx:continue …)
-openspec update                          # rewrites the /opsx:* files in this repo for that profile
-#    → commit "Install OpenSpec <version>"
+### 0. Install (once)
 
-# 1. Project context
-#    no OpenSpec command: edit openspec/config.yaml by hand (context + rules, see step 1)
-#    check every line against pom.xml, src/ and docs/vision.md; nothing validates the file
-#    → commit "Add OpenSpec project context"
-```
+`docs/vision.md` is already on this branch.
+
+| Command                                      | What it does                                              |
+|----------------------------------------------|-----------------------------------------------------------|
+| `npm install -g @fission-ai/openspec@latest` | installs the `openspec` CLI on your machine               |
+| `openspec --version`                         | optional: note the version                                |
+| `openspec init --tools claude`               | creates `openspec/` and the `/opsx:*` commands for Claude Code |
+| `openspec config profile`                    | choose the expanded workflow (adds `/opsx:new`, `/opsx:continue` …) |
+| `openspec update`                            | rewrites the `/opsx:*` files in this repo for that profile |
+
+Commit: "Install OpenSpec \<version\>"
+
+### 1. Project context (once)
+
+No OpenSpec command: edit `openspec/config.yaml` by hand (context + rules, see step 1). Check every line against
+`pom.xml`, `src/` and `docs/vision.md`; nothing validates the file.
+
+Commit: "Add OpenSpec project context"
+
+### 2. Plan the changes (once)
 
 ```
-# 2. Plan the changes
 /opsx:explore "Build the Hotel Reservation System described in docs/vision.md. Which changes, in which order?"
 ```
 
-For each change from step 2 (`<change>` is its name):
+### 3–5. For each change from step 2
+
+`<change>` is the change name. One session per change, `/clear` in between.
+
+**3. Plan**
+
+| Command                               | What it does                                          |
+|---------------------------------------|-------------------------------------------------------|
+| `/opsx:propose <change>`              | writes proposal, specs, design and tasks in one go    |
+| `openspec status --change <change>`   | shows which documents are done                        |
+| `openspec validate <change> --strict` | checks the documents                                  |
+
+Step by step instead: `/opsx:new <change>`, then `/opsx:continue <change>` until all documents exist (see step 3).
+
+Commit: "Plan change \<change\>"
+
+**4. Implement**
+
+| Command                | What it does                               |
+|------------------------|--------------------------------------------|
+| `/opsx:apply <change>` | works through `tasks.md`, ticks the boxes  |
+
+**5. Verify, merge request, archive**
+
+| Command                  | What it does                                            |
+|--------------------------|---------------------------------------------------------|
+| `./mvnw verify`          | runs all tests                                          |
+| `/opsx:verify <change>`  | checks the code against the change documents            |
+
+Commit: "Implement change \<change\> with tests", then open the merge request.
+
+Review fixes: `/opsx:update <change>` if behavior changes → fix code → `./mvnw verify` → `/opsx:verify <change>` → push.
+
+| Command                  | What it does                                            |
+|--------------------------|---------------------------------------------------------|
+| `/opsx:archive <change>` | only after the merge request is approved                |
+
+Commit: "Archive change \<change\>", push, merge.
+
+### 6. Change requests
+
+Same loop as 3–5, but start from the request text:
 
 ```
-# 3. Plan
-/opsx:new <change>
-/opsx:continue <change>              # repeat until all documents exist (see step 3)
-openspec status --change <change>    # shows which documents are done
-openspec validate <change> --strict
-#    → commit "Plan change <change>"
-
-# 4. Implement
-/opsx:apply <change>
-
-# 5. Verify, merge request, archive
-./mvnw verify
-/opsx:verify <change>
-#    → commit "Implement change <change> with tests", open the merge request
-#    review fixes: /opsx:update <change> if behavior changes, fix code, ./mvnw verify, /opsx:verify <change>, push
-/opsx:archive <change>               # only after the merge request is approved
-#    → commit "Archive change <change>", push, merge
-```
-
-Repeat steps 3–5 for every change from step 2 (one session per change, `/clear` in between).
-
-```
-# 6. Change requests (same loop as 3–5, starting from the request text)
 /opsx:explore "<request text>"
-
-# Run the app
-./mvnw spring-boot:run                     → http://localhost:8080
 ```
+
+### Run the app
+
+```bash
+./mvnw spring-boot:run
+```
+
+Then open <http://localhost:8080>.
 
 ## How OpenSpec works
 
@@ -86,10 +116,10 @@ Repeat steps 3–5 for every change from step 2 (one session per change, `/clear
 | 0    | Install                            | `openspec init --tools claude`                       | Done   |
 | 1    | Project context (= steering)       | edit `openspec/config.yaml`                          | Done   |
 | 2    | Explore and plan the changes       | `/opsx:explore`                                      | Done   |
-| 3    | Per change: plan                   | `/opsx:new`, `/opsx:continue` ×4                     | Open   |
+| 3    | Per change: plan                   | `/opsx:propose` (or `/opsx:new`, `/opsx:continue` ×4) | Open   |
 | 4    | Per change: implement              | `/opsx:apply`                                        | Open   |
 | 5    | Per change: verify, MR, archive    | `./mvnw verify`, `/opsx:verify`, `/opsx:archive`     | Open   |
-| 6    | Change requests                    | `/opsx:explore`, `/opsx:new` … `/opsx:archive`       | Open   |
+| 6    | Change requests                    | `/opsx:explore`, `/opsx:propose` … `/opsx:archive`   | Open   |
 
 ---
 
@@ -177,11 +207,28 @@ Agreed changes:
 | 6 | `add-check-in-out`           | `check-in-out`                 | Open   |
 | 7 | `add-reports`                | `reports`                      | Open   |
 
-## Step 3 – Per change: plan (human review at each artifact)
+## Step 3 – Per change: plan
 
-A change has four documents that build on each other: proposal → specs → design → tasks. `/opsx:new` creates only
-the empty folder `openspec/changes/<change>/`. Each `/opsx:continue` then writes **the next missing document and
-stops**, so you review and fix it before the next one is written. Four documents, so four calls:
+A change has four documents that build on each other: proposal → specs → design → tasks. There are two ways to
+write them:
+
+|            | `/opsx:propose <change>`                        | `/opsx:new <change>` + `/opsx:continue <change>` ×4 |
+|------------|-------------------------------------------------|-----------------------------------------------------|
+| Writes     | change folder **and all four documents** in one run | empty folder first, then one document per call  |
+| Review     | once, at the end                                | after every document                                |
+| Best when  | the change was already worked out in `/opsx:explore` | the change is still unclear, or you want to stop between documents |
+| Profile    | default and expanded                            | expanded only                                       |
+
+**Prefer `/opsx:propose`**, especially after an `/opsx:explore` session: it uses the decisions made in that
+conversation and writes all four documents, which saves four calls. Both ways produce the same files, and nothing
+is implemented before `/opsx:apply`. (`/opsx:ff <change>` does the same for a change already created with
+`/opsx:new`.)
+
+### Step by step instead
+
+`/opsx:new` creates only the empty folder `openspec/changes/<change>/`. Each `/opsx:continue` then writes **the next
+missing document and stops**, so you review and fix it before the next one is written. Four documents, so four
+calls:
 
 | Call | Command                    | Writes                         | What to review                                |
 |------|----------------------------|--------------------------------|-----------------------------------------------|
@@ -197,16 +244,16 @@ next; `openspec status --change <change>` shows which documents are done and whi
 done, the change is ready for `/opsx:apply`. An extra `/opsx:continue` does no harm; it just reports that nothing is
 left.
 
-`/opsx:ff <change>` writes all four in one go instead: faster, but you only review at the end.
+### Check the result (both ways)
 
 ```bash
 openspec validate <change> --strict
 openspec status --change <change>
 ```
 
-- Use `/opsx:continue` (one artifact at a time), not `/opsx:ff` or `/opsx:propose` (all at once): the review between
-  artifacts catches mistakes before they spread into the next document. If you fix something by hand, run
-  `/opsx:update <change>` so the other artifacts stay consistent.
+- After `/opsx:propose`, review the documents in order (proposal → specs → design → tasks): a mistake in an early
+  document spreads into the later ones. If you fix something by hand, run `/opsx:update <change>` so the other
+  documents stay consistent.
 - Check that every rule and error case from the vision became a `#### Scenario:`.
 - Commit the planning artifacts after review: "Plan change <change>".
 
@@ -264,8 +311,8 @@ OpenSpec has to find the affected requirements itself:
 
 ```
 /opsx:explore "<request text>"   → which requirements in openspec/specs/ change? open questions?
-/opsx:new <change>
-/opsx:continue <change>  (×4)    → delta specs should be MODIFIED, not ADDED
+/opsx:propose <change>           → delta specs should be MODIFIED, not ADDED
+                                   (or /opsx:new + /opsx:continue ×4, see step 3)
 /opsx:apply <change>
 /opsx:verify <change>            → then merge request and review as in step 5
 /opsx:archive <change>           → after the merge request is approved
