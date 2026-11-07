@@ -19,7 +19,7 @@ Short list of every command in order; details for each step are further down.
 | `git checkout hotel-reservation-openspec -- docs/vision.md`     | the same vision file the other tools got                 |
 | `uv tool install specify-cli`                                   | installs the `specify` CLI (uv brings Python 3.11+)      |
 | `specify version`                                               | note the version                                         |
-| `specify init --here --force --integration claude --integration-options="--no-model-invocation"` | creates `.specify/` and the `/speckit-*` skills in `.claude/skills/` |
+| `specify init --here --force --non-interactive --integration claude --integration-options="--no-model-invocation"` | creates `.specify/` and the `/speckit-*` skills in `.claude/skills/` |
 
 Commits: "Add product vision for Hotel Reservation System", "Install Spec Kit \<version\>"
 
@@ -83,7 +83,7 @@ Then open <http://localhost:8080>.
 
 | Step | Name                              | Command                                        | Status |
 |------|-----------------------------------|------------------------------------------------|--------|
-| 0    | Install                           | `specify init --here --integration claude`     | Open   |
+| 0    | Install                           | `specify init --here --integration claude`     | Done   |
 | 1    | Constitution                      | `/speckit-constitution`                        | Open   |
 | 2    | Per feature: specify, clarify     | `/speckit-specify`, `/speckit-clarify`         | Open   |
 | 3    | Per feature: plan, checklist      | `/speckit-plan`, `/speckit-checklist`          | Open   |
@@ -106,19 +106,27 @@ git checkout hotel-reservation-openspec -- docs/vision.md .gitignore
 Then install and initialise:
 
 ```bash
-uv tool install specify-cli          # PyPI package; the system Python is 3.9, uv fetches 3.11+ itself
-specify version                      # latest release on 2026-11-07: v1.3.2
-specify init --here --force --integration claude --integration-options="--no-model-invocation"
+uv tool install specify-cli          # PyPI package; the system Python is 3.9, uv used 3.12 itself
+specify version                      # used here: 1.3.2
+specify init --here --force --non-interactive --integration claude --integration-options="--no-model-invocation"
 ```
 
-- `--here` uses the current directory, `--force` allows a non-empty one. It adds `.specify/` (templates, scripts,
-  `memory/constitution.md`) and `.claude/skills/speckit-*/SKILL.md`. It does not touch `src/` or `pom.xml`.
+- `--here` uses the current directory, `--force` allows a non-empty one, `--non-interactive` stops it from waiting
+  for a menu choice (needed when Claude Code runs it). It adds only new files, no existing file changes:
+  - `.claude/skills/speckit-*/SKILL.md`: 9 skills (analyze, checklist, clarify, constitution, converge,
+    implement, plan, specify, tasks);
+  - `.specify/memory/constitution.md` (still the empty template), `.specify/templates/` (spec, plan, tasks,
+    checklist, constitution), `.specify/scripts/bash/` (feature folder and prerequisite scripts),
+    `.specify/workflows/speckit/workflow.yml` (an optional automated specify → implement run, not used here);
+  - `.specify/init-options.json` (`feature_numbering: sequential`, so features are `specs/001-…`),
+    `.specify/integration.json`, `.specify/integrations/*.manifest.json` and a `.specify/.gitignore`.
 - `--no-model-invocation` makes the core skills **user-invocable only**: Claude runs them only when you type
   `/speckit-<command>`. Other globally installed plugins also react to words like "specify" or "implement"; this
   keeps every step under your control and keeps the skill descriptions out of the context.
 - The old syntax (`--ai claude`, `/speckit.specify`) is from versions before 1.0. Spec Kit's docs still write
   commands as `/speckit.*`; in Claude Code they are `/speckit-*`.
-- The integration may also add `.claude/settings.json` (runtime events). Check the diff before committing.
+- `init` prints a warning to add `.claude/` to `.gitignore` because of credentials. Here `.claude/` only holds the
+  skills (commit them); the local `.claude/settings.local.json` is already ignored by the global git ignore.
 
 Commit everything `init` created as "Install Spec Kit \<version\>".
 
