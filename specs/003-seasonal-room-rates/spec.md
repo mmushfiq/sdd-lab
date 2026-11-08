@@ -9,7 +9,8 @@
 **Input**: User description: "Right now every room type has just one nightly rate for the whole year. That doesn't work for us. In summer and around Christmas we're fully booked weeks ahead and could easily charge more. In November the rooms sit empty because our price is too high. At the moment I change the room type rate by hand before each season, and I sometimes forget to change it back."
 
 **Changes**: Feature 001-hotel-reservation-system, FR-001, FR-009, User Story 1 (acceptance scenario 5),
-User Story 6 (acceptance scenario 1, recalculated price) and the assumption "The nightly rate is the same for
+User Story 6 (acceptance scenario 1, recalculated price), User Story 7 (acceptance scenario 1, price shown) and the
+assumption "The nightly rate is the same for
 every night (no seasonal or weekend rates)".
 
 ## Clarifications
@@ -20,6 +21,15 @@ every night (no seasonal or weekend rates)".
   A: Per room type; each room type has its own seasonal periods and rates.
 - Q: Must the Manager enter each year's seasons again, or should a seasonal rate repeat every year
   automatically? → A: Fixed dates with a year, entered again each year; no repeating seasons.
+- Q: When a Receptionist changes the dates of a booked reservation, what rate should each night get? → A: Nights
+  it already had keep their saved rate, new nights get today's rate; a change of room type prices every night
+  again at the new room type's current rates.
+- Q: Should guests and staff see the price per night, or only the total price? → A: Reservation details and the
+  guest lookup show the price per night grouped by rate, e.g. "2 nights × 140.00, 1 night × 180.00", then the
+  total price; search results and the confirmation email show only the total price.
+- Q: Does a seasonal rate have a name? → A: Yes, a required name of up to 50 characters, e.g. "Christmas".
+- Q: May the Manager enter or keep seasonal rates for dates in the past? → A: Yes; past dates are allowed, they
+  only affect bookings and changes of those nights.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -38,15 +48,17 @@ for a stay inside the period (seasonal rate used) and one outside it (standard r
 
 **Acceptance Scenarios**:
 
-1. **Given** the Manager is logged in, **When** they add a seasonal rate for one room type with a start date,
-   an end date and a nightly rate, **Then** it appears in the list of seasonal rates.
-2. **Given** a seasonal rate exists, **When** the Manager changes its dates or rate or deletes it, **Then** the
+1. **Given** the Manager is logged in, **When** they add a seasonal rate for one room type with a name (e.g.
+   "Christmas"), a start date, an end date and a nightly rate, **Then** it appears in the list of seasonal rates.
+2. **Given** a seasonal rate exists, **When** the Manager changes its name, dates or rate or deletes it, **Then** the
    change applies to new bookings and price calculations only.
 3. **Given** a seasonal rate exists for a period, **When** the Manager adds another one that overlaps it for the
    same room type, **Then** the system rejects it and says the periods overlap.
-4. **Given** the Manager adds a seasonal rate, **When** the end date is before the start date or the rate is not
-   a positive amount, **Then** the system rejects it.
-5. **Given** a user is logged in as Receptionist or Housekeeping, **When** they try to open seasonal rates,
+4. **Given** the Manager adds a seasonal rate, **When** the name is missing, the end date is before the start date
+   or the rate is not a positive amount, **Then** the system rejects it.
+5. **Given** an overlap is rejected, **When** the message is shown, **Then** it names the seasonal rate that is
+   overlapped.
+6. **Given** a user is logged in as Receptionist or Housekeeping, **When** they try to open seasonal rates,
    **Then** access is denied.
 
 ---
@@ -71,6 +83,9 @@ the standard rate for the nights before the period plus the seasonal rate for th
    searched, **Then** the lower rate is used.
 4. **Given** a room is booked, **When** the reservation is saved, **Then** it records the rate of each night and
    the total price, and the booking confirmation and confirmation email show that total price.
+5. **Given** a booked stay of 30 June – 3 July with nights at 100, 150 and 150, **When** a Receptionist opens its
+   details or the Guest looks it up, **Then** they see "Price per night: 1 night × 100.00, 2 nights × 150.00" and
+   "Total price: 400.00".
 
 ---
 
@@ -91,8 +106,13 @@ and the revenue report do not change.
    nights, **Then** the reservation keeps its total price and the rate of each night.
 2. **Given** reservations made before this change, **When** they are looked up or reported, **Then** every night
    keeps the single nightly rate they were booked with.
-3. **Given** a booked reservation, **When** a Receptionist changes its dates or room, **Then** the total price is
-   recalculated with the rates that apply to each new night at the time of the change (001 User Story 6).
+3. **Given** a booked reservation of 10–12 July at 120 per night (booked before a seasonal rate of 150 was
+   entered), **When** a Receptionist extends it to 13 July, **Then** the nights of 10 and 11 July keep 120, the
+   night of 12 July gets 150 and the total price becomes 390.
+4. **Given** a booked reservation, **When** a Receptionist moves it to a room of another room type, **Then** every
+   night is priced again at that room type's current rates.
+5. **Given** a booked reservation, **When** a Receptionist moves it to another room of the same room type without
+   changing the dates, **Then** its rates and total price stay the same.
 
 ---
 
@@ -120,7 +140,10 @@ month's revenue counts only its own nights at their booked rate.
 - A seasonal period crosses the end of the year (e.g. 20 December – 6 January): allowed, the start and end dates
   carry their year. Seasonal rates do not repeat; the Manager enters each year's seasons again. Nights of a
   year without entered seasons get the standard nightly rate.
-- A seasonal rate is entered for dates in the past: rejected, it could no longer affect any booking.
+- A seasonal rate is entered or kept for dates in the past: allowed; it affects only new bookings and changes of
+  those nights, never existing reservations.
+- A Receptionist shortens a stay: the removed nights and their rates are dropped; the remaining nights keep their
+  saved rate.
 - The standard nightly rate of a room type is changed while seasonal rates exist: nights outside seasonal periods
   use the new standard rate for new bookings; seasonal nights are unaffected.
 - A room type with seasonal rates is deleted: its seasonal rates are deleted with it (deleting a room type in use
@@ -135,19 +158,25 @@ month's revenue counts only its own nights at their booked rate.
   seasonal rate.
 - **FR-002**: The Manager MUST be able to add, change and delete seasonal rates. A seasonal rate has a start
   date, an end date (inclusive: the night that starts on the end date is the last one covered) and a nightly
-  rate, and applies to a room type.
-- **FR-003**: The system MUST reject a seasonal rate whose end date is before its start date, whose end date is
-  in the past, whose rate is not a positive amount, or which overlaps another seasonal rate of the same room
-  type.
+  rate, a required name of up to 50 characters, and applies to exactly one room type. The list shows all seasonal
+  rates sorted by room type and start date.
+- **FR-003**: The system MUST reject a seasonal rate without a name, whose end date is before its start date,
+  whose rate is not a positive amount, or which overlaps another seasonal rate of the same room type; the overlap
+  message MUST name the overlapped seasonal rate. Seasonal rates for past dates are allowed.
 - **FR-004**: The rate of a night MUST be the seasonal rate covering that night if one exists, otherwise the
   standard nightly rate of the room type.
 - **FR-005**: The total price of a stay shown in the search, booking confirmation, confirmation email, guest
-  lookup and reservation details MUST be the sum of the rates of its nights.
+  lookup and reservation details MUST be the sum of the rates of its nights. The guest lookup and the reservation
+  details MUST also show the price per night, grouping consecutive nights with the same rate in date order, e.g.
+  "Price per night: 2 nights × 140.00, 1 night × 180.00" ("1 night" singular), with money formatted as the total
+  price is today.
 - **FR-006**: A reservation MUST record the rate of each of its nights at booking time (replaces "the nightly
   rate at booking time" in 001 FR-009). Later changes of standard or seasonal rates MUST NOT change existing
   reservations.
-- **FR-007**: When a Receptionist changes the dates or room of a reservation, the system MUST recalculate the
-  rate of each night and the total price with the rates in force at the time of the change.
+- **FR-007**: When a Receptionist changes a booked reservation within the same room type, nights it already had
+  MUST keep their saved rate and new nights MUST get the rate in force at the time of the change; removed nights
+  are dropped. When it moves to another room type, every night MUST get that room type's rate in force at the time
+  of the change. The total price MUST be recalculated as the sum.
 - **FR-008**: Reservations made before this change MUST keep their prices; each of their nights has the single
   nightly rate they were booked with.
 - **FR-009**: Monthly revenue (001 FR-021) MUST sum the recorded rates of the month's nights of checked-in and
@@ -157,7 +186,8 @@ month's revenue counts only its own nights at their booked rate.
 ### Key Entities
 
 - **Room Type**: keeps name, capacity and its standard nightly rate.
-- **Seasonal Rate**: a nightly rate for a room type that applies to the nights from a start date to an end date.
+- **Seasonal Rate**: a named nightly rate for one room type that applies to the nights from a start date to an end
+  date; seasonal rates of the same room type do not overlap.
 - **Reservation**: records the rate of each night instead of one nightly rate; the total price is their sum.
 
 ## Success Criteria *(mandatory)*
@@ -177,8 +207,6 @@ month's revenue counts only its own nights at their booked rate.
 - Seasonal rates are absolute nightly amounts, not percentages of the standard rate; they can be higher or lower
   than it.
 - Rates are per room per night, independent of the number of guests, as today.
-- Guests see the total price as today; no per-night price breakdown is shown.
 - No weekend, length-of-stay or last-minute pricing; only date periods.
 - Prices are in the same currency as today; payment stays at the hotel (vision: out of scope).
-- Changing the dates of a reservation reprices it with current rates, as 001 User Story 6 already does; this may
-  raise or lower its price.
+- Search results show only the total price; the price per night is shown once the reservation exists.
