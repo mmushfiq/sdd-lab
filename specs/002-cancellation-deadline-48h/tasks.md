@@ -33,9 +33,9 @@ implementation.
 
 **Purpose**: Mail dependency and settings (research R4)
 
-- [ ] T001 Add `spring-boot-starter-mail` (version from the Spring Boot parent) to `pom.xml`
-- [ ] T002 [P] Add mail settings to `src/main/resources/application.properties`: `spring.mail.host=localhost`, `spring.mail.port=25`, `hrs.mail.from=reservations@hotel.example`, and 5 s timeouts `spring.mail.properties.mail.smtp.connectiontimeout=5000`, `spring.mail.properties.mail.smtp.timeout=5000`, `spring.mail.properties.mail.smtp.writetimeout=5000`
-- [ ] T003 [P] Add `spring.mail.host=localhost`, `spring.mail.port=25`, `hrs.mail.from=reservations@hotel.example` and the same timeouts to `src/test/resources/application.properties`, so every test context has a `JavaMailSender` bean
+- [X] T001 Add `spring-boot-starter-mail` (version from the Spring Boot parent) to `pom.xml`
+- [X] T002 [P] Add mail settings to `src/main/resources/application.properties`: `spring.mail.host=localhost`, `spring.mail.port=25`, `hrs.mail.from=reservations@hotel.example`, and 5 s timeouts `spring.mail.properties.mail.smtp.connectiontimeout=5000`, `spring.mail.properties.mail.smtp.timeout=5000`, `spring.mail.properties.mail.smtp.writetimeout=5000`
+- [X] T003 [P] Add `spring.mail.host=localhost`, `spring.mail.port=25`, `hrs.mail.from=reservations@hotel.example` and the same timeouts to `src/test/resources/application.properties`, so every test context has a `JavaMailSender` bean
 
 ---
 
@@ -45,10 +45,10 @@ implementation.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create `src/main/resources/db/migration/V4__reservation_cancellation_hours.sql`: `alter table reservation add column cancellation_hours_before int default 15 not null;` then `alter table reservation alter column cancellation_hours_before set default 48;` ("`15` for reservations that existed before this feature", "`48` for every reservation booked afterwards"); do not edit V3
-- [ ] T005 Run `./mvnw compile` so Flyway applies V4 and jOOQ regenerates `ReservationRecord` with `getCancellationHoursBefore()`
-- [ ] T006 [P] Write `test/reservation/CancellationDeadlineTest.java` (plain JUnit, explicit `now`): arrival 12 March 2030 with 48 → deadline 10 March 2030 15:00; with 15 → 12 March 2030 00:00; allowed at 14:59, rejected at exactly 15:00 (exclusive); a DST weekend between (arrival 31 March 2030, 48 → 29 March 2030 15:00, wall clock); `text()` = `Free online cancellation until 10 March 2030, 15:00 (Zurich time)`; `passedText()` = `Online cancellation was possible until 10 March 2030, 15:00 (Zurich time). Please call reception to cancel.`
-- [ ] T007 Create `main/reservation/CancellationDeadline.java`: record with `LocalDateTime deadline`; `static of(LocalDate arrival, int hoursBefore)` = `arrival.atTime(15, 0).minusHours(hoursBefore)`; `static ZoneId ZONE = Europe/Zurich`; `allowsOnlineCancellationAt(LocalDateTime now)` = `now.isBefore(deadline)`; `text()` and `passedText()` with pattern `d MMMM yyyy, HH:mm`, `Locale.ENGLISH` (data-model.md)
+- [X] T004 Create `src/main/resources/db/migration/V4__reservation_cancellation_hours.sql`: `alter table reservation add column cancellation_hours_before int default 15 not null;` then `alter table reservation alter column cancellation_hours_before set default 48;` ("`15` for reservations that existed before this feature", "`48` for every reservation booked afterwards"); do not edit V3
+- [X] T005 Run `./mvnw compile` so Flyway applies V4 and jOOQ regenerates `ReservationRecord` with `getCancellationHoursBefore()`
+- [X] T006 [P] Write `test/reservation/CancellationDeadlineTest.java` (plain JUnit, explicit `now`): arrival 12 March 2030 with 48 → deadline 10 March 2030 15:00; with 15 → 12 March 2030 00:00; allowed at 14:59, rejected at exactly 15:00 (exclusive); a DST weekend between (arrival 31 March 2030, 48 → 29 March 2030 15:00, wall clock); `text()` = `Free online cancellation until 10 March 2030, 15:00 (Zurich time)`; `passedText()` = `Online cancellation was possible until 10 March 2030, 15:00 (Zurich time). Please call reception to cancel.`
+- [X] T007 Create `main/reservation/CancellationDeadline.java`: record with `LocalDateTime deadline`; `static of(LocalDate arrival, int hoursBefore)` = `arrival.atTime(15, 0).minusHours(hoursBefore)`; `static ZoneId ZONE = Europe/Zurich`; `allowsOnlineCancellationAt(LocalDateTime now)` = `now.isBefore(deadline)`; `text()` and `passedText()` with pattern `d MMMM yyyy, HH:mm`, `Locale.ENGLISH` (data-model.md)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -65,17 +65,17 @@ within 48 hours and try to cancel (rejected, "Please call reception to cancel.")
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Update `test/reservation/GuestReservationServiceTest.java`: `book()` (online and reception source) stores `cancellation_hours_before = 48`; cancel of a reservation arriving in 5 days succeeds; a reservation arriving tomorrow or the day after has `cancellable = false` and `cancelByGuest` throws with `passedText()`; replace the old "until the day before arrival" assertions (US1 scenarios 1–3, FR-001, FR-002, FR-004)
-- [ ] T009 [P] [US1] Update `test/guest/MyReservationViewTest.java`: a reservation arriving tomorrow shows the paragraph `cancellation-deadline` with `passedText()` and no "Cancel reservation" button; one arriving in 5 days shows the button and can be cancelled (US1 scenarios 1, 3)
-- [ ] T010 [P] [US1] Update `test/guest/GuestCancelIT.java` (Playwright): book online with an arrival at least 3 days ahead, look up, see `#cancellation-deadline` with "Free online cancellation until <arrival − 2 days>, 15:00 (Zurich time)", cancel, see "Your reservation is cancelled."
+- [X] T008 [P] [US1] Update `test/reservation/GuestReservationServiceTest.java`: `book()` (online and reception source) stores `cancellation_hours_before = 48`; cancel of a reservation arriving in 5 days succeeds; a reservation arriving tomorrow or the day after has `cancellable = false` and `cancelByGuest` throws with `passedText()`; replace the old "until the day before arrival" assertions (US1 scenarios 1–3, FR-001, FR-002, FR-004)
+- [X] T009 [P] [US1] Update `test/guest/MyReservationViewTest.java`: a reservation arriving tomorrow shows the paragraph `cancellation-deadline` with `passedText()` and no "Cancel reservation" button; one arriving in 5 days shows the button and can be cancelled (US1 scenarios 1, 3)
+- [X] T010 [P] [US1] Update `test/guest/GuestCancelIT.java` (Playwright): book online with an arrival at least 3 days ahead, look up, cancel, see "Your reservation is cancelled." (the deadline text is checked in US3, T021)
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] In `main/reservation/ReservationService.java`, `book()` sets `reservation.setCancellationHoursBefore(48)` (constant `ONLINE_CANCELLATION_HOURS = 48`); `change()` must not touch the column (FR-008)
-- [ ] T012 [US1] Add `CancellationDeadline cancellationDeadline` to `main/reservation/GuestReservation.java`; in `ReservationService.findForGuest` select `ARRIVAL_DATE` and `CANCELLATION_HOURS_BEFORE`, build the deadline, `cancellable = BOOKED && deadline.allowsOnlineCancellationAt(now)` with `now = LocalDateTime.now(clock.withZone(CancellationDeadline.ZONE))`
-- [ ] T013 [US1] In `ReservationService.cancelByGuest` replace the `arrival.isAfter(today)` check with `deadline.allowsOnlineCancellationAt(now)`, message `deadline.passedText()`; update the Javadoc (002 FR-004 replaces 001 FR-015)
-- [ ] T014 [US1] In `main/guest/MyReservationView.java` replace the "only possible until the day before arrival" paragraph with a `Paragraph` id `cancellation-deadline` showing `passedText()` for booked reservations that are not cancellable
-- [ ] T015 [US1] Run `./mvnw verify` — must end green
+- [X] T011 [US1] In `main/reservation/ReservationService.java`, `book()` sets `reservation.setCancellationHoursBefore(48)` (constant `ONLINE_CANCELLATION_HOURS = 48`); `change()` must not touch the column (FR-008)
+- [X] T012 [US1] Add `CancellationDeadline cancellationDeadline` to `main/reservation/GuestReservation.java`; in `ReservationService.findForGuest` select `ARRIVAL_DATE` and `CANCELLATION_HOURS_BEFORE`, build the deadline, `cancellable = BOOKED && deadline.allowsOnlineCancellationAt(now)` with `now = LocalDateTime.now(clock.withZone(CancellationDeadline.ZONE))`
+- [X] T013 [US1] In `ReservationService.cancelByGuest` replace the `arrival.isAfter(today)` check with `deadline.allowsOnlineCancellationAt(now)`, message `deadline.passedText()`; update the Javadoc (002 FR-004 replaces 001 FR-015)
+- [X] T014 [US1] In `main/guest/MyReservationView.java` replace the "only possible until the day before arrival" paragraph with a `Paragraph` id `cancellation-deadline` showing `passedText()` for booked reservations that are not cancellable
+- [X] T015 [US1] Run `./mvnw verify` — must end green
 
 **Checkpoint**: New bookings follow the 48-hour rule
 
@@ -111,7 +111,7 @@ cancelled online; on its arrival date it cannot.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T021 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005)
+- [ ] T021 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005); and in `test/guest/GuestCancelIT.java` (Playwright): after the lookup, `#cancellation-deadline` shows "Free online cancellation until <arrival − 2 days>, 15:00 (Zurich time)" before cancelling
 - [ ] T022 [P] [US3] Add to `test/reservation/ReservationViewTest.java` (Receptionist): found grid has column "Online cancellation" with `text()` for a booked future reservation, the first sentence of `passedText()` for a passed one, empty for a cancelled one (US3 scenario 4, FR-009)
 
 ### Implementation for User Story 3
@@ -224,3 +224,11 @@ Task: "Update GuestCancelIT to book at least 3 days ahead"
 - [Story] label maps task to specific user story for traceability
 - Verify tests fail before implementing
 - Commit only after the user approves
+
+---
+
+## Phase 8: Convergence
+
+Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T015).
+
+- [X] T036 [P] Add a Browserless test to `test/guest/MyReservationViewTest.java`: look up a reservation whose "Cancel reservation" button is shown, then set its `cancellation_hours_before` so the deadline has passed (via `DSLContext`), confirm the cancel dialog, and assert an error notification with `CancellationDeadline.passedText()` and status still `BOOKED` per contracts/ui-changes.md (cancel rejected), US1/AC2, Constitution IV (partial)

@@ -3,6 +3,7 @@ package ch.martinelli.edu.hrs.guest;
 import ch.martinelli.edu.hrs.core.BusinessRuleException;
 import ch.martinelli.edu.hrs.reservation.GuestReservation;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
+import ch.martinelli.edu.hrs.reservation.ReservationStatus;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
@@ -69,9 +70,10 @@ public class MyReservationView extends VerticalLayout {
             var cancel = new Button("Cancel reservation", _ -> confirmCancel());
             cancel.addThemeVariants(ButtonVariant.LUMO_ERROR);
             details.add(cancel);
-        } else if (reservation.status().name().equals("BOOKED")) {
-            details.add(new Paragraph("Online cancellation is only possible until the day before arrival. "
-                    + "Please call reception."));
+        } else if (reservation.status() == ReservationStatus.BOOKED) {
+            var passed = new Paragraph(reservation.cancellationDeadline().passedText());
+            passed.setId("cancellation-deadline");
+            details.add(passed);
         }
     }
 

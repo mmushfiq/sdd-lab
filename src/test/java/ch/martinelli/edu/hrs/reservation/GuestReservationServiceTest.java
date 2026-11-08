@@ -83,8 +83,18 @@ class GuestReservationServiceTest {
     }
 
     @Test
-    void cancelBeforeArrivalDay() {
-        var reservation = book(today.plusDays(1));
+    void everyNewBookingGetsThe48HourRule() {
+        var online = book(today.plusDays(5));
+        var reception = reservationService.book(new BookingRequest(roomId, today.plusDays(10), today.plusDays(12),
+                2, "Test Phone Guest", "guest.phone@example.com", "+41 79 000 00 01", BookingSource.RECEPTION));
+
+        assertThat(hoursBefore(online.getId())).isEqualTo(48);
+        assertThat(hoursBefore(reception.getId())).isEqualTo(48);
+    }
+
+    @Test
+    void cancelMoreThan48HoursBeforeCheckIn() {
+        var reservation = book(today.plusDays(5));
 
         reservationService.cancelByGuest(reservation.getReservationNumber(), "guest.online@example.com");
 
@@ -94,15 +104,20 @@ class GuestReservationServiceTest {
     }
 
     @Test
-    void cancelOnArrivalDayAsksToCallReception() {
-        var reservation = book(today);
+    void cancelWithin48HoursAsksToCallReception() {
+        // Arrival tomorrow: the deadline (yesterday 15:00) has passed whatever the time of day
+        for (var arrival : new LocalDate[]{today.plusDays(1), today}) {
+            var reservation = book(arrival);
+            var passedText = CancellationDeadline.of(arrival, 48).passedText();
 
-        assertThat(reservationService.findForGuest(reservation.getReservationNumber(), "guest.online@example.com"))
-                .hasValueSatisfying(g -> assertThat(g.cancellable()).isFalse());
-        assertThatThrownBy(() -> reservationService.cancelByGuest(reservation.getReservationNumber(),
-                "guest.online@example.com"))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Online cancellation is only possible until the day before arrival. Please call reception.");
+            assertThat(reservationService.findForGuest(reservation.getReservationNumber(),
+                    "guest.online@example.com")).hasValueSatisfying(g -> assertThat(g.cancellable()).isFalse());
+            assertThatThrownBy(() -> reservationService.cancelByGuest(reservation.getReservationNumber(),
+                    "guest.online@example.com"))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessage(passedText);
+            dsl.deleteFrom(RESERVATION).where(RESERVATION.ID.eq(reservation.getId())).execute();
+        }
     }
 
     @Test
@@ -114,6 +129,10 @@ class GuestReservationServiceTest {
                 "guest.online@example.com"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Only a booked reservation can be cancelled.");
+    }
+
+    private int hoursBefore(long reservationId) {
+        return dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservationId)).getCancellationHoursBefore();
     }
 
     private ReservationRecord book(LocalDate arrival) {

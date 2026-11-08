@@ -26,6 +26,8 @@ import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 public class ReservationService {
 
     static final int ANONYMIZE_AFTER_MONTHS = 12;
+    /** 002 FR-002: hours before check-in for every reservation booked from 002 on (old rows have 15, V4). */
+    static final int ONLINE_CANCELLATION_HOURS = 48;
     public static final String NOT_FOUND = "No reservation was found for this reservation number and email.";
 
     private final DSLContext dsl;
@@ -53,6 +55,7 @@ public class ReservationService {
         apply(request, reservation, null, true);
         reservation.setStatus(ReservationStatus.BOOKED.name());
         reservation.setSource(request.source().name());
+        reservation.setCancellationHoursBefore(ONLINE_CANCELLATION_HOURS);
         reservation.setCreatedAt(LocalDateTime.now(clock));
         reservation.insert();
         return reservation;
@@ -114,22 +117,26 @@ public class ReservationService {
         if (reservationNumber == null || email == null) {
             return Optional.empty();
         }
-        var today = LocalDate.now(clock);
+        var now = nowInHotel();
         return dsl.select(RESERVATION.RESERVATION_NUMBER, RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE,
-                        ROOM_TYPE.NAME, RESERVATION.TOTAL_PRICE, RESERVATION.STATUS)
+                        ROOM_TYPE.NAME, RESERVATION.TOTAL_PRICE, RESERVATION.STATUS,
+                        RESERVATION.CANCELLATION_HOURS_BEFORE)
                 .from(RESERVATION)
                 .join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
                 .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
                 .where(guest(reservationNumber, email))
                 .fetchOptional(r -> {
                     var status = ReservationStatus.valueOf(r.value6());
+                    var deadline = CancellationDeadline.of(r.value2(), r.value7());
                     return new GuestReservation(r.value1(), r.value2(), r.value3(), r.value4(), r.value5(), status,
-                            status == ReservationStatus.BOOKED && r.value2().isAfter(today));
+                            status == ReservationStatus.BOOKED && deadline.allowsOnlineCancellationAt(now),
+                            deadline);
                 });
     }
 
     /**
-     * FR-015: a guest can cancel online until the day before arrival; on the arrival day only reception can.
+     * 002 FR-004 (replaces 001 FR-015): a guest can cancel online only before the reservation's online
+     * cancellation deadline; afterwards only reception can.
      */
     public void cancelByGuest(String reservationNumber, String email) {
         check(reservationNumber != null && email != null, NOT_FOUND);
@@ -138,8 +145,8 @@ public class ReservationService {
                 .orElseThrow(() -> new BusinessRuleException(NOT_FOUND));
         check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
                 "Only a booked reservation can be cancelled.");
-        check(reservation.getArrivalDate().isAfter(LocalDate.now(clock)),
-                "Online cancellation is only possible until the day before arrival. Please call reception.");
+        var deadline = CancellationDeadline.of(reservation.getArrivalDate(), reservation.getCancellationHoursBefore());
+        check(deadline.allowsOnlineCancellationAt(nowInHotel()), deadline.passedText());
         reservation.setStatus(ReservationStatus.CANCELLED.name());
         reservation.setCancelledAt(LocalDateTime.now(clock));
         reservation.update();
@@ -160,6 +167,10 @@ public class ReservationService {
                 .and(RESERVATION.DEPARTURE_DATE.lt(cutoff)
                         .or(RESERVATION.CANCELLED_AT.lt(cutoff.atStartOfDay())))
                 .execute();
+    }
+
+    private LocalDateTime nowInHotel() {
+        return LocalDateTime.now(clock.withZone(CancellationDeadline.ZONE));
     }
 
     private static Condition guest(String reservationNumber, String email) {

@@ -5,12 +5,14 @@ import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.reservation.BookingRequest;
 import ch.martinelli.edu.hrs.reservation.BookingSource;
+import ch.martinelli.edu.hrs.reservation.CancellationDeadline;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
 import org.jooq.DSLContext;
@@ -93,15 +95,35 @@ class MyReservationViewTest extends HrsBrowserlessTest {
     }
 
     @Test
-    void noCancelButtonOnArrivalDay() {
-        var reservation = book(today);
+    void noCancelButtonWithin48HoursOfCheckIn() {
+        var arrival = today.plusDays(1);
+        var reservation = book(arrival);
         navigate(MyReservationView.class);
 
         lookUp(reservation.getReservationNumber(), "my@example.com");
 
         assertThat($(Button.class).withText("Cancel reservation").exists()).isFalse();
-        assertThat(text("Online cancellation is only possible until the day before arrival. Please call reception."))
-                .isTrue();
+        assertThat($(Paragraph.class).withId("cancellation-deadline").single().getText())
+                .isEqualTo(CancellationDeadline.of(arrival, 48).passedText());
+    }
+
+    @Test
+    void deadlinePassingBeforeConfirmationIsRejected() {
+        var arrival = today.plusDays(5);
+        var reservation = book(arrival);
+        navigate(MyReservationView.class);
+        lookUp(reservation.getReservationNumber(), "my@example.com");
+        test($(Button.class).withText("Cancel reservation").single()).click();
+
+        // The deadline passes while the confirm dialog is open (contracts/ui-changes.md)
+        dsl.update(RESERVATION).set(RESERVATION.CANCELLATION_HOURS_BEFORE, 200)
+                .where(RESERVATION.ID.eq(reservation.getId())).execute();
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(test($(Notification.class).last()).getText())
+                .isEqualTo(CancellationDeadline.of(arrival, 200).passedText());
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
+                .isEqualTo("BOOKED");
     }
 
     private void lookUp(String number, String email) {

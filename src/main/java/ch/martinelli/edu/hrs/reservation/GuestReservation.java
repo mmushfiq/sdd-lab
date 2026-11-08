@@ -8,5 +8,5 @@ import java.time.LocalDate;
  */
 public record GuestReservation(String reservationNumber, LocalDate arrival, LocalDate departure,
                                String roomTypeName, BigDecimal totalPrice, ReservationStatus status,
-                               boolean cancellable) {
+                               boolean cancellable, CancellationDeadline cancellationDeadline) {
 }
