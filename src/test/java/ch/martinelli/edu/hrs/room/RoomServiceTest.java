@@ -2,11 +2,17 @@ package ch.martinelli.edu.hrs.room;
 
 import ch.martinelli.edu.hrs.core.BusinessRuleException;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
+import ch.martinelli.edu.hrs.reservation.BookingRequest;
+import ch.martinelli.edu.hrs.reservation.BookingSource;
+import ch.martinelli.edu.hrs.reservation.ReservationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +27,12 @@ class RoomServiceTest {
 
     @Autowired
     private RoomTypeService roomTypeService;
+
+    @Autowired
+    private ReservationService reservationService;
+
+    @Autowired
+    private Clock clock;
 
     private Long typeId;
 
@@ -59,6 +71,18 @@ class RoomServiceTest {
         roomService.delete(saved.getId());
 
         assertThat(roomService.findAll()).noneMatch(r -> r.getId().equals(saved.getId()));
+    }
+
+    @Test
+    void roomWithReservationCannotBeDeleted() {
+        var saved = roomService.save(room("T107"));
+        var arrival = LocalDate.now(clock).plusDays(1);
+        reservationService.book(new BookingRequest(saved.getId(), arrival, arrival.plusDays(1), 1,
+                "Test Guest", "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+
+        assertThatThrownBy(() -> roomService.delete(saved.getId()))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Room has reservations and cannot be deleted.");
     }
 
     @Test

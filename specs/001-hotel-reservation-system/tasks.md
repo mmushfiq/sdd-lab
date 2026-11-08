@@ -93,22 +93,22 @@ offered for overlapping nights
 
 ### Tests for User Story 2
 
-- [ ] T026 [P] [US2] Write `test/reservation/AvailabilityServiceTest.java`: capacity filter, overlapping nights excluded, departure day of one stay = arrival of next allowed, `CHECKED_OUT`/`CANCELLED` do not block, date rules of FR-008 (departure after arrival, arrival not past, arrival ≤ 1 year ahead, ≤ 30 nights), no room found (US2 scenarios 1, 3, 4, 6, 7)
-- [ ] T027 [P] [US2] Write `test/reservation/ReservationServiceTest.java`: booking creates `BOOKED` reservation with 8-character number, nightly rate, total price and source `RECEPTION`; overlapping booking rejected; rate change of room type keeps existing reservation's rate (US1 scenario 5, US2 scenarios 2, 3)
-- [ ] T028 [P] [US2] Write `test/reservation/ReservationConcurrencyTest.java` (not transactional): two threads book the same room and nights, exactly one succeeds (US2 scenario 5, research R3)
-- [ ] T029 [P] [US2] Extend `test/room/RoomServiceTest.java`: deleting a room with a reservation is rejected (FR-003)
-- [ ] T030 [P] [US2] Write `test/reservation/ReservationViewTest.java` (Browserless, `RECEPTIONIST`): search shows available rooms with total price, booking form validation, reservation number shown, "no room available" message
-- [ ] T031 [P] [US2] Write `test/reservation/ReceptionBookingIT.java` (Playwright): Receptionist books a room; same dates no longer offer that room
+- [X] T026 [P] [US2] Write `test/reservation/AvailabilityServiceTest.java`: capacity filter, overlapping nights excluded, departure day of one stay = arrival of next allowed, `CHECKED_OUT`/`CANCELLED` do not block, date rules of FR-008 (departure after arrival, arrival not past, arrival ≤ 1 year ahead, ≤ 30 nights), no room found (US2 scenarios 1, 3, 4, 6, 7)
+- [X] T027 [P] [US2] Write `test/reservation/ReservationServiceTest.java`: booking creates `BOOKED` reservation with 8-character number, nightly rate, total price and source `RECEPTION`; overlapping booking rejected; rate change of room type keeps existing reservation's rate (US1 scenario 5, US2 scenarios 2, 3)
+- [X] T028 [P] [US2] Write `test/reservation/ReservationConcurrencyTest.java` (not transactional): two threads book the same room and nights, exactly one succeeds (US2 scenario 5, research R3)
+- [X] T029 [P] [US2] Extend `test/room/RoomServiceTest.java`: deleting a room with a reservation is rejected (FR-003)
+- [X] T030 [P] [US2] Write `test/reservation/ReservationViewTest.java` (Browserless, `RECEPTIONIST`): search shows available rooms with total price, booking form validation, reservation number shown, "no room available" message
+- [X] T031 [P] [US2] Write `test/reservation/ReceptionBookingIT.java` (Playwright): Receptionist books a room; same dates no longer offer that room
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Create `migration/V3__reservation.sql`: sequence; `reservation` with reservation_number "CHAR(8) NOT NULL, UNIQUE"; room_id "NOT NULL, FK → room"; arrival_date "DATE NOT NULL"; departure_date "DATE NOT NULL, > arrival_date"; number_of_guests "INT NOT NULL, ≥ 1"; guest_name "VARCHAR(100) NOT NULL"; guest_email "VARCHAR(254)", guest_phone "VARCHAR(30)" (NULL only after anonymization); nightly_rate and total_price "DECIMAL(10,2) NOT NULL"; status "VARCHAR(12) NOT NULL, `BOOKED`, `CHECKED_IN`, `CHECKED_OUT`, `CANCELLED`"; source "VARCHAR(10) NOT NULL, `ONLINE` or `RECEPTION`"; cancelled_at TIMESTAMP; anonymized "BOOLEAN NOT NULL, default false"; created_at "TIMESTAMP NOT NULL"; index on `(room_id, arrival_date, departure_date)`
-- [ ] T033 [US2] Run `./mvnw compile` to regenerate jOOQ classes
-- [ ] T034 [P] [US2] Implement `ReservationStatus` enum and `ReservationNumberGenerator` (alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, `SecureRandom`, research R4) in `main/reservation/`
-- [ ] T035 [US2] Implement `AvailabilityService` in `main/reservation/AvailabilityService.java` (overlap: `arrival < newDeparture AND departure > newArrival` for `BOOKED`/`CHECKED_IN`; FR-008 rules using `Clock`)
-- [ ] T036 [US2] Implement `ReservationService.book` in `main/reservation/ReservationService.java`: one transaction, `SELECT … FOR UPDATE` on the room, overlap check, insert with rate at booking and total = nights × rate, source passed by the caller (research R3)
-- [ ] T037 [US2] Implement `ReservationView` (route `reception/reservations`, `@RolesAllowed("RECEPTIONIST")`, `@Menu`) in `main/reservation/ReservationView.java`: search form, result grid, booking dialog with name, email, phone (source `RECEPTION`)
-- [ ] T038 [US2] Run `./mvnw verify` — must end green
+- [X] T032 [US2] Create `migration/V3__reservation.sql`: sequence; `reservation` with reservation_number "CHAR(8) NOT NULL, UNIQUE"; room_id "NOT NULL, FK → room"; arrival_date "DATE NOT NULL"; departure_date "DATE NOT NULL, > arrival_date"; number_of_guests "INT NOT NULL, ≥ 1"; guest_name "VARCHAR(100) NOT NULL"; guest_email "VARCHAR(254)", guest_phone "VARCHAR(30)" (NULL only after anonymization); nightly_rate and total_price "DECIMAL(10,2) NOT NULL"; status "VARCHAR(12) NOT NULL, `BOOKED`, `CHECKED_IN`, `CHECKED_OUT`, `CANCELLED`"; source "VARCHAR(10) NOT NULL, `ONLINE` or `RECEPTION`"; cancelled_at TIMESTAMP; anonymized "BOOLEAN NOT NULL, default false"; created_at "TIMESTAMP NOT NULL"; index on `(room_id, arrival_date, departure_date)`
+- [X] T033 [US2] Run `./mvnw compile` to regenerate jOOQ classes
+- [X] T034 [P] [US2] Implement `ReservationStatus` enum and `ReservationNumberGenerator` (alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, `SecureRandom`, research R4) in `main/reservation/`
+- [X] T035 [US2] Implement `AvailabilityService` in `main/reservation/AvailabilityService.java` (overlap: `arrival < newDeparture AND departure > newArrival` for `BOOKED`/`CHECKED_IN`; FR-008 rules using `Clock`)
+- [X] T036 [US2] Implement `ReservationService.book` in `main/reservation/ReservationService.java`: one transaction, `SELECT … FOR UPDATE` on the room, overlap check, insert with rate at booking and total = nights × rate, source passed by the caller (research R3)
+- [X] T037 [US2] Implement `ReservationView` (route `reception/reservations`, `@RolesAllowed("RECEPTIONIST")`, `@Menu`) in `main/reservation/ReservationView.java`: search form, result grid, booking dialog with name, email, phone (source `RECEPTION`)
+- [X] T038 [US2] Run `./mvnw verify` — must end green
 
 **Checkpoint**: User Stories 1 and 2 work
 

@@ -56,9 +56,10 @@ class ManagerIT extends PlaywrightIT {
         page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Log out")).click();
         mopo.waitForConnectionToSettle();
 
-        // US1 has no reception views yet, so the Receptionist gets no menu entries and no manager views
+        // The Receptionist lands on their first menu entry and cannot open manager views
         logIn("it-anna", "secret123");
-        assertThat(page.getByText("No functions are available for your role yet.")).isVisible();
+        assertThat(page).hasURL(url("reception/reservations"));
+        assertThat(page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Rooms"))).hasCount(0);
         open("manager/rooms");
         assertThat(page.getByText("IT-101")).hasCount(0);
     }

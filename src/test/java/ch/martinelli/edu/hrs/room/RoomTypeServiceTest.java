@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
-class RoomTypeServiceTest {
+public class RoomTypeServiceTest {
 
     @Autowired
     private RoomTypeService roomTypeService;
@@ -81,7 +81,7 @@ class RoomTypeServiceTest {
                 .isInstanceOf(BusinessRuleException.class).hasMessage("Nightly rate must be greater than 0.");
     }
 
-    static RoomTypeRecord roomType(String name, int capacity, String rate) {
+    public static RoomTypeRecord roomType(String name, int capacity, String rate) {
         var type = new RoomTypeRecord();
         type.setName(name);
         type.setCapacity(capacity);
