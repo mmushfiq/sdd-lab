@@ -1,10 +1,12 @@
 package ch.martinelli.edu.hrs.reservation;
 
 import ch.martinelli.edu.hrs.core.ui.HrsBrowserlessTest;
+import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Paragraph;
@@ -24,6 +26,7 @@ import java.time.LocalDate;
 import java.util.stream.IntStream;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +42,9 @@ class ReservationViewTest extends HrsBrowserlessTest {
 
     @Autowired
     private DSLContext dsl;
+
+    @Autowired
+    private ReservationService reservationService;
 
     @Autowired
     private Clock clock;
@@ -141,6 +147,65 @@ class ReservationViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void findAndChangeReservation() {
+        var reservation = bookForGuest("Test Change Guest");
+        navigate(ReservationView.class);
+
+        findAndSelect("change guest");
+        test($(Button.class).withText("Change").single()).click();
+        test($(DatePicker.class).id("change-departure")).setValue(today.plusDays(4));
+        test($(Button.class).withText("Save changes").single()).click();
+
+        assertThat(test($(Notification.class).last()).getText())
+                .isEqualTo("Reservation " + reservation.getReservationNumber() + " changed.");
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
+        assertThat(stored.getDepartureDate()).isEqualTo(today.plusDays(4));
+        assertThat(stored.getTotalPrice()).isEqualByComparingTo("360.00");
+    }
+
+    @Test
+    void changeIntoBookedNightsShowsError() {
+        bookForGuest("Test Blocking Guest", today.plusDays(5), today.plusDays(7));
+        bookForGuest("Test Moving Guest");
+        navigate(ReservationView.class);
+
+        findAndSelect("moving guest");
+        test($(Button.class).withText("Change").single()).click();
+        test($(DatePicker.class).id("change-departure")).setValue(today.plusDays(6));
+        test($(Button.class).withText("Save changes").single()).click();
+
+        assertThat(test($(Notification.class).last()).getText())
+                .isEqualTo("The room is no longer available for these dates.");
+    }
+
+    @Test
+    void cancelAfterConfirmation() {
+        var reservation = bookForGuest("Test Cancel Guest");
+        navigate(ReservationView.class);
+
+        findAndSelect(reservation.getReservationNumber());
+        test($(Button.class).withText("Cancel reservation").single()).click();
+        test($(ConfirmDialog.class).single()).confirm();
+
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
+                .isEqualTo(ReservationStatus.CANCELLED.name());
+        assertThat(test($(Notification.class).last()).getText())
+                .isEqualTo("Reservation " + reservation.getReservationNumber() + " cancelled.");
+    }
+
+    @Test
+    void checkedInReservationCannotBeChangedOrCancelled() {
+        var reservation = bookForGuest("Test Checked In Guest", today, today.plusDays(1));
+        reservationService.checkIn(reservation.getId());
+        navigate(ReservationView.class);
+
+        findAndSelect("checked in guest");
+
+        assertThat($(Button.class).withText("Change").single().isEnabled()).isFalse();
+        assertThat($(Button.class).withText("Cancel reservation").single().isEnabled()).isFalse();
+    }
+
+    @Test
     @WithMockUser(roles = "HOUSEKEEPING")
     void housekeepingIsDenied() {
         assertThat(opens(ReservationView.class)).isFalse();
@@ -152,6 +217,26 @@ class ReservationViewTest extends HrsBrowserlessTest {
         assertThat(opens(ReservationView.class)).isFalse();
     }
 
+    private ReservationRecord bookForGuest(String guest) {
+        return bookForGuest(guest, today.plusDays(1), today.plusDays(3));
+    }
+
+    private ReservationRecord bookForGuest(String guest, LocalDate arrival,
+                                                                                LocalDate departure) {
+        var roomId = dsl.select(ROOM.ID).from(ROOM)
+                .where(ROOM.ROOM_NUMBER.eq("T801")).fetchSingle().value1();
+        return reservationService.book(new BookingRequest(roomId, arrival, departure, 2, guest,
+                "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void findAndSelect(String query) {
+        test($(TextField.class).withLabel("Reservation number or guest name").single()).setValue(query);
+        test($(Button.class).withText("Find").single()).click();
+        Grid<FoundReservation> foundGrid = $(Grid.class).id("found");
+        test(foundGrid).select(0);
+    }
+
     private void search(LocalDate arrival, LocalDate departure, int guests) {
         test($(DatePicker.class).withLabel("Arrival").single()).setValue(arrival);
         test($(DatePicker.class).withLabel("Departure").single()).setValue(departure);
@@ -161,7 +246,7 @@ class ReservationViewTest extends HrsBrowserlessTest {
 
     @SuppressWarnings("unchecked")
     private Grid<AvailableRoom> grid() {
-        return $(Grid.class).single();
+        return $(Grid.class).id("available");
     }
 
     private int rowOf(String roomNumber) {

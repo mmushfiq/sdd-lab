@@ -110,6 +110,109 @@ class ReservationServiceTest {
                 .hasMessage("Guest name is required.");
     }
 
+    @Test
+    void findByReservationNumberOrGuestName() {
+        var reservation = reservationService.book(new BookingRequest(roomId, today.plusDays(1), today.plusDays(2),
+                1, "Test Findable Guest", "find@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+
+        assertThat(reservationService.find(reservation.getReservationNumber().toLowerCase()))
+                .extracting(f -> f.reservation().getId()).containsExactly(reservation.getId());
+        assertThat(reservationService.find("findable"))
+                .singleElement().satisfies(f -> assertThat(f.roomNumber()).isEqualTo("T601"));
+        assertThat(reservationService.find(" ")).isEmpty();
+    }
+
+    @Test
+    void changeToFreeNightsRecalculatesWithCurrentRate() {
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+        type.setNightlyRate(new BigDecimal("150.00"));
+        roomTypeService.save(type);
+
+        reservationService.change(reservation.getId(), new BookingRequest(roomId, today.plusDays(2),
+                today.plusDays(5), 1, "Test Changed", "changed@example.com", "+41 79 000 00 09", null));
+
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
+        assertThat(stored.getArrivalDate()).isEqualTo(today.plusDays(2));
+        assertThat(stored.getDepartureDate()).isEqualTo(today.plusDays(5));
+        assertThat(stored.getNumberOfGuests()).isEqualTo(1);
+        assertThat(stored.getGuestName()).isEqualTo("Test Changed");
+        assertThat(stored.getNightlyRate()).isEqualByComparingTo("150.00");
+        assertThat(stored.getTotalPrice()).isEqualByComparingTo("450.00");
+        assertThat(stored.getReservationNumber()).isEqualTo(reservation.getReservationNumber());
+        assertThat(stored.getSource()).isEqualTo(BookingSource.RECEPTION.name());
+    }
+
+    @Test
+    void changeOfGuestDetailsKeepsBookedRate() {
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+        type.setNightlyRate(new BigDecimal("150.00"));
+        roomTypeService.save(type);
+
+        reservationService.change(reservation.getId(), new BookingRequest(roomId, today.plusDays(1),
+                today.plusDays(3), 1, "Test Guest", "guest@example.com", "+41 79 999 99 99", null));
+
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
+        assertThat(stored.getGuestPhone()).isEqualTo("+41 79 999 99 99");
+        assertThat(stored.getNumberOfGuests()).isEqualTo(1);
+        assertThat(stored.getNightlyRate()).isEqualByComparingTo("120.00");
+        assertThat(stored.getTotalPrice()).isEqualByComparingTo("240.00");
+    }
+
+    @Test
+    void changeToAnotherFreeRoom() {
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+        var other = new RoomRecord();
+        other.setRoomNumber("T602");
+        other.setRoomTypeId(type.getId());
+        var otherId = roomService.save(other).getId();
+
+        reservationService.change(reservation.getId(), new BookingRequest(otherId, today.plusDays(1),
+                today.plusDays(3), 2, "Test Guest", "guest@example.com", "+41 79 000 00 00", null));
+
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getRoomId())
+                .isEqualTo(otherId);
+    }
+
+    @Test
+    void changeIntoBookedNightsIsRejected() {
+        reservationService.book(request(today.plusDays(10), today.plusDays(12)));
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+
+        assertThatThrownBy(() -> reservationService.change(reservation.getId(),
+                request(today.plusDays(2), today.plusDays(11))))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("The room is no longer available for these dates.");
+    }
+
+    @Test
+    void cancelFreesTheNights() {
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+
+        reservationService.cancel(reservation.getId());
+
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
+        assertThat(stored.getStatus()).isEqualTo(ReservationStatus.CANCELLED.name());
+        assertThat(stored.getCancelledAt()).isNotNull();
+        reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+    }
+
+    @Test
+    void onlyBookedReservationsCanBeChangedOrCancelled() {
+        var cancelled = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+        reservationService.cancel(cancelled.getId());
+        var checkedIn = reservationService.book(request(today, today.plusDays(1)));
+        reservationService.checkIn(checkedIn.getId());
+
+        for (var id : new long[]{cancelled.getId(), checkedIn.getId()}) {
+            assertThatThrownBy(() -> reservationService.change(id, request(today.plusDays(5), today.plusDays(6))))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessage("Only a booked reservation can be changed.");
+            assertThatThrownBy(() -> reservationService.cancel(id))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessage("Only a booked reservation can be cancelled.");
+        }
+    }
+
     private BookingRequest request(LocalDate arrival, LocalDate departure) {
         return new BookingRequest(roomId, arrival, departure, 2,
                 "Test Guest", "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION);

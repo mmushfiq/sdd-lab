@@ -42,9 +42,72 @@ public class ReservationService {
      * the second one sees the first in its overlap check (FR-007, research R3).
      */
     public ReservationRecord book(BookingRequest request) {
+        check(request.source() != null, "Booking source is required.");
+        var reservation = dsl.newRecord(RESERVATION);
+        reservation.setId(dsl.nextval(RESERVATION_SEQ));
+        reservation.setReservationNumber(newReservationNumber());
+        apply(request, reservation, null, true);
+        reservation.setStatus(ReservationStatus.BOOKED.name());
+        reservation.setSource(request.source().name());
+        reservation.setCreatedAt(LocalDateTime.now(clock));
+        reservation.insert();
+        return reservation;
+    }
+
+    /**
+     * Finds reservations by exact reservation number or by part of the guest name (FR-013).
+     */
+    @Transactional(readOnly = true)
+    public List<FoundReservation> find(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        var text = query.trim();
+        return dsl.select(RESERVATION, ROOM.ROOM_NUMBER)
+                .from(RESERVATION).join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
+                .where(RESERVATION.RESERVATION_NUMBER.eq(text.toUpperCase())
+                        .or(RESERVATION.GUEST_NAME.containsIgnoreCase(text)))
+                .orderBy(RESERVATION.ARRIVAL_DATE, RESERVATION.RESERVATION_NUMBER)
+                .fetch(r -> new FoundReservation(r.value1(), r.value2()));
+    }
+
+    /**
+     * Changes dates, room, number of guests or guest details of a booked reservation (FR-013, FR-016). A new
+     * room or new dates are priced with the current rate (US6/AC1); otherwise the booked rate and total stay
+     * (US1/AC5). The source of the request is ignored.
+     */
+    public ReservationRecord change(long reservationId, BookingRequest request) {
+        var reservation = lock(reservationId);
+        check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
+                "Only a booked reservation can be changed.");
+        check(request.arrival() != null && request.departure() != null, "Arrival and departure are required.");
+        var reprice = request.roomId() != reservation.getRoomId()
+                || !request.arrival().equals(reservation.getArrivalDate())
+                || !request.departure().equals(reservation.getDepartureDate());
+        apply(request, reservation, reservationId, reprice);
+        reservation.update();
+        return reservation;
+    }
+
+    /**
+     * Cancels a booked reservation; its nights are free again (FR-014, FR-016).
+     */
+    public void cancel(long reservationId) {
+        var reservation = lock(reservationId);
+        check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
+                "Only a booked reservation can be cancelled.");
+        reservation.setStatus(ReservationStatus.CANCELLED.name());
+        reservation.setCancelledAt(LocalDateTime.now(clock));
+        reservation.update();
+    }
+
+    /**
+     * Checks the stay and guest, locks the room and checks it is free, then copies the request into the record
+     * with the current rate. The room lock serializes bookings of one room (FR-007, research R3).
+     */
+    private void apply(BookingRequest request, ReservationRecord reservation, Long ownId, boolean reprice) {
         availabilityService.checkStay(request.arrival(), request.departure(), request.numberOfGuests());
         checkGuest(request.guestName(), request.guestEmail(), request.guestPhone());
-        check(request.source() != null, "Booking source is required.");
 
         var room = dsl.select(ROOM.ID, ROOM_TYPE.CAPACITY, ROOM_TYPE.NIGHTLY_RATE)
                 .from(ROOM).join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
@@ -53,14 +116,12 @@ public class ReservationService {
                 .fetchOptional()
                 .orElseThrow(() -> new BusinessRuleException("The room does not exist."));
         check(request.numberOfGuests() <= room.value2(), "The room is too small for this number of guests.");
-        var taken = dsl.fetchCount(RESERVATION, RESERVATION.ROOM_ID.eq(request.roomId())
+        var others = ownId == null ? RESERVATION.ID.isNotNull() : RESERVATION.ID.ne(ownId);
+        var taken = dsl.fetchCount(RESERVATION, RESERVATION.ROOM_ID.eq(request.roomId()).and(others)
                 .and(AvailabilityService.blocks(request.arrival(), request.departure()))) > 0;
         check(!taken, "The room is no longer available for these dates.");
 
         var nightlyRate = room.value3();
-        var reservation = dsl.newRecord(RESERVATION);
-        reservation.setId(dsl.nextval(RESERVATION_SEQ));
-        reservation.setReservationNumber(newReservationNumber());
         reservation.setRoomId(request.roomId());
         reservation.setArrivalDate(request.arrival());
         reservation.setDepartureDate(request.departure());
@@ -68,14 +129,11 @@ public class ReservationService {
         reservation.setGuestName(request.guestName().trim());
         reservation.setGuestEmail(request.guestEmail().trim());
         reservation.setGuestPhone(request.guestPhone().trim());
-        reservation.setNightlyRate(nightlyRate);
-        reservation.setTotalPrice(nightlyRate.multiply(
-                BigDecimal.valueOf(AvailabilityService.nights(request.arrival(), request.departure()))));
-        reservation.setStatus(ReservationStatus.BOOKED.name());
-        reservation.setSource(request.source().name());
-        reservation.setCreatedAt(LocalDateTime.now(clock));
-        reservation.insert();
-        return reservation;
+        if (reprice) {
+            reservation.setNightlyRate(nightlyRate);
+            reservation.setTotalPrice(nightlyRate.multiply(
+                    BigDecimal.valueOf(AvailabilityService.nights(request.arrival(), request.departure()))));
+        }
     }
 
     /**

@@ -75,7 +75,7 @@ class ReceptionBookingIT extends PlaywrightIT {
         search(arrival, arrival.plusDays(2));
         page.getByText("IT-201").click();
         button("Book").click();
-        page.getByLabel("Guest name").fill("IT Guest");
+        page.getByLabel("Guest name", new Page.GetByLabelOptions().setExact(true)).fill("IT Guest");
         page.getByLabel("Email").fill("it.guest@example.com");
         page.getByLabel("Phone").fill("+41 79 111 11 11");
         button("Confirm booking").click();

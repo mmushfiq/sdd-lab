@@ -187,15 +187,15 @@ offered
 
 ### Tests for User Story 6
 
-- [ ] T055 [P] [US6] Extend `test/reservation/ReservationServiceTest.java`: find by number or guest name; change dates/room to free nights recalculates total with current rate; change into booked nights rejected; cancel sets `CANCELLED` and `cancelled_at` and frees nights; non-`BOOKED` cannot be changed or cancelled (US6 scenarios 1–4)
-- [ ] T056 [P] [US6] Extend `test/reservation/ReservationViewTest.java`: search reservations, edit dialog, cancel with confirmation
-- [ ] T057 [P] [US6] Write `test/reservation/ReservationChangeIT.java` (Playwright): change dates, then cancel; room offered again
+- [X] T055 [P] [US6] Extend `test/reservation/ReservationServiceTest.java`: find by number or guest name; change dates/room to free nights recalculates total with current rate; change into booked nights rejected; cancel sets `CANCELLED` and `cancelled_at` and frees nights; non-`BOOKED` cannot be changed or cancelled (US6 scenarios 1–4)
+- [X] T056 [P] [US6] Extend `test/reservation/ReservationViewTest.java`: search reservations, edit dialog, cancel with confirmation
+- [X] T057 [P] [US6] Write `test/reservation/ReservationChangeIT.java` (Playwright): change dates, then cancel; room offered again
 
 ### Implementation for User Story 6
 
-- [ ] T058 [US6] Add `find`, `change` (room lock + overlap check as in T036) and `cancel` to `main/reservation/ReservationService.java`
-- [ ] T059 [US6] Extend `main/reservation/ReservationView.java` with reservation search, change dialog and cancel action
-- [ ] T060 [US6] Run `./mvnw verify` — must end green
+- [X] T058 [US6] Add `find`, `change` (room lock + overlap check as in T036) and `cancel` to `main/reservation/ReservationService.java`
+- [X] T059 [US6] Extend `main/reservation/ReservationView.java` with reservation search, change dialog and cancel action
+- [X] T060 [US6] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Reception can manage reservations without paper
 
@@ -357,3 +357,11 @@ Scope of this convergence run: User Story 4 (T043–T048).
 
 - [X] T083 List checked-in reservations whose departure date is today or earlier in `findDepartures` of `main/reservation/ReservationService.java`, so an overdue guest can still be checked out from `FrontDeskView`; add a service test per FR-018, US4/AC3 (partial)
 - [X] T084 Show a room as `OCCUPIED` in `roomOverview` for any checked-in reservation that has started, also after its departure date until check-out; add a service test per FR-019, US4/AC5 (partial)
+
+---
+
+## Phase 15: Convergence
+
+Scope of this convergence run: User Story 6 (T055–T060).
+
+- [X] T085 Recalculate nightly rate and total in `ReservationService.change` only when the dates or the room change; a change of number of guests or guest details keeps the booked rate and total; add a service test per US1/AC5, US6/AC1 (contradicts)
