@@ -206,6 +206,21 @@ class ReservationViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void foundReservationsShowTheOnlineCancellationTime() {
+        var future = bookForGuest("Test Future Guest", today.plusDays(5), today.plusDays(7));
+        var passed = bookForGuest("Test Passed Guest", today.plusDays(1), today.plusDays(2));
+        var cancelled = bookForGuest("Test Cancelled Guest", today.plusDays(10), today.plusDays(12));
+        reservationService.cancel(cancelled.getId());
+        navigate(ReservationView.class);
+
+        assertThat(onlineCancellationOf(future.getReservationNumber()))
+                .isEqualTo(CancellationDeadline.of(today.plusDays(5), 48).text());
+        assertThat(onlineCancellationOf(passed.getReservationNumber()))
+                .isEqualTo(CancellationDeadline.of(today.plusDays(1), 48).passedTimeText());
+        assertThat(onlineCancellationOf(cancelled.getReservationNumber())).isEmpty();
+    }
+
+    @Test
     @WithMockUser(roles = "HOUSEKEEPING")
     void housekeepingIsDenied() {
         assertThat(opens(ReservationView.class)).isFalse();
@@ -235,6 +250,16 @@ class ReservationViewTest extends HrsBrowserlessTest {
         test($(Button.class).withText("Find").single()).click();
         Grid<FoundReservation> foundGrid = $(Grid.class).id("found");
         test(foundGrid).select(0);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String onlineCancellationOf(String reservationNumber) {
+        test($(TextField.class).withLabel("Reservation number or guest name").single()).setValue(reservationNumber);
+        test($(Button.class).withText("Find").single()).click();
+        Grid<FoundReservation> foundGrid = $(Grid.class).id("found");
+        var column = foundGrid.getColumns().indexOf(foundGrid.getColumns().stream()
+                .filter(c -> "Online cancellation".equals(c.getHeaderText())).findFirst().orElseThrow());
+        return test(foundGrid).getCellText(0, column);
     }
 
     private void search(LocalDate arrival, LocalDate departure, int guests) {

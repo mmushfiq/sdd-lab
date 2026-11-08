@@ -67,6 +67,9 @@ public class MyReservationView extends VerticalLayout {
         info.addFormItem(new Paragraph(label(reservation.status().name())), "Status");
         details.add(info);
         if (reservation.cancellable()) {
+            var deadline = new Paragraph(reservation.cancellationDeadline().text());
+            deadline.setId("cancellation-deadline");
+            details.add(deadline);
             var cancel = new Button("Cancel reservation", _ -> confirmCancel());
             cancel.addThemeVariants(ButtonVariant.LUMO_ERROR);
             details.add(cancel);

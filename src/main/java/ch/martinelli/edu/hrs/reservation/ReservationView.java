@@ -32,6 +32,7 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,7 @@ public class ReservationView extends VerticalLayout {
     private final transient AvailabilityService availabilityService;
     private final transient ReservationService reservationService;
     private final transient RoomService roomService;
+    private final transient Clock clock;
     private final DatePicker arrival = new DatePicker("Arrival");
     private final DatePicker departure = new DatePicker("Departure");
     private final IntegerField guests = new IntegerField("Guests");
@@ -68,6 +70,7 @@ public class ReservationView extends VerticalLayout {
         this.availabilityService = availabilityService;
         this.reservationService = reservationService;
         this.roomService = roomService;
+        this.clock = clock;
 
         var today = LocalDate.now(clock);
         arrival.setValue(today);
@@ -109,8 +112,22 @@ public class ReservationView extends VerticalLayout {
         found.addColumn(f -> f.reservation().getDepartureDate()).setHeader("Departure");
         found.addColumn(f -> f.reservation().getNumberOfGuests()).setHeader("Guests");
         found.addColumn(f -> f.reservation().getStatus()).setHeader("Status");
+        found.addColumn(this::onlineCancellation).setHeader("Online cancellation");
         found.addColumn(f -> f.reservation().getTotalPrice()).setHeader("Total price");
         return bar;
+    }
+
+    /**
+     * 002 FR-009: the guest's online cancellation deadline, for booked reservations only.
+     */
+    private String onlineCancellation(FoundReservation found) {
+        var reservation = found.reservation();
+        if (!ReservationStatus.BOOKED.name().equals(reservation.getStatus())) {
+            return "";
+        }
+        var deadline = CancellationDeadline.of(reservation.getArrivalDate(), reservation.getCancellationHoursBefore());
+        return deadline.allowsOnlineCancellationAt(LocalDateTime.now(clock.withZone(CancellationDeadline.ZONE)))
+                ? deadline.text() : deadline.passedTimeText();
     }
 
     private HorizontalLayout foundActions() {

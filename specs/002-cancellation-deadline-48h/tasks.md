@@ -111,14 +111,14 @@ cancelled online; on its arrival date it cannot.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T021 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005); and in `test/guest/GuestCancelIT.java` (Playwright): after the lookup, `#cancellation-deadline` shows "Free online cancellation until <arrival − 2 days>, 15:00 (Zurich time)" before cancelling
-- [ ] T022 [P] [US3] Add to `test/reservation/ReservationViewTest.java` (Receptionist): found grid has column "Online cancellation" with `text()` for a booked future reservation, the first sentence of `passedText()` for a passed one, empty for a cancelled one (US3 scenario 4, FR-009)
+- [X] T021 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005); and in `test/guest/GuestCancelIT.java` (Playwright): after the lookup, `#cancellation-deadline` shows "Free online cancellation until <arrival − 2 days>, 15:00 (Zurich time)" before cancelling
+- [X] T022 [P] [US3] Add to `test/reservation/ReservationViewTest.java` (Receptionist): found grid has column "Online cancellation" with `text()` for a booked future reservation, the first sentence of `passedText()` for a passed one, empty for a cancelled one (US3 scenario 4, FR-009)
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] In `main/guest/MyReservationView.java` show the `cancellation-deadline` paragraph with `text()` above the "Cancel reservation" button when cancellable; keep `passedText()` from T014 otherwise; nothing for non-booked
-- [ ] T024 [US3] In `main/reservation/ReservationView.java` add grid column "Online cancellation" after "Status": for `BOOKED` rows build `CancellationDeadline.of(arrivalDate, cancellationHoursBefore)` and show `text()` or `Online cancellation was possible until <time> (Zurich time).`; empty otherwise (contracts/ui-changes.md)
-- [ ] T025 [US3] Run `./mvnw verify` — must end green
+- [X] T023 [US3] In `main/guest/MyReservationView.java` show the `cancellation-deadline` paragraph with `text()` above the "Cancel reservation" button when cancellable; keep `passedText()` from T014 otherwise; nothing for non-booked
+- [X] T024 [US3] In `main/reservation/ReservationView.java` add grid column "Online cancellation" after "Status": for `BOOKED` rows build `CancellationDeadline.of(arrivalDate, cancellationHoursBefore)` and show `text()` or `Online cancellation was possible until <time> (Zurich time).`; empty otherwise (contracts/ui-changes.md)
+- [X] T025 [US3] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Deadline visible to Guest and Receptionist
 

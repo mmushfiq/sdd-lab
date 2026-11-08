@@ -33,7 +33,13 @@ public record CancellationDeadline(LocalDateTime deadline) {
     }
 
     public String passedText() {
-        return "Online cancellation was possible until " + FORMAT.format(deadline)
-                + " (Zurich time). Please call reception to cancel.";
+        return passedTimeText() + " Please call reception to cancel.";
+    }
+
+    /**
+     * The passed deadline without the advice to call reception, for the reception list (FR-009).
+     */
+    public String passedTimeText() {
+        return "Online cancellation was possible until " + FORMAT.format(deadline) + " (Zurich time).";
     }
 }

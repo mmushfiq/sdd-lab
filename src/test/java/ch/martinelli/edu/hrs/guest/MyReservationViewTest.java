@@ -108,6 +108,37 @@ class MyReservationViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void showsTheExactLastCancellationTime() {
+        var arrival = today.plusDays(5);
+        var reservation = book(arrival);
+        navigate(MyReservationView.class);
+
+        lookUp(reservation.getReservationNumber(), "my@example.com");
+
+        assertThat($(Paragraph.class).withId("cancellation-deadline").single().getText())
+                .isEqualTo(CancellationDeadline.of(arrival, 48).text())
+                .startsWith("Free online cancellation until ")
+                .endsWith(", 15:00 (Zurich time)");
+        assertThat($(Button.class).withText("Cancel reservation").exists()).isTrue();
+    }
+
+    @Test
+    void noCancellationTimeWhenNotBooked() {
+        var cancelled = book(today.plusDays(5));
+        reservationService.cancel(cancelled.getId());
+        var checkedIn = book(today);
+        reservationService.checkIn(checkedIn.getId());
+        navigate(MyReservationView.class);
+
+        for (var number : new String[]{cancelled.getReservationNumber(), checkedIn.getReservationNumber()}) {
+            lookUp(number, "my@example.com");
+
+            assertThat($(Paragraph.class).withId("cancellation-deadline").exists()).isFalse();
+            assertThat($(Button.class).withText("Cancel reservation").exists()).isFalse();
+        }
+    }
+
+    @Test
     void deadlinePassingBeforeConfirmationIsRejected() {
         var arrival = today.plusDays(5);
         var reservation = book(arrival);

@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.guest;
 
 import ch.martinelli.edu.hrs.core.ui.PlaywrightIT;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
+import ch.martinelli.edu.hrs.reservation.CancellationDeadline;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
 import com.microsoft.playwright.Locator;
@@ -83,6 +84,7 @@ class GuestCancelIT extends PlaywrightIT {
         page.getByLabel("Email").fill("IT.Cancel@example.com");
         button("Show reservation").click();
         assertThat(page.getByText("IT Cancel Double")).isVisible();
+        assertThat(page.locator("#cancellation-deadline")).hasText(CancellationDeadline.of(arrival, 48).text());
 
         button("Cancel reservation").click();
         page.locator("vaadin-confirm-dialog vaadin-button[slot='confirm-button']").click();
