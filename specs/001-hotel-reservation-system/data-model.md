@@ -44,6 +44,7 @@ erDiagram
 | nightly_rate | DECIMAL(10,2) | NOT NULL, room type rate at booking or last change (FR-009) |
 | total_price | DECIMAL(10,2) | NOT NULL, nights × nightly_rate |
 | status | VARCHAR(12) | NOT NULL, `BOOKED`, `CHECKED_IN`, `CHECKED_OUT`, `CANCELLED` (FR-010) |
+| source | VARCHAR(10) | NOT NULL, `ONLINE` or `RECEPTION` (FR-009, SC-007) |
 | cancelled_at | TIMESTAMP | set when status becomes `CANCELLED` |
 | anonymized | BOOLEAN | NOT NULL, default false |
 | created_at | TIMESTAMP | NOT NULL |
@@ -67,9 +68,8 @@ nights; `CHECKED_OUT` and `CANCELLED` do not.
 - Overlap: `a.arrival < b.departure AND a.departure > b.arrival`.
 - Occupancy of a month: Σ nights inside the month of `CHECKED_IN`/`CHECKED_OUT` reservations ÷ (rooms ×
   days in month). Revenue: same nights × nightly_rate (FR-021, User Story 8).
-
-  Note: the spec's occupancy wording ("occupied room-nights") is read the same way as revenue, i.e. only
-  checked-in and checked-out stays count.
+- Online share of a month: reservations created that month with source `ONLINE` ÷ all reservations created
+  that month (FR-021, SC-007).
 
 ## staff_user
 

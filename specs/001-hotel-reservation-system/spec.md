@@ -21,6 +21,11 @@
 - Q: How long can a stay be, and how far ahead can it be booked? → A: At most 30 nights, with arrival at
   most one year ahead.
 - Q: What language is the UI in? → A: English only, for guests and staff.
+- Analyze follow-up: Which rooms can be deleted? → A: Only rooms without any reservation, including past ones.
+- Analyze follow-up: Which stays count as occupied for the report? → A: Checked-in and checked-out stays, as
+  for revenue.
+- Analyze follow-up: How is SC-007 (half of reservations online) measured? → A: Each reservation records
+  its booking source (online or reception); the monthly report shows the online share.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -222,8 +227,9 @@ and revenue with a manual count.
 **Acceptance Scenarios**:
 
 1. **Given** reservations in a month, **When** the Manager opens the report for that month, **Then** they
-   see occupancy as occupied room-nights divided by available room-nights (rooms × days in month), in
-   percent.
+   see occupancy as occupied room-nights (nights of reservations with status checked in or checked out)
+   divided by available room-nights (rooms × days in month), in percent, and the share of that month's
+   new reservations that were booked online.
 2. **Given** reservations in a month, **When** the Manager opens the report, **Then** they see revenue as
    the sum of the nightly rate of every night in that month of reservations with status checked in or
    checked out (booked and cancelled reservations do not count).
@@ -241,7 +247,7 @@ and revenue with a manual count.
 - A guest's reserved room is dirty when they arrive: check-in is refused until Housekeeping marks it clean;
   the Receptionist may instead move the reservation to a free clean room (User Story 6).
 - A guest does not arrive (no-show): the reservation stays booked until the Receptionist cancels it.
-- The Manager deletes a room that has booked or checked-in reservations: rejected.
+- The Manager deletes a room that has any reservation, including past ones: rejected (keeps report history).
 - The Manager lowers a room type's capacity below the guest count of existing reservations: existing
   reservations stay; new searches use the new capacity.
 - Number of guests larger than any room's capacity: no rooms are shown.
@@ -260,7 +266,7 @@ and revenue with a manual count.
 - **FR-002**: The Manager MUST be able to create, change and delete rooms with a unique room number and a
   room type.
 - **FR-003**: The system MUST reject deleting a room type used by a room, and deleting a room that has
-  booked or checked-in reservations.
+  any reservation, including past ones.
 - **FR-004**: A new room MUST start with cleaning status clean.
 
 **Availability and booking**
@@ -275,8 +281,8 @@ and revenue with a manual count.
 - **FR-008**: The system MUST reject searches and bookings where departure is not after arrival, arrival
   is in the past, arrival is more than one year ahead, or the stay is longer than 30 nights.
 - **FR-009**: A reservation MUST record the room, arrival and departure dates, number of guests, guest
-  name, email and phone, the nightly rate at booking time, the total price, a unique reservation number
-  and a status.
+  name, email and phone, the nightly rate at booking time, the total price, a unique reservation number,
+  a status and the booking source (online or reception).
 - **FR-010**: Reservation status MUST be one of booked, checked in, checked out, cancelled.
 - **FR-011**: Guests MUST be able to book online without logging in and MUST be shown their reservation
   number after booking.
@@ -306,9 +312,9 @@ and revenue with a manual count.
 
 **Reports**
 
-- **FR-021**: The Manager MUST be able to see, per selected month, occupancy (occupied room-nights /
-  available room-nights) and revenue (nightly rates of the month's nights of checked-in and checked-out
-  reservations).
+- **FR-021**: The Manager MUST be able to see, per selected month, occupancy (room-nights of checked-in and
+  checked-out reservations / available room-nights), revenue (nightly rates of the month's nights of
+  checked-in and checked-out reservations) and the share of reservations created that month online.
 
 **Access**
 
@@ -370,5 +376,8 @@ and revenue with a manual count.
   Manager. There is no self-registration and no "forgot password" flow; the Manager resets passwords.
 - No emails are sent by the system; the guest notes the reservation number shown after booking.
 - No-shows stay booked until a Receptionist cancels them.
+- The guest lookup has no limit on attempts; the random 8-character reservation number plus the email
+  makes guessing impractical.
+- The initial Manager password is not forced to change; the Manager resets it right after installation.
 - Booking channels, extra services billing, multiple hotels and loyalty programs are out of scope
   (vision).

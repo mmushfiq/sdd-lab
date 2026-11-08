@@ -87,7 +87,7 @@ Then open <http://localhost:8080>.
 | 1    | Constitution                      | `/speckit-constitution`                        | Done   |
 | 2    | Per feature: specify, clarify     | `/speckit-specify`, `/speckit-clarify`         | Done   |
 | 3    | Per feature: plan, checklist      | `/speckit-plan`, `/speckit-checklist`          | Done   |
-| 4    | Per feature: tasks, analyze       | `/speckit-tasks`, `/speckit-analyze`           | Open   |
+| 4    | Per feature: tasks, analyze       | `/speckit-tasks`, `/speckit-analyze`           | Done   |
 | 5    | Per feature: implement            | `/speckit-implement`                           | Open   |
 | 6    | Per feature: verify, converge     | `./mvnw verify`, `/speckit-converge`           | Open   |
 | 7    | Change requests                   | `/speckit-specify` … `/speckit-converge`       | Open   |
