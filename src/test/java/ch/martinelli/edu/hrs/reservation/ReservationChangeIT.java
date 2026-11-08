@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 import static ch.martinelli.edu.hrs.db.Tables.STAFF_USER;
@@ -69,6 +70,8 @@ class ReservationChangeIT extends PlaywrightIT {
 
     @AfterEach
     void cleanUp() {
+        dsl.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.in(
+                dsl.select(RESERVATION.ID).from(RESERVATION).where(RESERVATION.ROOM_ID.eq(roomId)))).execute();
         dsl.deleteFrom(RESERVATION).where(RESERVATION.ROOM_ID.eq(roomId)).execute();
         dsl.deleteFrom(ROOM).where(ROOM.ID.eq(roomId)).execute();
         dsl.deleteFrom(ROOM_TYPE).where(ROOM_TYPE.NAME.eq("IT Change Double")).execute();

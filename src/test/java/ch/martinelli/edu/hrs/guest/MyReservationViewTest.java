@@ -9,8 +9,10 @@ import ch.martinelli.edu.hrs.reservation.CancellationDeadline;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
+import ch.martinelli.edu.hrs.room.SeasonalRateService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.EmailField;
@@ -26,6 +28,7 @@ import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
+import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -44,6 +47,9 @@ class MyReservationViewTest extends HrsBrowserlessTest {
     private RoomService roomService;
 
     @Autowired
+    private SeasonalRateService seasonalRateService;
+
+    @Autowired
     private DSLContext dsl;
 
     @Autowired
@@ -51,11 +57,13 @@ class MyReservationViewTest extends HrsBrowserlessTest {
 
     private LocalDate today;
     private long roomId;
+    private long typeId;
 
     @BeforeEach
     void createRoom() {
         today = LocalDate.now(clock);
         var type = roomTypeService.save(roomType("Test My Double", 2, "100.00"));
+        typeId = type.getId();
         var room = new RoomRecord();
         room.setRoomNumber("T761");
         room.setRoomTypeId(type.getId());
@@ -170,5 +178,21 @@ class MyReservationViewTest extends HrsBrowserlessTest {
     private ReservationRecord book(LocalDate arrival) {
         return reservationService.book(new BookingRequest(roomId, arrival, arrival.plusDays(2), 2, "Test My Guest",
                 "my@example.com", "+41 79 000 00 00", BookingSource.ONLINE));
+    }
+
+    @Test
+    void showsThePricePerNightBeforeTheTotal() {
+        seasonalRateService.save(rate(typeId, "Test Summer", today.plusDays(10).toString(),
+                today.plusDays(20).toString(), "150.00"));
+        var reservation = reservationService.book(new BookingRequest(roomId, today.plusDays(9), today.plusDays(12), 2,
+                "Test My Guest", "my@example.com", "+41 79 000 00 00", BookingSource.ONLINE));
+        navigate(MyReservationView.class);
+
+        lookUp(reservation.getReservationNumber(), "my@example.com");
+
+        var texts = $(Paragraph.class).all().stream().map(Paragraph::getText).toList();
+        assertThat(texts).containsSubsequence("1 night × 100.00, 2 nights × 150.00", "400.00");
+        assertThat($(FormLayout.FormItem.class).all().stream().map(i -> i.getElement().getTextRecursively()).toList())
+                .anySatisfy(t -> assertThat(t).contains("Price per night"));
     }
 }

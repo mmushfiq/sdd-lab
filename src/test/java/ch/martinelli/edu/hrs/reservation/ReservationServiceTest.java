@@ -5,6 +5,7 @@ import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomTypeRecord;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
+import ch.martinelli.edu.hrs.room.SeasonalRateService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,9 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
+import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,6 +37,9 @@ class ReservationServiceTest {
 
     @Autowired
     private RoomService roomService;
+
+    @Autowired
+    private SeasonalRateService seasonalRateService;
 
     @Autowired
     private DSLContext dsl;
@@ -62,7 +69,7 @@ class ReservationServiceTest {
         assertThat(stored.getReservationNumber()).matches("[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}");
         assertThat(stored.getStatus()).isEqualTo(ReservationStatus.BOOKED.name());
         assertThat(stored.getSource()).isEqualTo(BookingSource.RECEPTION.name());
-        assertThat(stored.getNightlyRate()).isEqualByComparingTo("120.00");
+        assertNights(reservation.getId(), "120.00", "120.00");
         assertThat(stored.getTotalPrice()).isEqualByComparingTo("240.00");
         assertThat(stored.getGuestName()).isEqualTo("Test Guest");
         assertThat(stored.getGuestEmail()).isEqualTo("guest@example.com");
@@ -86,8 +93,25 @@ class ReservationServiceTest {
         roomTypeService.save(type);
 
         var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
-        assertThat(stored.getNightlyRate()).isEqualByComparingTo("120.00");
+        assertNights(reservation.getId(), "120.00", "120.00");
         assertThat(stored.getTotalPrice()).isEqualByComparingTo("240.00");
+    }
+
+    @Test
+    void bookingAcrossTheSeasonStartStoresTheRateOfEachNight() {
+        seasonalRateService.save(rate(type.getId(), "Test Summer", today.plusDays(10).toString(),
+                today.plusDays(20).toString(), "150.00"));
+
+        var reservation = reservationService.book(request(today.plusDays(9), today.plusDays(12)));
+
+        assertThat(dsl.selectFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservation.getId()))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE).fetch(RESERVATION_NIGHT.NIGHT_DATE))
+                .containsExactly(today.plusDays(9), today.plusDays(10), today.plusDays(11));
+        assertNights(reservation.getId(), "120.00", "150.00", "150.00");
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getTotalPrice())
+                .isEqualByComparingTo("420.00");
+        assertThat(reservationService.nights(reservation.getId())).extracting(NightRate::night)
+                .containsExactly(today.plusDays(9), today.plusDays(10), today.plusDays(11));
     }
 
     @Test
@@ -118,7 +142,12 @@ class ReservationServiceTest {
         assertThat(reservationService.find(reservation.getReservationNumber().toLowerCase()))
                 .extracting(f -> f.reservation().getId()).containsExactly(reservation.getId());
         assertThat(reservationService.find("findable"))
-                .singleElement().satisfies(f -> assertThat(f.roomNumber()).isEqualTo("T601"));
+                .singleElement().satisfies(f -> {
+                    assertThat(f.roomNumber()).isEqualTo("T601");
+                    assertThat(f.nights()).extracting(NightRate::night).containsExactly(today.plusDays(1));
+                    assertThat(f.nights()).extracting(NightRate::rate).usingElementComparator(BigDecimal::compareTo)
+                            .containsExactly(new BigDecimal("120.00"));
+                });
         assertThat(reservationService.find(" ")).isEmpty();
     }
 
@@ -136,7 +165,7 @@ class ReservationServiceTest {
         assertThat(stored.getDepartureDate()).isEqualTo(today.plusDays(5));
         assertThat(stored.getNumberOfGuests()).isEqualTo(1);
         assertThat(stored.getGuestName()).isEqualTo("Test Changed");
-        assertThat(stored.getNightlyRate()).isEqualByComparingTo("150.00");
+        assertNights(reservation.getId(), "150.00", "150.00", "150.00");
         assertThat(stored.getTotalPrice()).isEqualByComparingTo("450.00");
         assertThat(stored.getReservationNumber()).isEqualTo(reservation.getReservationNumber());
         assertThat(stored.getSource()).isEqualTo(BookingSource.RECEPTION.name());
@@ -154,7 +183,7 @@ class ReservationServiceTest {
         var stored = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId()));
         assertThat(stored.getGuestPhone()).isEqualTo("+41 79 999 99 99");
         assertThat(stored.getNumberOfGuests()).isEqualTo(1);
-        assertThat(stored.getNightlyRate()).isEqualByComparingTo("120.00");
+        assertNights(reservation.getId(), "120.00", "120.00");
         assertThat(stored.getTotalPrice()).isEqualByComparingTo("240.00");
     }
 
@@ -245,5 +274,14 @@ class ReservationServiceTest {
     private BookingRequest request(LocalDate arrival, LocalDate departure) {
         return new BookingRequest(roomId, arrival, departure, 2,
                 "Test Guest", "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION);
+    }
+
+    private void assertNights(long reservationId, String... rates) {
+        List<BigDecimal> stored = dsl.select(RESERVATION_NIGHT.NIGHTLY_RATE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(RESERVATION_NIGHT.NIGHTLY_RATE);
+        assertThat(stored).usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(java.util.Arrays.stream(rates).map(BigDecimal::new).toArray(BigDecimal[]::new));
     }
 }

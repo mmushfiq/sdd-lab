@@ -1,6 +1,9 @@
 package ch.martinelli.edu.hrs.report;
 
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
+import ch.martinelli.edu.hrs.reservation.BookingRequest;
+import ch.martinelli.edu.hrs.reservation.BookingSource;
+import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
 import org.jooq.DSLContext;
@@ -11,11 +14,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +41,13 @@ class ReportServiceTest {
     private RoomService roomService;
 
     @Autowired
+    private ReservationService reservationService;
+
+    @Autowired
     private DSLContext dsl;
+
+    @Autowired
+    private Clock clock;
 
     private long roomA;
     private long roomB;
@@ -90,6 +101,24 @@ class ReportServiceTest {
         assertThat(report.onlineSharePercent()).isNull();
     }
 
+    @Test
+    void stayBookedThroughTheServiceCountsAfterCheckOut() {
+        var today = LocalDate.now(clock);
+        var month = YearMonth.from(today);
+        var before = reportService.monthlyReport(month);
+        var reservation = reservationService.book(new BookingRequest(roomA, today, today.plusDays(2), 1,
+                "Test Report Guest", "report@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+        reservationService.checkIn(reservation.getId());
+        reservationService.checkOut(reservation.getId());
+
+        var after = reportService.monthlyReport(month);
+
+        var nightsInMonth = today.plusDays(1).getMonth() == today.getMonth() ? 2 : 1;
+        assertThat(after.occupiedNights() - before.occupiedNights()).isEqualTo(nightsInMonth);
+        assertThat(after.revenue().subtract(before.revenue())).isEqualByComparingTo(
+                BigDecimal.valueOf(100L * nightsInMonth));
+    }
+
     private long room(String number, long typeId) {
         var room = new RoomRecord();
         room.setRoomNumber(number);
@@ -98,7 +127,8 @@ class ReportServiceTest {
     }
 
     /**
-     * Booking cannot create past or checked-in stays, so report data is inserted directly.
+     * Booking cannot create past or checked-in stays, so report data is inserted directly, with one night row per
+     * night at the given rate (003 FR-009).
      */
     static void stay(DSLContext dsl, long roomId, LocalDate arrival, LocalDate departure, String status,
                      String rate, String source, LocalDate createdOn) {
@@ -112,12 +142,18 @@ class ReportServiceTest {
                 .set(RESERVATION.DEPARTURE_DATE, departure)
                 .set(RESERVATION.NUMBER_OF_GUESTS, 1)
                 .set(RESERVATION.GUEST_NAME, "Test Report Guest")
-                .set(RESERVATION.NIGHTLY_RATE, nightlyRate)
                 .set(RESERVATION.TOTAL_PRICE, nightlyRate.multiply(
                         BigDecimal.valueOf(departure.toEpochDay() - arrival.toEpochDay())))
                 .set(RESERVATION.STATUS, status)
                 .set(RESERVATION.SOURCE, source)
                 .set(RESERVATION.CREATED_AT, createdOn.atTime(12, 0))
                 .execute();
+        for (var night = arrival; night.isBefore(departure); night = night.plusDays(1)) {
+            dsl.insertInto(RESERVATION_NIGHT)
+                    .set(RESERVATION_NIGHT.RESERVATION_ID, id)
+                    .set(RESERVATION_NIGHT.NIGHT_DATE, night)
+                    .set(RESERVATION_NIGHT.NIGHTLY_RATE, nightlyRate)
+                    .execute();
+        }
     }
 }

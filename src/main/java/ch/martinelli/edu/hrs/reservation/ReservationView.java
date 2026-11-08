@@ -86,7 +86,6 @@ public class ReservationView extends VerticalLayout {
         grid.addColumn(AvailableRoom::roomNumber).setHeader("Room");
         grid.addColumn(AvailableRoom::roomTypeName).setHeader("Room type");
         grid.addColumn(AvailableRoom::capacity).setHeader("Capacity");
-        grid.addColumn(AvailableRoom::nightlyRate).setHeader("Nightly rate");
         grid.addColumn(AvailableRoom::totalPrice).setHeader("Total price");
         var book = new Button("Book", _ -> openBookingDialog(grid.asSingleSelect().getValue()));
         book.setEnabled(false);
@@ -113,6 +112,7 @@ public class ReservationView extends VerticalLayout {
         found.addColumn(f -> f.reservation().getNumberOfGuests()).setHeader("Guests");
         found.addColumn(f -> f.reservation().getStatus()).setHeader("Status");
         found.addColumn(this::onlineCancellation).setHeader("Online cancellation");
+        found.addColumn(f -> NightRate.pricePerNight(f.nights())).setHeader("Price per night");
         found.addColumn(f -> f.reservation().getTotalPrice()).setHeader("Total price");
         return bar;
     }

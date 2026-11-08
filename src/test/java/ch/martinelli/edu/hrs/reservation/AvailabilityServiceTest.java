@@ -3,7 +3,9 @@ package ch.martinelli.edu.hrs.reservation;
 import ch.martinelli.edu.hrs.core.BusinessRuleException;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.room.RoomService;
+import ch.martinelli.edu.hrs.db.tables.records.RoomTypeRecord;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
+import ch.martinelli.edu.hrs.room.SeasonalRateService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,11 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
+import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -36,6 +40,9 @@ class AvailabilityServiceTest {
     private RoomService roomService;
 
     @Autowired
+    private SeasonalRateService seasonalRateService;
+
+    @Autowired
     private DSLContext dsl;
 
     @Autowired
@@ -43,6 +50,7 @@ class AvailabilityServiceTest {
 
     private LocalDate today;
     private long doubleRoomId;
+    private RoomTypeRecord seasonType;
 
     @BeforeEach
     void createRooms() {
@@ -51,6 +59,100 @@ class AvailabilityServiceTest {
         var dbl = roomTypeService.save(roomType("Test Double", 2, "120.00"));
         room("T501", single.getId());
         doubleRoomId = room("T502", dbl.getId());
+        seasonType = roomTypeService.save(roomType("Test Season", 3, "100.00"));
+        room("T503", seasonType.getId());
+    }
+
+    @Test
+    void nightsInsideASeasonCostTheSeasonalRate() {
+        season(seasonType.getId(), 10, 20, "150.00");
+
+        assertThat(seasonTotal(12, 15)).isEqualByComparingTo("450.00");
+    }
+
+    @Test
+    void stayAcrossTheSeasonStartPricesEachNightOnItsOwn() {
+        season(seasonType.getId(), 10, 20, "150.00");
+
+        assertThat(seasonTotal(9, 11)).isEqualByComparingTo("250.00");
+    }
+
+    @Test
+    void lastNightOfTheSeasonIsSeasonalAndTheDepartureDayIsNoNight() {
+        season(seasonType.getId(), 10, 20, "150.00");
+
+        assertThat(seasonTotal(20, 21)).isEqualByComparingTo("150.00");
+        assertThat(seasonTotal(19, 22)).isEqualByComparingTo("400.00");
+    }
+
+    @Test
+    void lowerSeasonalRateIsUsed() {
+        season(seasonType.getId(), 10, 20, "80.00");
+
+        assertThat(seasonTotal(10, 12)).isEqualByComparingTo("160.00");
+    }
+
+    @Test
+    void anotherRoomTypesSeasonalRateIsIgnored() {
+        var other = roomTypeService.save(roomType("Test Other Season", 3, "100.00"));
+        season(other.getId(), 10, 20, "150.00");
+
+        assertThat(seasonTotal(12, 15)).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void seasonAcrossNewYearPricesBothYearsNights() {
+        var newYear = LocalDate.of(today.getYear(), 12, 31);
+        if (newYear.minusDays(1).isBefore(today)) {
+            newYear = newYear.plusYears(1);
+        }
+        seasonalRateService.save(rate(seasonType.getId(), "New Year", newYear.toString(),
+                newYear.plusDays(2).toString(), "200.00"));
+
+        var room = seasonRoom(availabilityService.search(newYear.minusDays(1), newYear.plusDays(4), 3));
+
+        assertThat(room.totalPrice()).isEqualByComparingTo("800.00");
+        assertThat(availabilityService.nightRates(seasonType.getId(), newYear.minusDays(1), newYear.plusDays(4)))
+                .extracting(NightRate::rate)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("100"), new BigDecimal("200"), new BigDecimal("200"),
+                        new BigDecimal("200"), new BigDecimal("100"));
+    }
+
+    @Test
+    void changedStandardRateIsUsedOutsideTheSeasonOnly() {
+        season(seasonType.getId(), 10, 20, "150.00");
+        seasonType.setNightlyRate(new BigDecimal("110.00"));
+        roomTypeService.save(seasonType);
+
+        assertThat(seasonTotal(5, 7)).isEqualByComparingTo("220.00");
+        assertThat(seasonTotal(12, 14)).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void nightRatesReturnsOneEntryPerNightInDateOrder() {
+        season(seasonType.getId(), 10, 20, "150.00");
+
+        var nights = availabilityService.nightRates(seasonType.getId(), today.plusDays(9), today.plusDays(12));
+
+        assertThat(nights).extracting(NightRate::night)
+                .containsExactly(today.plusDays(9), today.plusDays(10), today.plusDays(11));
+        assertThat(nights).extracting(NightRate::rate).usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("150"));
+    }
+
+    private void season(long typeId, int startDay, int endDay, String nightlyRate) {
+        seasonalRateService.save(rate(typeId, "Test Summer", today.plusDays(startDay).toString(),
+                today.plusDays(endDay).toString(), nightlyRate));
+    }
+
+    private BigDecimal seasonTotal(int arrivalDay, int departureDay) {
+        return seasonRoom(availabilityService.search(today.plusDays(arrivalDay), today.plusDays(departureDay), 3))
+                .totalPrice();
+    }
+
+    private static AvailableRoom seasonRoom(java.util.List<AvailableRoom> rooms) {
+        return rooms.stream().filter(r -> r.roomNumber().equals("T503")).findFirst().orElseThrow();
     }
 
     @Test

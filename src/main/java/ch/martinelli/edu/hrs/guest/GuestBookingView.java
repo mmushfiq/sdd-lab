@@ -77,7 +77,6 @@ public class GuestBookingView extends VerticalLayout {
         grid.addColumn(AvailableRoom::roomNumber).setHeader("Room");
         grid.addColumn(AvailableRoom::roomTypeName).setHeader("Room type");
         grid.addColumn(AvailableRoom::capacity).setHeader("Capacity");
-        grid.addColumn(AvailableRoom::nightlyRate).setHeader("Nightly rate");
         grid.addColumn(AvailableRoom::totalPrice).setHeader("Total price");
         var book = new Button("Book", _ -> openBookingDialog(grid.asSingleSelect().getValue()));
         book.setEnabled(false);
@@ -141,7 +140,8 @@ public class GuestBookingView extends VerticalLayout {
                 confirmationEmail.send(reservation, room.roomTypeName());
                 confirmation.setText("Your room is booked. Your reservation number is "
                         + reservation.getReservationNumber() + ". Use it with your email under "
-                        + "\"View or cancel my reservation\".");
+                        + "\"View or cancel my reservation\". Total price: "
+                        + reservation.getTotalPrice().toPlainString() + ".");
                 confirmation.setVisible(true);
             } catch (BusinessRuleException e) {
                 showError(e.getMessage());

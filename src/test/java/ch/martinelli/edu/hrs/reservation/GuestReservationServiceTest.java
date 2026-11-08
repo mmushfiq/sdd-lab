@@ -5,6 +5,7 @@ import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
+import ch.martinelli.edu.hrs.room.SeasonalRateService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,11 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
+import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -34,6 +38,9 @@ class GuestReservationServiceTest {
     private RoomService roomService;
 
     @Autowired
+    private SeasonalRateService seasonalRateService;
+
+    @Autowired
     private DSLContext dsl;
 
     @Autowired
@@ -41,11 +48,13 @@ class GuestReservationServiceTest {
 
     private LocalDate today;
     private long roomId;
+    private long typeId;
 
     @BeforeEach
     void createRoom() {
         today = LocalDate.now(clock);
         var type = roomTypeService.save(roomType("Test Guest Double", 2, "100.00"));
+        typeId = type.getId();
         var room = new RoomRecord();
         room.setRoomNumber("T741");
         room.setRoomTypeId(type.getId());
@@ -116,6 +125,7 @@ class GuestReservationServiceTest {
                     "guest.online@example.com"))
                     .isInstanceOf(BusinessRuleException.class)
                     .hasMessage(passedText);
+            dsl.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservation.getId())).execute();
             dsl.deleteFrom(RESERVATION).where(RESERVATION.ID.eq(reservation.getId())).execute();
         }
     }
@@ -178,5 +188,24 @@ class GuestReservationServiceTest {
     private ReservationRecord book(LocalDate arrival) {
         return reservationService.book(new BookingRequest(roomId, arrival, arrival.plusDays(2), 2,
                 "Test Online Guest", "guest.online@example.com", "+41 79 000 00 00", BookingSource.ONLINE));
+    }
+
+    @Test
+    void lookupReturnsTheNightsInDateOrderAndTheirSum() {
+        seasonalRateService.save(rate(typeId, "Test Summer", today.plusDays(10).toString(),
+                today.plusDays(20).toString(), "150.00"));
+        var reservation = reservationService.book(new BookingRequest(roomId, today.plusDays(9), today.plusDays(12), 2,
+                "Test Online Guest", "guest.online@example.com", "+41 79 000 00 00", BookingSource.ONLINE));
+
+        var found = reservationService.findForGuest(reservation.getReservationNumber(), "guest.online@example.com");
+
+        assertThat(found).hasValueSatisfying(g -> {
+            assertThat(g.nights()).extracting(NightRate::night)
+                    .containsExactly(today.plusDays(9), today.plusDays(10), today.plusDays(11));
+            assertThat(g.nights()).extracting(NightRate::rate).usingElementComparator(BigDecimal::compareTo)
+                    .containsExactly(new BigDecimal("100"), new BigDecimal("150"), new BigDecimal("150"));
+            assertThat(g.totalPrice()).isEqualByComparingTo(NightRate.total(g.nights()))
+                    .isEqualByComparingTo("400.00");
+        });
     }
 }

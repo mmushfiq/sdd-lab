@@ -2,6 +2,7 @@ package ch.martinelli.edu.hrs.guest;
 
 import ch.martinelli.edu.hrs.core.BusinessRuleException;
 import ch.martinelli.edu.hrs.reservation.GuestReservation;
+import ch.martinelli.edu.hrs.reservation.NightRate;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.reservation.ReservationStatus;
 import com.vaadin.flow.component.button.Button;
@@ -63,6 +64,7 @@ public class MyReservationView extends VerticalLayout {
         info.addFormItem(new Paragraph(reservation.arrival().toString()), "Arrival");
         info.addFormItem(new Paragraph(reservation.departure().toString()), "Departure");
         info.addFormItem(new Paragraph(reservation.roomTypeName()), "Room type");
+        info.addFormItem(new Paragraph(NightRate.pricePerNight(reservation.nights())), "Price per night");
         info.addFormItem(new Paragraph(reservation.totalPrice().toPlainString()), "Total price");
         info.addFormItem(new Paragraph(label(reservation.status().name())), "Status");
         details.add(info);

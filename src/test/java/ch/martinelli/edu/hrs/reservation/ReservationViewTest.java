@@ -5,6 +5,7 @@ import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
+import ch.martinelli.edu.hrs.room.SeasonalRateService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.datepicker.DatePicker;
@@ -31,6 +32,7 @@ import java.util.stream.IntStream;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
+import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -50,6 +52,9 @@ class ReservationViewTest extends HrsBrowserlessTest {
     private RoomService roomService;
 
     @Autowired
+    private SeasonalRateService seasonalRateService;
+
+    @Autowired
     private DSLContext dsl;
 
     @Autowired
@@ -59,11 +64,13 @@ class ReservationViewTest extends HrsBrowserlessTest {
     private Clock clock;
 
     private LocalDate today;
+    private long typeId;
 
     @BeforeEach
     void createRoom() {
         today = LocalDate.now(clock);
         var type = roomTypeService.save(roomType("Test Double", 2, "120.00"));
+        typeId = type.getId();
         var room = new RoomRecord();
         room.setRoomNumber("T801");
         room.setRoomTypeId(type.getId());
@@ -290,5 +297,31 @@ class ReservationViewTest extends HrsBrowserlessTest {
         return IntStream.range(0, grid.size())
                 .filter(i -> grid.getRow(i).roomNumber().equals(roomNumber))
                 .findFirst().orElse(-1);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void searchHasNoNightlyRateAndFoundReservationsShowThePricePerNight() {
+        seasonalRateService.save(rate(typeId, "Test Summer", today.plusDays(10).toString(),
+                today.plusDays(20).toString(), "150.00"));
+        reservationService.book(new BookingRequest(roomOf("T801"), today.plusDays(9), today.plusDays(12), 2,
+                "Test Season Guest", "season@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+        navigate(ReservationView.class);
+        search(today.plusDays(1), today.plusDays(3), 2);
+        assertThat(grid().getColumns()).extracting(Grid.Column::getHeaderText).doesNotContain("Nightly rate");
+
+        test($(TextField.class).withLabel("Reservation number or guest name").single()).setValue("Test Season Guest");
+        test($(Button.class).withText("Find").single()).click();
+
+        Grid<FoundReservation> foundGrid = $(Grid.class).id("found");
+        var headers = foundGrid.getColumns().stream().map(Grid.Column::getHeaderText).toList();
+        var pricePerNight = headers.indexOf("Price per night");
+        assertThat(pricePerNight).isNotNegative().isEqualTo(headers.indexOf("Total price") - 1);
+        assertThat(test(foundGrid).getCellText(0, pricePerNight)).isEqualTo("1 night × 120.00, 2 nights × 150.00");
+        assertThat(test(foundGrid).getCellText(0, pricePerNight + 1)).isEqualTo("420.00");
+    }
+
+    private long roomOf(String number) {
+        return dsl.select(ROOM.ID).from(ROOM).where(ROOM.ROOM_NUMBER.eq(number)).fetchSingle().value1();
     }
 }

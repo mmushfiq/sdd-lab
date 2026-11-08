@@ -8,7 +8,6 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,6 +17,7 @@ import java.util.Optional;
 import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 
@@ -52,13 +52,25 @@ public class ReservationService {
         var reservation = dsl.newRecord(RESERVATION);
         reservation.setId(dsl.nextval(RESERVATION_SEQ));
         reservation.setReservationNumber(newReservationNumber());
-        apply(request, reservation, null, true);
+        var nights = apply(request, reservation, null, true);
         reservation.setStatus(ReservationStatus.BOOKED.name());
         reservation.setSource(request.source().name());
         reservation.setCancellationHoursBefore(ONLINE_CANCELLATION_HOURS);
         reservation.setCreatedAt(LocalDateTime.now(clock));
         reservation.insert();
+        saveNights(reservation.getId(), nights);
         return reservation;
+    }
+
+    /**
+     * The saved rate of each night of a reservation, in date order (003 FR-006).
+     */
+    @Transactional(readOnly = true)
+    public List<NightRate> nights(long reservationId) {
+        return dsl.select(RESERVATION_NIGHT.NIGHT_DATE, RESERVATION_NIGHT.NIGHTLY_RATE).from(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetch(r -> new NightRate(r.value1(), r.value2()));
     }
 
     /**
@@ -70,18 +82,26 @@ public class ReservationService {
             return List.of();
         }
         var text = query.trim();
-        return dsl.select(RESERVATION, ROOM.ROOM_NUMBER)
+        var found = dsl.select(RESERVATION, ROOM.ROOM_NUMBER)
                 .from(RESERVATION).join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
                 .where(RESERVATION.RESERVATION_NUMBER.eq(text.toUpperCase())
                         .or(RESERVATION.GUEST_NAME.containsIgnoreCase(text)))
                 .orderBy(RESERVATION.ARRIVAL_DATE, RESERVATION.RESERVATION_NUMBER)
-                .fetch(r -> new FoundReservation(r.value1(), r.value2()));
+                .fetch();
+        // The nights of all found reservations with one query
+        var nights = dsl.selectFrom(RESERVATION_NIGHT)
+                .where(RESERVATION_NIGHT.RESERVATION_ID.in(found.map(r -> r.value1().getId())))
+                .orderBy(RESERVATION_NIGHT.NIGHT_DATE)
+                .fetchGroups(RESERVATION_NIGHT.RESERVATION_ID,
+                        n -> new NightRate(n.getNightDate(), n.getNightlyRate()));
+        return found.map(r -> new FoundReservation(r.value1(), r.value2(),
+                nights.getOrDefault(r.value1().getId(), List.of())));
     }
 
     /**
      * Changes dates, room, number of guests or guest details of a booked reservation (FR-013, FR-016). A new
-     * room or new dates are priced with the current rate (US6/AC1); otherwise the booked rate and total stay
-     * (US1/AC5). The source of the request is ignored.
+     * room or new dates are priced again night by night with the current rates (US6/AC1, 003 FR-004);
+     * otherwise the saved night rates and total stay (US1/AC5). The source of the request is ignored.
      */
     public ReservationRecord change(long reservationId, BookingRequest request) {
         var reservation = lock(reservationId);
@@ -91,8 +111,12 @@ public class ReservationService {
         var reprice = request.roomId() != reservation.getRoomId()
                 || !request.arrival().equals(reservation.getArrivalDate())
                 || !request.departure().equals(reservation.getDepartureDate());
-        apply(request, reservation, reservationId, reprice);
+        var nights = apply(request, reservation, reservationId, reprice);
         reservation.update();
+        if (nights != null) {
+            dsl.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId)).execute();
+            saveNights(reservationId, nights);
+        }
         return reservation;
     }
 
@@ -120,7 +144,7 @@ public class ReservationService {
         var now = nowInHotel();
         return dsl.select(RESERVATION.RESERVATION_NUMBER, RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE,
                         ROOM_TYPE.NAME, RESERVATION.TOTAL_PRICE, RESERVATION.STATUS,
-                        RESERVATION.CANCELLATION_HOURS_BEFORE)
+                        RESERVATION.CANCELLATION_HOURS_BEFORE, RESERVATION.ID)
                 .from(RESERVATION)
                 .join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
                 .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
@@ -128,7 +152,8 @@ public class ReservationService {
                 .fetchOptional(r -> {
                     var status = ReservationStatus.valueOf(r.value6());
                     var deadline = CancellationDeadline.of(r.value2(), r.value7());
-                    return new GuestReservation(r.value1(), r.value2(), r.value3(), r.value4(), r.value5(), status,
+                    return new GuestReservation(r.value1(), r.value2(), r.value3(), r.value4(), r.value5(),
+                            nights(r.value8()), status,
                             status == ReservationStatus.BOOKED && deadline.allowsOnlineCancellationAt(now),
                             deadline);
                 });
@@ -179,14 +204,16 @@ public class ReservationService {
     }
 
     /**
-     * Checks the stay and guest, locks the room and checks it is free, then copies the request into the record
-     * with the current rate. The room lock serializes bookings of one room (FR-007, research R3).
+     * Checks the stay and guest, locks the room and checks it is free, then copies the request into the record.
+     * With reprice, the stay's nights are priced with the current rates of the room's type and returned, and the
+     * total is their sum; otherwise null. The room lock serializes bookings of one room (FR-007, research R3).
      */
-    private void apply(BookingRequest request, ReservationRecord reservation, Long ownId, boolean reprice) {
+    private List<NightRate> apply(BookingRequest request, ReservationRecord reservation, Long ownId,
+                                  boolean reprice) {
         availabilityService.checkStay(request.arrival(), request.departure(), request.numberOfGuests());
         checkGuest(request.guestName(), request.guestEmail(), request.guestPhone());
 
-        var room = dsl.select(ROOM.ID, ROOM_TYPE.CAPACITY, ROOM_TYPE.NIGHTLY_RATE)
+        var room = dsl.select(ROOM.ID, ROOM_TYPE.CAPACITY, ROOM_TYPE.ID)
                 .from(ROOM).join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
                 .where(ROOM.ID.eq(request.roomId()))
                 .forUpdate().of(ROOM)
@@ -198,7 +225,6 @@ public class ReservationService {
                 .and(AvailabilityService.blocks(request.arrival(), request.departure()))) > 0;
         check(!taken, "The room is no longer available for these dates.");
 
-        var nightlyRate = room.value3();
         reservation.setRoomId(request.roomId());
         reservation.setArrivalDate(request.arrival());
         reservation.setDepartureDate(request.departure());
@@ -206,11 +232,21 @@ public class ReservationService {
         reservation.setGuestName(request.guestName().trim());
         reservation.setGuestEmail(request.guestEmail().trim());
         reservation.setGuestPhone(request.guestPhone().trim());
-        if (reprice) {
-            reservation.setNightlyRate(nightlyRate);
-            reservation.setTotalPrice(nightlyRate.multiply(
-                    BigDecimal.valueOf(AvailabilityService.nights(request.arrival(), request.departure()))));
+        if (!reprice) {
+            return null;
         }
+        var nights = availabilityService.nightRates(room.value3(), request.arrival(), request.departure());
+        reservation.setTotalPrice(NightRate.total(nights));
+        return nights;
+    }
+
+    private void saveNights(long reservationId, List<NightRate> nights) {
+        var insert = dsl.insertInto(RESERVATION_NIGHT, RESERVATION_NIGHT.RESERVATION_ID, RESERVATION_NIGHT.NIGHT_DATE,
+                RESERVATION_NIGHT.NIGHTLY_RATE);
+        for (var night : nights) {
+            insert = insert.values(reservationId, night.night(), night.rate());
+        }
+        insert.execute();
     }
 
     /**
