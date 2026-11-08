@@ -68,7 +68,8 @@ Example: booked 10–12 July at 120 (before "Summer" 150 existed), extended to 1
 ## Migration
 
 - `V5__seasonal_rates.sql`: sequence `seasonal_rate_seq`; tables `seasonal_rate`, `reservation_night`; one night
-  row per night of every existing reservation at its `nightly_rate` (FR-008).
+  row per night of every existing reservation at its `nightly_rate` (FR-008); `reservation.nightly_rate` becomes
+  nullable, so new bookings no longer write it.
 - `V6__drop_reservation_nightly_rate.sql`: drops `reservation.nightly_rate` after the code no longer uses it.
 
 ## State transitions
