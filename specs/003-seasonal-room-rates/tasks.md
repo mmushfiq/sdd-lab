@@ -122,13 +122,13 @@ reservation already had.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T029 [P] [US3] Add to `test/reservation/ReservationServiceTest.java`: after booking, adding, changing and deleting a seasonal rate over its nights and changing the standard rate leave its night rows and total unchanged (US3/AC1, SC-003); booked day 10–12 at 120, seasonal 150 added from day 10, extended to day 13 → rows 120, 120, 150 and total 390 (US3/AC3); moved to a room of another room type → every night at that type's current rates (US3/AC4); moved to another room of the same type, same dates → unchanged (US3/AC5); shortened by one night → that night's row is gone, the others keep their rates (edge case); update `changeToFreeNightsRecalculatesWithCurrentRate` to the new rule (nights 1–2 at 120, change to 2–5 after the standard rate became 150 → 120 + 150 + 150 = 420) and `changeOfGuestDetailsKeepsBookedRate` to night-row assertions (FR-007)
-- [ ] T030 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: a reservation inserted with `nightly_rate` only and night rows like V5 creates them shows "Price per night: 2 nights × 120.00" (US3/AC2, FR-008)
+- [X] T029 [P] [US3] Add to `test/reservation/ReservationServiceTest.java`: after booking, adding, changing and deleting a seasonal rate over its nights and changing the standard rate leave its night rows and total unchanged (US3/AC1, SC-003); booked day 10–12 at 120, seasonal 150 added from day 10, extended to day 13 → rows 120, 120, 150 and total 390 (US3/AC3); moved to a room of another room type → every night at that type's current rates (US3/AC4); moved to another room of the same type, same dates → unchanged (US3/AC5); shortened by one night → that night's row is gone, the others keep their rates (edge case); update `changeToFreeNightsRecalculatesWithCurrentRate` to the new rule (nights 1–2 at 120, change to 2–5 after the standard rate became 150 → 120 + 150 + 150 = 420) and `changeOfGuestDetailsKeepsBookedRate` to night-row assertions (FR-007)
+- [X] T030 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: a reservation inserted with `nightly_rate` only and night rows like V5 creates them shows "Price per night: 2 nights × 120.00" (US3/AC2, FR-008)
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] In `main/reservation/ReservationService.java` remove the `reprice` parameter of `apply`; build the new night set as research R4: same room type → saved rate for nights the reservation already had, `nightRates` rate for new nights; other room type → `nightRates` of the new type for every night; delete the reservation's `RESERVATION_NIGHT` rows, insert the new set, set `total_price` to the sum; update the Javadoc of `change` (003 FR-007 replaces 001 US6/AC1); this replaces the interim `change` code of T024
-- [ ] T032 [US3] Run `./mvnw verify` — must end green
+- [X] T031 [US3] In `main/reservation/ReservationService.java` remove the `reprice` parameter of `apply`; build the new night set as research R4: same room type → saved rate for nights the reservation already had, `nightRates` rate for new nights; other room type → `nightRates` of the new type for every night; delete the reservation's `RESERVATION_NIGHT` rows, insert the new set, set `total_price` to the sum; update the Javadoc of `change` (003 FR-007 replaces 001 US6/AC1); this replaces the interim `change` code of T024
+- [X] T032 [US3] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Prices are frozen per night
 

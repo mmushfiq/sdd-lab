@@ -23,9 +23,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
+import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
@@ -163,6 +166,41 @@ class MyReservationViewTest extends HrsBrowserlessTest {
                 .isEqualTo(CancellationDeadline.of(arrival, 200).passedText());
         assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
                 .isEqualTo("BOOKED");
+    }
+
+    /**
+     * 003 US3/AC2, FR-008: a reservation from before 003 has only its nightly rate; V5 gave it one night row per
+     * night at that rate (same statement as in V5__seasonal_rates.sql).
+     */
+    @Test
+    void reservationFromBeforeSeasonalRatesShowsItsOldRatePerNight() {
+        var id = dsl.nextval(RESERVATION_SEQ);
+        dsl.insertInto(RESERVATION)
+                .set(RESERVATION.ID, id)
+                .set(RESERVATION.RESERVATION_NUMBER, "OLDRATE1")
+                .set(RESERVATION.ROOM_ID, roomId)
+                .set(RESERVATION.ARRIVAL_DATE, today.plusDays(5))
+                .set(RESERVATION.DEPARTURE_DATE, today.plusDays(7))
+                .set(RESERVATION.NUMBER_OF_GUESTS, 2)
+                .set(RESERVATION.GUEST_NAME, "Test Old Guest")
+                .set(RESERVATION.GUEST_EMAIL, "old@example.com")
+                .set(RESERVATION.GUEST_PHONE, "+41 79 000 00 00")
+                .set(RESERVATION.NIGHTLY_RATE, new BigDecimal("120.00"))
+                .set(RESERVATION.TOTAL_PRICE, new BigDecimal("240.00"))
+                .set(RESERVATION.STATUS, "BOOKED")
+                .set(RESERVATION.SOURCE, "ONLINE")
+                .set(RESERVATION.CREATED_AT, LocalDateTime.now(clock))
+                .execute();
+        dsl.execute("insert into reservation_night (reservation_id, night_date, nightly_rate) "
+                + "select r.id, dateadd(day, n.x, r.arrival_date), r.nightly_rate from reservation r "
+                + "join system_range(0, 29) n on n.x < datediff(day, r.arrival_date, r.departure_date) "
+                + "where r.id = " + id);
+        navigate(MyReservationView.class);
+
+        lookUp("OLDRATE1", "old@example.com");
+
+        assertThat(text("2 nights × 120.00")).isTrue();
+        assertThat(text("240.00")).isTrue();
     }
 
     private void lookUp(String number, String email) {

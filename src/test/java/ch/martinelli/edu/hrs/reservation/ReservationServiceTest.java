@@ -152,7 +152,7 @@ class ReservationServiceTest {
     }
 
     @Test
-    void changeToFreeNightsRecalculatesWithCurrentRate() {
+    void changeToFreeNightsKeepsSavedNightsAndPricesNewOnesWithTheCurrentRate() {
         var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
         type.setNightlyRate(new BigDecimal("150.00"));
         roomTypeService.save(type);
@@ -165,8 +165,9 @@ class ReservationServiceTest {
         assertThat(stored.getDepartureDate()).isEqualTo(today.plusDays(5));
         assertThat(stored.getNumberOfGuests()).isEqualTo(1);
         assertThat(stored.getGuestName()).isEqualTo("Test Changed");
-        assertNights(reservation.getId(), "150.00", "150.00", "150.00");
-        assertThat(stored.getTotalPrice()).isEqualByComparingTo("450.00");
+        // 003 FR-007: the night it already had keeps 120, the new nights get today's 150
+        assertNights(reservation.getId(), "120.00", "150.00", "150.00");
+        assertThat(stored.getTotalPrice()).isEqualByComparingTo("420.00");
         assertThat(stored.getReservationNumber()).isEqualTo(reservation.getReservationNumber());
         assertThat(stored.getSource()).isEqualTo(BookingSource.RECEPTION.name());
     }
@@ -269,6 +270,87 @@ class ReservationServiceTest {
 
         assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
                 .isEqualTo(ReservationStatus.CANCELLED.name());
+    }
+
+    @Test
+    void rateMaintenanceNeverChangesSavedNights() {
+        var reservation = reservationService.book(request(today.plusDays(10), today.plusDays(13)));
+
+        var summer = seasonalRateService.save(rate(type.getId(), "Test Summer", today.plusDays(5).toString(),
+                today.plusDays(20).toString(), "150.00"));
+        summer.setNightlyRate(new BigDecimal("170.00"));
+        seasonalRateService.save(summer);
+        type.setNightlyRate(new BigDecimal("90.00"));
+        roomTypeService.save(type);
+        seasonalRateService.delete(summer.getId());
+
+        assertNights(reservation.getId(), "120.00", "120.00", "120.00");
+        assertThat(total(reservation.getId())).isEqualByComparingTo("360.00");
+    }
+
+    @Test
+    void extendingKeepsTheSavedNightsAndPricesTheNewNightWithTodaysRate() {
+        var reservation = reservationService.book(request(today.plusDays(10), today.plusDays(12)));
+        seasonalRateService.save(rate(type.getId(), "Test Summer", today.plusDays(10).toString(),
+                today.plusDays(20).toString(), "150.00"));
+
+        reservationService.change(reservation.getId(), request(today.plusDays(10), today.plusDays(13)));
+
+        assertNights(reservation.getId(), "120.00", "120.00", "150.00");
+        assertThat(total(reservation.getId())).isEqualByComparingTo("390.00");
+    }
+
+    @Test
+    void moveToAnotherRoomTypePricesEveryNightWithThatTypesCurrentRates() {
+        var reservation = reservationService.book(request(today.plusDays(10), today.plusDays(13)));
+        var suite = roomTypeService.save(roomType("Test Suite", 2, "200.00"));
+        seasonalRateService.save(rate(suite.getId(), "Test Suite Summer", today.plusDays(11).toString(),
+                today.plusDays(20).toString(), "250.00"));
+        var suiteRoom = new RoomRecord();
+        suiteRoom.setRoomNumber("T603");
+        suiteRoom.setRoomTypeId(suite.getId());
+        var suiteRoomId = roomService.save(suiteRoom).getId();
+
+        reservationService.change(reservation.getId(), new BookingRequest(suiteRoomId, today.plusDays(10),
+                today.plusDays(13), 2, "Test Guest", "guest@example.com", "+41 79 000 00 00", null));
+
+        assertNights(reservation.getId(), "200.00", "250.00", "250.00");
+        assertThat(total(reservation.getId())).isEqualByComparingTo("700.00");
+    }
+
+    @Test
+    void moveToAnotherRoomOfTheSameTypeKeepsThePrice() {
+        var reservation = reservationService.book(request(today.plusDays(10), today.plusDays(12)));
+        var other = new RoomRecord();
+        other.setRoomNumber("T604");
+        other.setRoomTypeId(type.getId());
+        var otherId = roomService.save(other).getId();
+        type.setNightlyRate(new BigDecimal("150.00"));
+        roomTypeService.save(type);
+
+        reservationService.change(reservation.getId(), new BookingRequest(otherId, today.plusDays(10),
+                today.plusDays(12), 2, "Test Guest", "guest@example.com", "+41 79 000 00 00", null));
+
+        assertNights(reservation.getId(), "120.00", "120.00");
+        assertThat(total(reservation.getId())).isEqualByComparingTo("240.00");
+    }
+
+    @Test
+    void shorteningDropsTheRemovedNightAndKeepsTheOthers() {
+        var reservation = reservationService.book(request(today.plusDays(10), today.plusDays(13)));
+        type.setNightlyRate(new BigDecimal("150.00"));
+        roomTypeService.save(type);
+
+        reservationService.change(reservation.getId(), request(today.plusDays(10), today.plusDays(12)));
+
+        assertThat(reservationService.nights(reservation.getId())).extracting(NightRate::night)
+                .containsExactly(today.plusDays(10), today.plusDays(11));
+        assertNights(reservation.getId(), "120.00", "120.00");
+        assertThat(total(reservation.getId())).isEqualByComparingTo("240.00");
+    }
+
+    private BigDecimal total(long reservationId) {
+        return dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservationId)).getTotalPrice();
     }
 
     private BookingRequest request(LocalDate arrival, LocalDate departure) {

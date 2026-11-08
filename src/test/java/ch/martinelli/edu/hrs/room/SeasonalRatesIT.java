@@ -59,6 +59,10 @@ class SeasonalRatesIT extends PlaywrightIT {
 
     @Test
     void managerAddsAndDeletesASeasonalRate() {
+        logIn("manager", "manager");
+        page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Seasonal rates")).click();
+        assertThat(page).hasURL(url("manager/seasonal-rates"));
+        mopo.waitForConnectionToSettle();
         addSeasonalRate(LocalDate.now(clock).plusDays(10));
 
         page.getByText("Test Summer").click();
@@ -76,6 +80,9 @@ class SeasonalRatesIT extends PlaywrightIT {
     @Test
     void guestSearchUsesTheSeasonalRate() {
         var start = LocalDate.now(clock).plusDays(10);
+        logIn("manager", "manager");
+        page.navigate(url("manager/seasonal-rates"));
+        mopo.waitForConnectionToSettle();
         addSeasonalRate(start);
         button("Log out").click();
         mopo.waitForConnectionToSettle();
@@ -93,10 +100,6 @@ class SeasonalRatesIT extends PlaywrightIT {
     }
 
     private void addSeasonalRate(LocalDate start) {
-        logIn("manager", "manager");
-        page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Seasonal rates")).click();
-        mopo.waitForConnectionToSettle();
-
         page.getByLabel("Room type").fill("IT Season Double");
         page.getByRole(AriaRole.OPTION, new Page.GetByRoleOptions().setName("IT Season Double")).click();
         page.getByLabel("Name").fill("Test Summer");

@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
@@ -52,7 +53,7 @@ public class ReservationService {
         var reservation = dsl.newRecord(RESERVATION);
         reservation.setId(dsl.nextval(RESERVATION_SEQ));
         reservation.setReservationNumber(newReservationNumber());
-        var nights = apply(request, reservation, null, true);
+        var nights = apply(request, reservation, null);
         reservation.setStatus(ReservationStatus.BOOKED.name());
         reservation.setSource(request.source().name());
         reservation.setCancellationHoursBefore(ONLINE_CANCELLATION_HOURS);
@@ -99,24 +100,20 @@ public class ReservationService {
     }
 
     /**
-     * Changes dates, room, number of guests or guest details of a booked reservation (FR-013, FR-016). A new
-     * room or new dates are priced again night by night with the current rates (US6/AC1, 003 FR-004);
-     * otherwise the saved night rates and total stay (US1/AC5). The source of the request is ignored.
+     * Changes dates, room, number of guests or guest details of a booked reservation (FR-013, FR-016). 003 FR-007
+     * replaces 001 US6/AC1: within the same room type, nights the reservation already had keep their saved rate,
+     * new nights get the rate in force today and removed nights are dropped; in another room type every night
+     * gets that type's rate in force today. The total is the sum. The source of the request is ignored.
      */
     public ReservationRecord change(long reservationId, BookingRequest request) {
         var reservation = lock(reservationId);
         check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
                 "Only a booked reservation can be changed.");
         check(request.arrival() != null && request.departure() != null, "Arrival and departure are required.");
-        var reprice = request.roomId() != reservation.getRoomId()
-                || !request.arrival().equals(reservation.getArrivalDate())
-                || !request.departure().equals(reservation.getDepartureDate());
-        var nights = apply(request, reservation, reservationId, reprice);
+        var nights = apply(request, reservation, reservationId);
         reservation.update();
-        if (nights != null) {
-            dsl.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId)).execute();
-            saveNights(reservationId, nights);
-        }
+        dsl.deleteFrom(RESERVATION_NIGHT).where(RESERVATION_NIGHT.RESERVATION_ID.eq(reservationId)).execute();
+        saveNights(reservationId, nights);
         return reservation;
     }
 
@@ -204,12 +201,11 @@ public class ReservationService {
     }
 
     /**
-     * Checks the stay and guest, locks the room and checks it is free, then copies the request into the record.
-     * With reprice, the stay's nights are priced with the current rates of the room's type and returned, and the
-     * total is their sum; otherwise null. The room lock serializes bookings of one room (FR-007, research R3).
+     * Checks the stay and guest, locks the room and checks it is free, then copies the request into the record,
+     * sets the total and returns the night rates to save (003 research R4). The room lock serializes bookings of
+     * one room (FR-007, research R3).
      */
-    private List<NightRate> apply(BookingRequest request, ReservationRecord reservation, Long ownId,
-                                  boolean reprice) {
+    private List<NightRate> apply(BookingRequest request, ReservationRecord reservation, Long ownId) {
         availabilityService.checkStay(request.arrival(), request.departure(), request.numberOfGuests());
         checkGuest(request.guestName(), request.guestEmail(), request.guestPhone());
 
@@ -225,6 +221,12 @@ public class ReservationService {
                 .and(AvailabilityService.blocks(request.arrival(), request.departure()))) > 0;
         check(!taken, "The room is no longer available for these dates.");
 
+        var nights = availabilityService.nightRates(room.value3(), request.arrival(), request.departure());
+        if (ownId != null && room.value3().equals(roomTypeOf(reservation.getRoomId()))) {
+            var saved = nights(ownId).stream().collect(Collectors.toMap(NightRate::night, NightRate::rate));
+            nights = nights.stream().map(n -> new NightRate(n.night(), saved.getOrDefault(n.night(), n.rate())))
+                    .toList();
+        }
         reservation.setRoomId(request.roomId());
         reservation.setArrivalDate(request.arrival());
         reservation.setDepartureDate(request.departure());
@@ -232,12 +234,12 @@ public class ReservationService {
         reservation.setGuestName(request.guestName().trim());
         reservation.setGuestEmail(request.guestEmail().trim());
         reservation.setGuestPhone(request.guestPhone().trim());
-        if (!reprice) {
-            return null;
-        }
-        var nights = availabilityService.nightRates(room.value3(), request.arrival(), request.departure());
         reservation.setTotalPrice(NightRate.total(nights));
         return nights;
+    }
+
+    private Long roomTypeOf(long roomId) {
+        return dsl.select(ROOM.ROOM_TYPE_ID).from(ROOM).where(ROOM.ID.eq(roomId)).fetchSingle().value1();
     }
 
     private void saveNights(long reservationId, List<NightRate> nights) {
