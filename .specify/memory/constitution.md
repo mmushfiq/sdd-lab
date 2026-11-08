@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: template (unversioned) → 1.0.0
-- Principles defined: I. Vision Is the Source; II. Fixed Stack; III. Schema Through Flyway, Data Through jOOQ;
-  IV. Every View Is Tested; V. Green Build
-- Added sections: Technology Constraints, Development Workflow, Governance
-- Removed sections: none (template examples Library-First, CLI Interface, Test-First not adopted)
+- Version change: 1.0.0 → 1.1.0 (MINOR: materially expanded guidance in Principle II)
+- Modified principles: II. Fixed Stack (title unchanged) — allows spring-boot-starter-mail for guest
+  emails, plain text through JavaMailSender, no other mail or templating library
+- Added sections: none
+- Removed sections: none
 - Templates: plan/spec/tasks templates read this file at runtime; no template changes needed
 - Deferred TODOs: none
 -->
@@ -32,6 +32,8 @@ constitution.
 - UI: Vaadin Flow server-side Java views (no Hilla, no React/TypeScript views).
 - Data access: jOOQ. No JPA/Hibernate.
 - Spring Security is not in `pom.xml` yet; the first feature that needs staff login adds it.
+- `spring-boot-starter-mail` is allowed for emails to guests (plain text through `JavaMailSender`); no
+  other mail or templating library.
 - Base package `ch.martinelli.edu.hrs`; the application class is `HrsApplication`.
 
 ### III. Schema Through Flyway, Data Through jOOQ
@@ -79,4 +81,4 @@ This constitution overrides other practices in this repository. Amendments are m
 Versioning follows semantic versioning: MAJOR for removed or redefined principles, MINOR for new
 principles or sections, PATCH for wording fixes.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-08 | **Last Amended**: 2026-11-08
+**Version**: 1.1.0 | **Ratified**: 2026-11-08 | **Last Amended**: 2026-11-08
