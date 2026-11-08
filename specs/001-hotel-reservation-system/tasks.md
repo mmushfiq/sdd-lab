@@ -340,3 +340,11 @@ Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T025
 - [X] T079 Re-check form rules in the services and throw `BusinessRuleException` with a user-facing message: room type name required, capacity ≥ 1, nightly rate > 0 (`RoomTypeService`); room number and room type required (`RoomService`); username, role and password not blank (`StaffUserService`); add service tests per plan: research R11 (partial)
 - [X] T080 [P] Add tests for changing a room's number and type (`RoomServiceTest`) and for deleting a room type and a room through their views (`RoomTypeViewTest`, `RoomViewTest`) per FR-001, FR-002 (partial)
 - [ ] T081 Review the interim "No functions are available for your role yet." message in `LoginView` once Receptionist and Housekeeping have views (US4, US5); keep or remove per contracts/ui-routes.md (unrequested)
+
+---
+
+## Phase 13: Convergence
+
+Scope of this convergence run: User Story 2 (T026–T038).
+
+- [ ] T082 Book with the dates and number of guests of the search that produced the selected room, not the current field values, in `main/reservation/ReservationView.java` (today a cleared Guests field fails with an error and changed dates book a stay other than the one shown); add a Browserless test per US2/AC2, FR-005 (partial)
