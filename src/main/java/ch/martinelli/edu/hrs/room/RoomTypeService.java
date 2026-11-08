@@ -35,7 +35,7 @@ public class RoomTypeService {
         check(roomType.getName() != null && !roomType.getName().isBlank(), "Name is required.");
         check(roomType.getCapacity() != null && roomType.getCapacity() >= 1, "Capacity must be at least 1.");
         check(roomType.getNightlyRate() != null && roomType.getNightlyRate().signum() > 0,
-                "Nightly rate must be greater than 0.");
+                "Standard nightly rate must be greater than 0.");
         // fetchCount, not fetchExists: H2 answered EXISTS on this varchar comparison wrongly (false for an existing row)
         var nameUsed = 0 < dsl.fetchCount(ROOM_TYPE, ROOM_TYPE.NAME.eq(roomType.getName())
                 .and(roomType.getId() == null ? ROOM_TYPE.ID.isNotNull() : ROOM_TYPE.ID.ne(roomType.getId())));

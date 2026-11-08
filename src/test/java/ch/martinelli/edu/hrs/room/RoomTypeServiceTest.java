@@ -78,7 +78,7 @@ public class RoomTypeServiceTest {
         assertThatThrownBy(() -> roomTypeService.save(roomType("Test Zero", 0, "100.00")))
                 .isInstanceOf(BusinessRuleException.class).hasMessage("Capacity must be at least 1.");
         assertThatThrownBy(() -> roomTypeService.save(roomType("Test Free", 2, "0.00")))
-                .isInstanceOf(BusinessRuleException.class).hasMessage("Nightly rate must be greater than 0.");
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Standard nightly rate must be greater than 0.");
     }
 
     public static RoomTypeRecord roomType(String name, int capacity, String rate) {

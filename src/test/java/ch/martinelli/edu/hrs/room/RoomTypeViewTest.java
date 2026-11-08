@@ -35,7 +35,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
 
         test($(TextField.class).withLabel("Name").single()).setValue("Test Family");
         test($(IntegerField.class).withLabel("Capacity").single()).setValue(4);
-        test($(BigDecimalField.class).withLabel("Nightly rate").single()).setValue(new BigDecimal("180.00"));
+        test($(BigDecimalField.class).withLabel("Standard nightly rate").single()).setValue(new BigDecimal("180.00"));
         test($(Button.class).withText("Save").single()).click();
 
         assertThat(gridNames()).contains("Test Family");
@@ -48,7 +48,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
         for (var name : new String[]{"Test First", "Test Second"}) {
             test($(TextField.class).withLabel("Name").single()).setValue(name);
             test($(IntegerField.class).withLabel("Capacity").single()).setValue(2);
-            test($(BigDecimalField.class).withLabel("Nightly rate").single()).setValue(new BigDecimal("100.00"));
+            test($(BigDecimalField.class).withLabel("Standard nightly rate").single()).setValue(new BigDecimal("100.00"));
             test($(Button.class).withText("Save").single()).click();
         }
 
@@ -62,7 +62,7 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
         navigate(RoomTypeView.class);
 
         selectRow(type.getId());
-        test($(BigDecimalField.class).withLabel("Nightly rate").single()).setValue(new BigDecimal("140.00"));
+        test($(BigDecimalField.class).withLabel("Standard nightly rate").single()).setValue(new BigDecimal("140.00"));
         test($(Button.class).withText("Save").single()).click();
 
         assertThat(roomTypeService.findAll())

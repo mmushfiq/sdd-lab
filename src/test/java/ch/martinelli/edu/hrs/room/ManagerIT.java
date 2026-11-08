@@ -34,7 +34,7 @@ class ManagerIT extends PlaywrightIT {
         open("manager/room-types");
         page.getByLabel("Name").fill("IT Double");
         page.getByLabel("Capacity").fill("2");
-        page.getByLabel("Nightly rate").fill("120.00");
+        page.getByLabel("Standard nightly rate").fill("120.00");
         page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save")).click();
         assertThat(page.getByText("IT Double")).isVisible();
 

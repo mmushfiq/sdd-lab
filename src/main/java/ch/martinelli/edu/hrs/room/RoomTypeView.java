@@ -38,20 +38,20 @@ public class RoomTypeView extends VerticalLayout {
 
         grid.addColumn(RoomTypeRecord::getName).setHeader("Name");
         grid.addColumn(RoomTypeRecord::getCapacity).setHeader("Capacity");
-        grid.addColumn(RoomTypeRecord::getNightlyRate).setHeader("Nightly rate");
+        grid.addColumn(RoomTypeRecord::getNightlyRate).setHeader("Standard nightly rate");
         grid.asSingleSelect().addValueChangeListener(e -> edit(e.getValue()));
 
         var name = new TextField("Name");
         name.setMaxLength(50);
         var capacity = new IntegerField("Capacity");
-        var nightlyRate = new BigDecimalField("Nightly rate");
+        var nightlyRate = new BigDecimalField("Standard nightly rate");
         binder.forField(name).asRequired("Name is required")
                 .bind(RoomTypeRecord::getName, RoomTypeRecord::setName);
         binder.forField(capacity).asRequired("Capacity is required")
                 .withValidator(c -> c >= 1, "Capacity must be at least 1")
                 .bind(RoomTypeRecord::getCapacity, RoomTypeRecord::setCapacity);
-        binder.forField(nightlyRate).asRequired("Nightly rate is required")
-                .withValidator(r -> r.compareTo(BigDecimal.ZERO) > 0, "Nightly rate must be greater than 0")
+        binder.forField(nightlyRate).asRequired("Standard nightly rate is required")
+                .withValidator(r -> r.compareTo(BigDecimal.ZERO) > 0, "Standard nightly rate must be greater than 0")
                 .bind(RoomTypeRecord::getNightlyRate, RoomTypeRecord::setNightlyRate);
 
         var save = new Button("Save", _ -> save());
