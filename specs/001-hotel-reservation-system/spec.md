@@ -8,6 +8,20 @@
 
 **Input**: User description: "Build the Hotel Reservation System described in docs/vision.md."
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: Does the user book a specific room or a room type? → A: A specific room; the search lists free rooms
+  and the user picks one.
+- Q: How are staff accounts created and managed? → A: The Manager creates staff users, sets role and
+  password, and can deactivate them.
+- Q: What happens to guest personal data after the stay (GDPR)? → A: Name, email and phone are anonymized
+  automatically 12 months after departure or cancellation; the reservation stays for reports.
+- Q: How long can a stay be, and how far ahead can it be booked? → A: At most 30 nights, with arrival at
+  most one year ahead.
+- Q: What language is the UI in? → A: English only, for guests and staff.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Manager maintains room types, rooms and rates (Priority: P1)
@@ -33,7 +47,13 @@ both in the room list.
 5. **Given** a reservation exists for a room, **When** the Manager changes the room type's nightly rate,
    **Then** the existing reservation keeps the rate it was booked with.
 6. **Given** a user is logged in as Receptionist or Housekeeping, **When** they try to open room
-   management, **Then** access is denied.
+   management or staff user management, **Then** access is denied.
+7. **Given** the Manager is logged in, **When** they create a staff user with username, role and initial
+   password, **Then** that user can log in and sees only the functions of their role.
+8. **Given** a staff user exists, **When** the Manager deactivates them, **Then** that user can no longer
+   log in.
+9. **Given** a username is already used, **When** the Manager creates another staff user with it, **Then**
+   the system rejects it.
 
 ---
 
@@ -225,7 +245,9 @@ and revenue with a manual count.
 - The Manager lowers a room type's capacity below the guest count of existing reservations: existing
   reservations stay; new searches use the new capacity.
 - Number of guests larger than any room's capacity: no rooms are shown.
-- A stay longer than the maximum allowed length is rejected (see Assumptions).
+- A stay longer than 30 nights, or an arrival more than one year ahead, is rejected (FR-008).
+- A guest looks up an anonymized reservation online: it can no longer be found, since the email is gone.
+- Reports for months older than 12 months still show correct occupancy and revenue after anonymization.
 
 ## Requirements *(mandatory)*
 
@@ -244,14 +266,14 @@ and revenue with a manual count.
 **Availability and booking**
 
 - **FR-005**: Guests and Receptionists MUST be able to search available rooms by arrival date, departure
-  date and number of guests.
+  date and number of guests, and book by picking one specific room from the result.
 - **FR-006**: A room MUST be shown as available only if its capacity is at least the number of guests and
   no booked or checked-in reservation of it covers any night from arrival up to the night before
   departure.
 - **FR-007**: The system MUST NOT allow two booked or checked-in reservations of the same room with
   overlapping nights, also when they are submitted at the same time.
-- **FR-008**: The system MUST reject searches and bookings where departure is not after arrival or arrival
-  is in the past.
+- **FR-008**: The system MUST reject searches and bookings where departure is not after arrival, arrival
+  is in the past, arrival is more than one year ahead, or the stay is longer than 30 nights.
 - **FR-009**: A reservation MUST record the room, arrival and departure dates, number of guests, guest
   name, email and phone, the nightly rate at booking time, the total price, a unique reservation number
   and a status.
@@ -292,13 +314,23 @@ and revenue with a manual count.
 
 - **FR-022**: Receptionist, Manager and Housekeeping MUST log in; each sees only the functions of their
   role: Receptionist — reservations, check-in/out, room overview; Manager — rooms, room types, rates,
-  reports; Housekeeping — cleaning list.
+  reports, staff users; Housekeeping — cleaning list.
 - **FR-023**: Guest functions (search, book, view, cancel own reservation) MUST be available without login.
+- **FR-025**: The Manager MUST be able to create staff users (unique username, role, initial password),
+  change their role, reset their password and deactivate them; deactivated users MUST NOT be able to log
+  in.
 
 **Personal data**
 
 - **FR-024**: Guest personal data (name, email, phone) MUST be visible only to staff with a need for it
   (Receptionist and Manager) and to the guest for their own reservation, in line with GDPR.
+- **FR-026**: The system MUST automatically anonymize the guest's name, email and phone of every
+  reservation whose departure date or cancellation lies more than 12 months in the past; dates, room,
+  prices and status stay so reports remain correct.
+
+**Language**
+
+- **FR-027**: All guest and staff screens MUST be in English; there is no language switch.
 
 ### Key Entities
 
@@ -308,7 +340,8 @@ and revenue with a manual count.
   number of guests, nightly rate at booking, total price, status (booked, checked in, checked out,
   cancelled), and the guest's details.
 - **Guest**: the person a reservation is for; name, email, phone. Not a user account.
-- **Staff User**: a person who logs in; username, role (Receptionist, Manager, Housekeeping).
+- **Staff User**: a person who logs in; unique username, password, role (Receptionist, Manager,
+  Housekeeping), active or deactivated.
 
 ## Success Criteria *(mandatory)*
 
@@ -328,14 +361,13 @@ and revenue with a manual count.
 ## Assumptions
 
 - One hotel with ten rooms; the Manager enters the rooms after go-live (no import).
-- The guest books a specific room; room types group rooms with the same capacity and nightly rate.
+- Room types group rooms with the same capacity and nightly rate.
 - The nightly rate is the same for every night (no seasonal or weekend rates); total price = nights ×
   nightly rate at booking time.
-- A stay is at most 30 nights and can be booked at most one year ahead.
 - One reservation is for one room; a group needing two rooms makes two reservations.
 - Payment is settled at the hotel; the system records prices but no payments (vision: out of scope).
-- Staff accounts are created by the operator of the system; there is no self-registration and no
-  password-reset flow in this feature.
+- One initial Manager account is provided at installation; all other staff users are created by the
+  Manager. There is no self-registration and no "forgot password" flow; the Manager resets passwords.
 - No emails are sent by the system; the guest notes the reservation number shown after booking.
 - No-shows stay booked until a Receptionist cancels them.
 - Booking channels, extra services billing, multiple hotels and loyalty programs are out of scope
