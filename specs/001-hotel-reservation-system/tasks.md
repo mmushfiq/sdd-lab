@@ -233,15 +233,15 @@ offered
 
 ### Tests for User Story 8
 
-- [ ] T069 [P] [US8] Write `test/report/ReportServiceTest.java`: occupancy = nights in month of `CHECKED_IN`/`CHECKED_OUT` ÷ (rooms × days in month); revenue = those nights × nightly_rate; `BOOKED`/`CANCELLED` excluded; stay across month end split; online share = reservations created that month with source `ONLINE` ÷ all created that month (US8 scenarios 1–3)
-- [ ] T070 [P] [US8] Write `test/report/ReportViewTest.java` (Browserless, `MANAGER`): month picker, occupancy % and revenue shown; denied for `RECEPTIONIST` and `HOUSEKEEPING` (US8 scenario 4)
-- [ ] T071 [P] [US8] Write `test/report/ReportIT.java` (Playwright): Manager opens the current month's report
+- [X] T069 [P] [US8] Write `test/report/ReportServiceTest.java`: occupancy = nights in month of `CHECKED_IN`/`CHECKED_OUT` ÷ (rooms × days in month); revenue = those nights × nightly_rate; `BOOKED`/`CANCELLED` excluded; stay across month end split; online share = reservations created that month with source `ONLINE` ÷ all created that month (US8 scenarios 1–3)
+- [X] T070 [P] [US8] Write `test/report/ReportViewTest.java` (Browserless, `MANAGER`): month picker, occupancy % and revenue shown; denied for `RECEPTIONIST` and `HOUSEKEEPING` (US8 scenario 4)
+- [X] T071 [P] [US8] Write `test/report/ReportIT.java` (Playwright): Manager opens the current month's report
 
 ### Implementation for User Story 8
 
-- [ ] T072 [US8] Implement `ReportService` in `main/report/ReportService.java` (data-model.md "Derived values", including the online share)
-- [ ] T073 [US8] Implement `ReportView` (route `manager/reports`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/report/ReportView.java`
-- [ ] T074 [US8] Run `./mvnw verify` — must end green
+- [X] T072 [US8] Implement `ReportService` in `main/report/ReportService.java` (data-model.md "Derived values", including the online share)
+- [X] T073 [US8] Implement `ReportView` (route `manager/reports`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/report/ReportView.java`
+- [X] T074 [US8] Run `./mvnw verify` — must end green
 
 **Checkpoint**: All user stories work
 
