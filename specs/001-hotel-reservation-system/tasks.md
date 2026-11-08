@@ -329,3 +329,14 @@ One `/speckit-implement` run per user story in the order above (guide step 5), e
 - [Story] label maps a task to its user story for traceability
 - Tests create their own data and remove it (research R10)
 - Never edit committed migrations or generated jOOQ code (constitution III)
+
+---
+
+## Phase 12: Convergence
+
+Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T025).
+
+- [ ] T078 Configure a file-based H2 datasource for the running app in `src/main/resources/application.properties` (tests keep an in-memory database) per plan: Technical Context, Storage (partial)
+- [ ] T079 Re-check form rules in the services and throw `BusinessRuleException` with a user-facing message: room type name required, capacity ≥ 1, nightly rate > 0 (`RoomTypeService`); room number and room type required (`RoomService`); username, role and password not blank (`StaffUserService`); add service tests per plan: research R11 (partial)
+- [ ] T080 [P] Add tests for changing a room's number and type (`RoomServiceTest`) and for deleting a room type and a room through their views (`RoomTypeViewTest`, `RoomViewTest`) per FR-001, FR-002 (partial)
+- [ ] T081 Review the interim "No functions are available for your role yet." message in `LoginView` once Receptionist and Housekeeping have views (US4, US5); keep or remove per contracts/ui-routes.md (unrequested)
