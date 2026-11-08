@@ -123,13 +123,13 @@ offered
 
 ### Tests for User Story 3
 
-- [ ] T039 [P] [US3] Write `test/guest/GuestBookingViewTest.java` (Browserless, anonymous): search results with room type, capacity, total price; required fields and email format; "no longer available" when the room was taken meanwhile (US3 scenarios 1–4)
-- [ ] T040 [P] [US3] Write `test/guest/GuestBookingIT.java` (Playwright): book online and see the reservation number; opening `reception/reservations` without login lands on `login` (US3 scenario 5)
+- [X] T039 [P] [US3] Write `test/guest/GuestBookingViewTest.java` (Browserless, anonymous): search results with room type, capacity, total price; required fields and email format; "no longer available" when the room was taken meanwhile (US3 scenarios 1–4)
+- [X] T040 [P] [US3] Write `test/guest/GuestBookingIT.java` (Playwright): book online and see the reservation number; opening `reception/reservations` without login lands on `login` (US3 scenario 5)
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Implement `GuestBookingView` (route root, `@AnonymousAllowed`, no staff menu) in `main/guest/GuestBookingView.java` using `AvailabilityService` and `ReservationService.book` with source `ONLINE`
-- [ ] T042 [US3] Run `./mvnw verify` — must end green
+- [X] T041 [US3] Implement `GuestBookingView` (route root, `@AnonymousAllowed`, no staff menu) in `main/guest/GuestBookingView.java` using `AvailabilityService` and `ReservationService.book` with source `ONLINE`
+- [X] T042 [US3] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Online booking works
 
