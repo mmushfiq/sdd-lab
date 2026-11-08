@@ -251,9 +251,9 @@ offered
 
 **Purpose**: Checks across all stories
 
-- [ ] T075 Walk through `quickstart.md` manually, including the negative checks; time one online booking (must be under 3 minutes, SC-003) and one check-in and check-out (each under 1 minute, SC-004)
-- [ ] T076 [P] Check every view at desktop width and `CleaningListView` at tablet width (SC-008)
-- [ ] T077 Run `./mvnw verify` — must end green
+- [X] T075 Walk through `quickstart.md` manually, including the negative checks; time one online booking (must be under 3 minutes, SC-003) and one check-in and check-out (each under 1 minute, SC-004)
+- [X] T076 [P] Check every view at desktop width and `CleaningListView` at tablet width (SC-008)
+- [X] T077 Run `./mvnw verify` — must end green
 
 ---
 
@@ -373,3 +373,11 @@ Scope of this convergence run: User Story 6 (T055–T060).
 Scope of this convergence run: User Story 7 (T061–T068).
 
 - [X] T086 Link the public booking page (`main/guest/GuestBookingView.java`) and its booking confirmation to `my-reservation`, so a guest can find where to view or cancel their reservation; extend `GuestBookingViewTest` per FR-015, US7 (partial)
+
+---
+
+## Phase 17: Convergence
+
+Scope of this convergence run: Polish phase (T075–T077), found by the quickstart walk-through (T075).
+
+- [X] T087 Reset the form to a new record after Save, Delete and New in `RoomView` and `RoomTypeView` (today it only resets when a grid row was selected, so a second create overwrites the first), with Browserless tests that create two in a row per FR-001, FR-002, US1/AC1–AC2 (partial)

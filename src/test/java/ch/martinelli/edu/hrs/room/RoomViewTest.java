@@ -50,6 +50,20 @@ class RoomViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void twoRoomsInARowAreBothCreated() {
+        navigate(RoomView.class);
+
+        for (var number : new String[]{"T411", "T412"}) {
+            test($(TextField.class).withLabel("Room number").single()).setValue(number);
+            test($(ComboBox.class).withLabel("Room type").single()).selectItem("Test Double");
+            test($(Button.class).withText("Save").single()).click();
+        }
+
+        assertThat(roomService.findAll()).extracting(RoomRecord::getRoomNumber).contains("T411", "T412");
+        assertThat($(TextField.class).withLabel("Room number").single().getValue()).isEmpty();
+    }
+
+    @Test
     void duplicateRoomNumberShowsError() {
         var existing = new RoomRecord();
         existing.setRoomNumber("T402");

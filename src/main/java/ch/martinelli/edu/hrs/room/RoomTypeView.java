@@ -58,7 +58,7 @@ public class RoomTypeView extends VerticalLayout {
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         var delete = new Button("Delete", _ -> delete());
         delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
-        var newType = new Button("New", _ -> grid.asSingleSelect().clear());
+        var newType = new Button("New", _ -> clearForm());
 
         add(grid, new FormLayout(name, capacity, nightlyRate), new HorizontalLayout(save, delete, newType));
         refresh();
@@ -75,7 +75,7 @@ public class RoomTypeView extends VerticalLayout {
             try {
                 roomTypeService.save(current);
                 refresh();
-                grid.asSingleSelect().clear();
+                clearForm();
             } catch (BusinessRuleException e) {
                 showError(e.getMessage());
             }
@@ -89,10 +89,16 @@ public class RoomTypeView extends VerticalLayout {
         try {
             roomTypeService.delete(current.getId());
             refresh();
-            grid.asSingleSelect().clear();
+            clearForm();
         } catch (BusinessRuleException e) {
             showError(e.getMessage());
         }
+    }
+
+    // Clearing an empty selection fires no event, so the form is reset here too
+    private void clearForm() {
+        grid.asSingleSelect().clear();
+        edit(null);
     }
 
     private void refresh() {

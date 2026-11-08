@@ -42,6 +42,21 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void twoRoomTypesInARowAreBothCreated() {
+        navigate(RoomTypeView.class);
+
+        for (var name : new String[]{"Test First", "Test Second"}) {
+            test($(TextField.class).withLabel("Name").single()).setValue(name);
+            test($(IntegerField.class).withLabel("Capacity").single()).setValue(2);
+            test($(BigDecimalField.class).withLabel("Nightly rate").single()).setValue(new BigDecimal("100.00"));
+            test($(Button.class).withText("Save").single()).click();
+        }
+
+        assertThat(gridNames()).contains("Test First", "Test Second");
+        assertThat($(TextField.class).withLabel("Name").single().getValue()).isEmpty();
+    }
+
+    @Test
     void changeNightlyRate() {
         var type = roomTypeService.save(roomType("Test Double", 2, "120.00"));
         navigate(RoomTypeView.class);
