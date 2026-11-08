@@ -5,6 +5,7 @@ import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
 import ch.martinelli.edu.hrs.reservation.AvailabilityService;
 import ch.martinelli.edu.hrs.reservation.AvailableRoom;
 import ch.martinelli.edu.hrs.reservation.BookingRequest;
+import ch.martinelli.edu.hrs.reservation.BookingConfirmationEmail;
 import ch.martinelli.edu.hrs.reservation.BookingSource;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import com.vaadin.flow.component.button.Button;
@@ -43,6 +44,7 @@ public class GuestBookingView extends VerticalLayout {
 
     private final transient AvailabilityService availabilityService;
     private final transient ReservationService reservationService;
+    private final transient BookingConfirmationEmail confirmationEmail;
     private final DatePicker arrival = new DatePicker("Arrival");
     private final DatePicker departure = new DatePicker("Departure");
     private final IntegerField guests = new IntegerField("Guests");
@@ -56,9 +58,10 @@ public class GuestBookingView extends VerticalLayout {
     }
 
     public GuestBookingView(AvailabilityService availabilityService, ReservationService reservationService,
-                            Clock clock) {
+                            BookingConfirmationEmail confirmationEmail, Clock clock) {
         this.availabilityService = availabilityService;
         this.reservationService = reservationService;
+        this.confirmationEmail = confirmationEmail;
 
         var today = LocalDate.now(clock);
         arrival.setValue(today);
@@ -134,6 +137,8 @@ public class GuestBookingView extends VerticalLayout {
                 var reservation = reservationService.book(new BookingRequest(room.roomId(), stay.arrival(),
                         stay.departure(), stay.guests(), guest.getGuestName(), guest.getGuestEmail(),
                         guest.getGuestPhone(), BookingSource.ONLINE));
+                // book() has committed, so a mail failure cannot undo the booking (002 FR-006)
+                confirmationEmail.send(reservation, room.roomTypeName());
                 confirmation.setText("Your room is booked. Your reservation number is "
                         + reservation.getReservationNumber() + ". Use it with your email under "
                         + "\"View or cancel my reservation\".");

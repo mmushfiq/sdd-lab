@@ -18,6 +18,9 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +32,16 @@ import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @Transactional
 @WithMockUser(roles = "RECEPTIONIST")
 class ReservationViewTest extends HrsBrowserlessTest {
+
+    @MockitoBean
+    private JavaMailSender mailSender;
 
     @Autowired
     private RoomTypeService roomTypeService;
@@ -89,6 +98,8 @@ class ReservationViewTest extends HrsBrowserlessTest {
                 .where(RESERVATION.GUEST_NAME.eq("Test Guest")).fetchSingle().value1();
         assertThat(test($(Notification.class).last()).getText()).isEqualTo("Reservation " + number + " booked.");
         assertThat(rowOf("T801")).isNegative();
+        // 002 US4 scenario 3: reception bookings send no confirmation email
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test

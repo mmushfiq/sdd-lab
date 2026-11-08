@@ -133,15 +133,15 @@ throw: booking saved and confirmation shown.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T026 [P] [US4] Write `test/reservation/BookingConfirmationEmailTest.java` (`@SpringBootTest`, `@MockitoBean JavaMailSender`): message from `hrs.mail.from`, to the booking email, subject `Your reservation <number>`, body with reservation number, room type, arrival, departure, guests, total price and `text()` (contracts/confirmation-email.md); sender throws `MailSendException` → `send` returns normally (US4 scenarios 1–2)
-- [ ] T027 [P] [US4] Add to `test/guest/GuestBookingViewTest.java` (`@MockitoBean JavaMailSender`): online booking sends exactly one message; with the sender throwing, the reservation exists and the confirmation is shown (US4 scenarios 1–2, FR-006)
-- [ ] T028 [P] [US4] Add to `test/reservation/ReservationViewTest.java` (`@MockitoBean JavaMailSender`): a reception booking sends no message (US4 scenario 3)
+- [X] T026 [P] [US4] Write `test/reservation/BookingConfirmationEmailTest.java` (`@SpringBootTest`, `@MockitoBean JavaMailSender`): message from `hrs.mail.from`, to the booking email, subject `Your reservation <number>`, body with reservation number, room type, arrival, departure, guests, total price and `text()` (contracts/confirmation-email.md); sender throws `MailSendException` → `send` returns normally (US4 scenarios 1–2)
+- [X] T027 [P] [US4] Add to `test/guest/GuestBookingViewTest.java` (`@MockitoBean JavaMailSender`): online booking sends exactly one message; with the sender throwing, the reservation exists and the confirmation is shown (US4 scenarios 1–2, FR-006)
+- [X] T028 [P] [US4] Add to `test/reservation/ReservationViewTest.java` (`@MockitoBean JavaMailSender`): a reception booking sends no message (US4 scenario 3)
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Create `main/reservation/BookingConfirmationEmail.java` (`@Service`, `JavaMailSender`, `@Value("${hrs.mail.from}")`): `send(ReservationRecord reservation, String roomTypeName)` builds the `SimpleMailMessage` per contracts/confirmation-email.md; catches `MailException` and logs a warning with the reservation number
-- [ ] T030 [US4] In `main/guest/GuestBookingView.java` inject `BookingConfirmationEmail` and call `send(reservation, room.roomTypeName())` after `reservationService.book(...)` returned and before showing the confirmation; `ReservationView` is not changed
-- [ ] T031 [US4] Run `./mvnw verify` — must end green
+- [X] T029 [US4] Create `main/reservation/BookingConfirmationEmail.java` (`@Service`, `JavaMailSender`, `@Value("${hrs.mail.from}")`): `send(ReservationRecord reservation, String roomTypeName)` builds the `SimpleMailMessage` per contracts/confirmation-email.md; catches `MailException` and logs a warning with the reservation number
+- [X] T030 [US4] In `main/guest/GuestBookingView.java` inject `BookingConfirmationEmail` and call `send(reservation, room.roomTypeName())` after `reservationService.book(...)` returned and before showing the confirmation; `ReservationView` is not changed
+- [X] T031 [US4] Run `./mvnw verify` — must end green
 
 **Checkpoint**: All user stories functional
 
@@ -232,3 +232,11 @@ Task: "Update GuestCancelIT to book at least 3 days ahead"
 Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T015).
 
 - [X] T036 [P] Add a Browserless test to `test/guest/MyReservationViewTest.java`: look up a reservation whose "Cancel reservation" button is shown, then set its `cancellation_hours_before` so the deadline has passed (via `DSLContext`), confirm the cancel dialog, and assert an error notification with `CancellationDeadline.passedText()` and status still `BOOKED` per contracts/ui-changes.md (cancel rejected), US1/AC2, Constitution IV (partial)
+
+---
+
+## Phase 9: Convergence
+
+Scope of this convergence run: User Story 4 (T026–T031).
+
+- [X] T037 Review the email branch that sends `passedText()` when a booking is made after its own deadline (booked less than 48 hours before check-in); keep it and record the case in `specs/002-cancellation-deadline-48h/contracts/confirmation-email.md`, or remove it per FR-006, contracts/confirmation-email.md (unrequested)

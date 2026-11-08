@@ -5,6 +5,7 @@ import ch.martinelli.edu.hrs.db.tables.records.RoomRecord;
 import ch.martinelli.edu.hrs.reservation.AvailableRoom;
 import ch.martinelli.edu.hrs.reservation.BookingRequest;
 import ch.martinelli.edu.hrs.reservation.BookingSource;
+import ch.martinelli.edu.hrs.reservation.CancellationDeadline;
 import ch.martinelli.edu.hrs.reservation.ReservationService;
 import ch.martinelli.edu.hrs.room.RoomService;
 import ch.martinelli.edu.hrs.room.RoomTypeService;
@@ -20,7 +21,12 @@ import com.vaadin.flow.router.RouterLink;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -30,12 +36,19 @@ import java.util.stream.IntStream;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Runs without a logged-in user: the guest page is public (FR-023).
  */
 @Transactional
 class GuestBookingViewTest extends HrsBrowserlessTest {
+
+    @MockitoBean
+    private JavaMailSender mailSender;
 
     @Autowired
     private RoomTypeService roomTypeService;
@@ -93,6 +106,38 @@ class GuestBookingViewTest extends HrsBrowserlessTest {
                 + stored.getReservationNumber() + ". Use it with your email under "
                 + "\"View or cancel my reservation\".").single().isVisible()).isTrue();
         assertThat(rowOf("T811")).isNegative();
+    }
+
+    @Test
+    void onlineBookingSendsOneConfirmationEmail() {
+        navigate(GuestBookingView.class);
+        search(today.plusDays(5), today.plusDays(7), 2);
+        openBooking();
+        fillGuest("Test Mail Guest", "mail@example.com");
+        test($(Button.class).withText("Confirm booking").single()).click();
+
+        var captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.GUEST_NAME.eq("Test Mail Guest"));
+        assertThat(captor.getValue().getTo()).containsExactly("mail@example.com");
+        assertThat(captor.getValue().getText()).contains(stored.getReservationNumber(), "Test Online Double",
+                CancellationDeadline.of(today.plusDays(5), 48).text());
+    }
+
+    @Test
+    void mailFailureKeepsTheBookingAndShowsTheConfirmation() {
+        doThrow(new MailSendException("mail server down")).when(mailSender).send(any(SimpleMailMessage.class));
+        navigate(GuestBookingView.class);
+        search(today.plusDays(5), today.plusDays(7), 2);
+        openBooking();
+        fillGuest("Test No Mail Guest", "nomail@example.com");
+        test($(Button.class).withText("Confirm booking").single()).click();
+
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.GUEST_NAME.eq("Test No Mail Guest"));
+        assertThat(stored.getStatus()).isEqualTo("BOOKED");
+        assertThat($(Paragraph.class).withText("Your room is booked. Your reservation number is "
+                + stored.getReservationNumber() + ". Use it with your email under "
+                + "\"View or cancel my reservation\".").single().isVisible()).isTrue();
     }
 
     @Test

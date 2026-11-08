@@ -27,5 +27,9 @@ Free online cancellation until 10 March 2030, 15:00 (Zurich time)
 View or cancel your reservation online with your reservation number and this email.
 ```
 
+Booking made after its own deadline (less than 48 hours before check-in): the deadline line is
+`CancellationDeadline.passedText()` instead, e.g. "Online cancellation was possible until 10 March 2030, 15:00
+(Zurich time). Please call reception to cancel.", the same text the lookup page shows (FR-005).
+
 Failure: if the mail server cannot be reached or rejects the message, the booking stays saved, the guest
 sees the normal confirmation, and a warning with the reservation number is logged. No retry.
