@@ -73,6 +73,17 @@ class RoomTypeViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void deleteUnusedRoomType() {
+        var type = roomTypeService.save(roomType("Test Twin", 2, "110.00"));
+        navigate(RoomTypeView.class);
+
+        selectRow(type.getId());
+        test($(Button.class).withText("Delete").single()).click();
+
+        assertThat(gridNames()).doesNotContain("Test Twin");
+    }
+
+    @Test
     @WithMockUser(roles = "RECEPTIONIST")
     void receptionistIsDenied() {
         assertThat(opens(RoomTypeView.class)).isFalse();

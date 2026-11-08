@@ -67,6 +67,21 @@ class StaffUserServiceTest {
     }
 
     @Test
+    void missingValuesAreRejected() {
+        assertThatThrownBy(() -> staffUserService.create(" ", Role.RECEPTIONIST, "secret123"))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Username is required.");
+        assertThatThrownBy(() -> staffUserService.create("test-joe", null, "secret123"))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Role is required.");
+        assertThatThrownBy(() -> staffUserService.create("test-joe", Role.RECEPTIONIST, ""))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Password is required.");
+        var created = staffUserService.create("test-kim", Role.RECEPTIONIST, "secret123");
+        assertThatThrownBy(() -> staffUserService.changeRole(created.getId(), null))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Role is required.");
+        assertThatThrownBy(() -> staffUserService.resetPassword(created.getId(), " "))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Password is required.");
+    }
+
+    @Test
     void deactivatedUserCannotLogIn() {
         var created = staffUserService.create("test-eve", Role.HOUSEKEEPING, "secret123");
 

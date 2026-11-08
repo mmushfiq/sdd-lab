@@ -65,6 +65,24 @@ class RoomViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void deleteRoom() {
+        var room = new RoomRecord();
+        room.setRoomNumber("T403");
+        room.setRoomTypeId(roomTypeService.findAll().getFirst().getId());
+        roomService.save(room);
+        navigate(RoomView.class);
+
+        var grid = test(grid());
+        grid.select(IntStream.range(0, grid.size())
+                .filter(i -> grid.getRow(i).getRoomNumber().equals("T403"))
+                .findFirst().orElseThrow());
+        test($(Button.class).withText("Delete").single()).click();
+
+        assertThat(IntStream.range(0, grid.size()).mapToObj(i -> grid.getRow(i).getRoomNumber()))
+                .doesNotContain("T403");
+    }
+
+    @Test
     @WithMockUser(roles = "RECEPTIONIST")
     void receptionistIsDenied() {
         assertThat(opens(RoomView.class)).isFalse();

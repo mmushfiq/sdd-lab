@@ -8,4 +8,10 @@ public class BusinessRuleException extends RuntimeException {
     public BusinessRuleException(String message) {
         super(message);
     }
+
+    public static void check(boolean rule, String message) {
+        if (!rule) {
+            throw new BusinessRuleException(message);
+        }
+    }
 }

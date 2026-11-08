@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.ROOM_TYPE_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
@@ -31,6 +32,10 @@ public class RoomTypeService {
      * Inserts a new room type or updates an existing one. Reservations keep the rate they were booked with.
      */
     public RoomTypeRecord save(RoomTypeRecord roomType) {
+        check(roomType.getName() != null && !roomType.getName().isBlank(), "Name is required.");
+        check(roomType.getCapacity() != null && roomType.getCapacity() >= 1, "Capacity must be at least 1.");
+        check(roomType.getNightlyRate() != null && roomType.getNightlyRate().signum() > 0,
+                "Nightly rate must be greater than 0.");
         // fetchCount, not fetchExists: H2 answered EXISTS on this varchar comparison wrongly (false for an existing row)
         var nameUsed = 0 < dsl.fetchCount(ROOM_TYPE, ROOM_TYPE.NAME.eq(roomType.getName())
                 .and(roomType.getId() == null ? ROOM_TYPE.ID.isNotNull() : ROOM_TYPE.ID.ne(roomType.getId())));

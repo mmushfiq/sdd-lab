@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.ROOM_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.ROOM;
 
@@ -31,6 +32,8 @@ public class RoomService {
      * Inserts a new room (cleaning status clean) or updates an existing one.
      */
     public RoomRecord save(RoomRecord room) {
+        check(room.getRoomNumber() != null && !room.getRoomNumber().isBlank(), "Room number is required.");
+        check(room.getRoomTypeId() != null, "Room type is required.");
         var numberUsed = 0 < dsl.fetchCount(ROOM, ROOM.ROOM_NUMBER.eq(room.getRoomNumber())
                 .and(room.getId() == null ? ROOM.ID.isNotNull() : ROOM.ID.ne(room.getId())));
         if (numberUsed) {

@@ -71,6 +71,16 @@ class RoomTypeServiceTest {
         assertThat(roomTypeService.findAll()).noneMatch(t -> t.getId().equals(type.getId()));
     }
 
+    @Test
+    void invalidValuesAreRejected() {
+        assertThatThrownBy(() -> roomTypeService.save(roomType(" ", 2, "100.00")))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Name is required.");
+        assertThatThrownBy(() -> roomTypeService.save(roomType("Test Zero", 0, "100.00")))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Capacity must be at least 1.");
+        assertThatThrownBy(() -> roomTypeService.save(roomType("Test Free", 2, "0.00")))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Nightly rate must be greater than 0.");
+    }
+
     static RoomTypeRecord roomType(String name, int capacity, String rate) {
         var type = new RoomTypeRecord();
         type.setName(name);

@@ -61,6 +61,34 @@ class RoomServiceTest {
         assertThat(roomService.findAll()).noneMatch(r -> r.getId().equals(saved.getId()));
     }
 
+    @Test
+    void changeRoomNumberAndType() {
+        var saved = roomService.save(room("T104"));
+        var otherTypeId = roomTypeService.save(roomType("Test Single", 1, "80.00")).getId();
+
+        saved.setRoomNumber("T105");
+        saved.setRoomTypeId(otherTypeId);
+        roomService.save(saved);
+
+        assertThat(roomService.findAll())
+                .filteredOn(r -> r.getId().equals(saved.getId()))
+                .singleElement()
+                .satisfies(r -> {
+                    assertThat(r.getRoomNumber()).isEqualTo("T105");
+                    assertThat(r.getRoomTypeId()).isEqualTo(otherTypeId);
+                });
+    }
+
+    @Test
+    void missingValuesAreRejected() {
+        assertThatThrownBy(() -> roomService.save(room(" ")))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Room number is required.");
+        var withoutType = room("T106");
+        withoutType.setRoomTypeId(null);
+        assertThatThrownBy(() -> roomService.save(withoutType))
+                .isInstanceOf(BusinessRuleException.class).hasMessage("Room type is required.");
+    }
+
     private RoomRecord room(String number) {
         var room = new RoomRecord();
         room.setRoomNumber(number);

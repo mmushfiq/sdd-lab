@@ -74,10 +74,6 @@ public class StaffUserView extends VerticalLayout {
     }
 
     private void create() {
-        if (username.isEmpty() || role.isEmpty() || password.isEmpty()) {
-            showError("Username, role and password are required.");
-            return;
-        }
         try {
             staffUserService.create(username.getValue().trim(), role.getValue(), password.getValue());
             refresh();
@@ -88,21 +84,21 @@ public class StaffUserView extends VerticalLayout {
     }
 
     private void saveRole() {
-        if (role.isEmpty()) {
-            showError("Role is required.");
-            return;
+        try {
+            staffUserService.changeRole(selectedId(), role.getValue());
+            refresh();
+        } catch (BusinessRuleException e) {
+            showError(e.getMessage());
         }
-        staffUserService.changeRole(selectedId(), role.getValue());
-        refresh();
     }
 
     private void resetPassword() {
-        if (password.isEmpty()) {
-            showError("Password is required.");
-            return;
+        try {
+            staffUserService.resetPassword(selectedId(), password.getValue());
+            password.clear();
+        } catch (BusinessRuleException e) {
+            showError(e.getMessage());
         }
-        staffUserService.resetPassword(selectedId(), password.getValue());
-        password.clear();
     }
 
     private void deactivate() {

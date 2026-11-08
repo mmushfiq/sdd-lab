@@ -24,3 +24,5 @@ src/main/frontend/index.html
 .vscode/
 
 .DS_Store
+### H2 file database of the running app ###
+data/
