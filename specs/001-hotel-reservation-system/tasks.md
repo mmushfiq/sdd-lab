@@ -143,15 +143,15 @@ offered
 
 ### Tests for User Story 4
 
-- [ ] T043 [P] [US4] Write `test/reservation/CheckInOutServiceTest.java`: check-in `BOOKED` + arrival today + room `CLEAN` → `CHECKED_IN`; dirty room rejected; future arrival rejected; check-out → `CHECKED_OUT` and room `DIRTY`; room overview `FREE`/`BOOKED`/`OCCUPIED` per room (US4 scenarios 1–5)
-- [ ] T044 [P] [US4] Write `test/frontdesk/FrontDeskViewTest.java` (Browserless, `RECEPTIONIST`): arrivals and departures of today, check-in/out buttons, error on dirty room, overview grid
-- [ ] T045 [P] [US4] Write `test/frontdesk/FrontDeskIT.java` (Playwright): check in and check out a guest; overview shows the room dirty
+- [X] T043 [P] [US4] Write `test/reservation/CheckInOutServiceTest.java`: check-in `BOOKED` + arrival today + room `CLEAN` → `CHECKED_IN`; dirty room rejected; future arrival rejected; check-out → `CHECKED_OUT` and room `DIRTY`; room overview `FREE`/`BOOKED`/`OCCUPIED` per room (US4 scenarios 1–5)
+- [X] T044 [P] [US4] Write `test/frontdesk/FrontDeskViewTest.java` (Browserless, `RECEPTIONIST`): arrivals and departures of today, check-in/out buttons, error on dirty room, overview grid
+- [X] T045 [P] [US4] Write `test/frontdesk/FrontDeskIT.java` (Playwright): check in and check out a guest; overview shows the room dirty
 
 ### Implementation for User Story 4
 
-- [ ] T046 [US4] Add `checkIn`, `checkOut`, `findArrivals(today)`, `findDepartures(today)` and `roomOverview(today)` to `main/reservation/ReservationService.java` (status transitions per data-model.md)
-- [ ] T047 [US4] Implement `FrontDeskView` (route `reception/front-desk`, `@RolesAllowed("RECEPTIONIST")`, `@Menu`) in `main/frontdesk/FrontDeskView.java`
-- [ ] T048 [US4] Run `./mvnw verify` — must end green
+- [X] T046 [US4] Add `checkIn`, `checkOut`, `findArrivals(today)`, `findDepartures(today)` and `roomOverview(today)` to `main/reservation/ReservationService.java` (status transitions per data-model.md)
+- [X] T047 [US4] Implement `FrontDeskView` (route `reception/front-desk`, `@RolesAllowed("RECEPTIONIST")`, `@Menu`) in `main/frontdesk/FrontDeskView.java`
+- [X] T048 [US4] Run `./mvnw verify` — must end green
 
 **Checkpoint**: A full stay can be checked in and out
 
@@ -348,3 +348,12 @@ Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T025
 Scope of this convergence run: User Story 2 (T026–T038).
 
 - [X] T082 Book with the dates and number of guests of the search that produced the selected room, not the current field values, in `main/reservation/ReservationView.java` (today a cleared Guests field fails with an error and changed dates book a stay other than the one shown); add a Browserless test per US2/AC2, FR-005 (partial)
+
+---
+
+## Phase 14: Convergence
+
+Scope of this convergence run: User Story 4 (T043–T048).
+
+- [X] T083 List checked-in reservations whose departure date is today or earlier in `findDepartures` of `main/reservation/ReservationService.java`, so an overdue guest can still be checked out from `FrontDeskView`; add a service test per FR-018, US4/AC3 (partial)
+- [X] T084 Show a room as `OCCUPIED` in `roomOverview` for any checked-in reservation that has started, also after its departure date until check-out; add a service test per FR-019, US4/AC5 (partial)

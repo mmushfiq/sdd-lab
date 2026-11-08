@@ -2,13 +2,17 @@ package ch.martinelli.edu.hrs.reservation;
 
 import ch.martinelli.edu.hrs.core.BusinessRuleException;
 import ch.martinelli.edu.hrs.db.tables.records.ReservationRecord;
+import ch.martinelli.edu.hrs.room.CleaningStatus;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
@@ -72,6 +76,90 @@ public class ReservationService {
         reservation.setCreatedAt(LocalDateTime.now(clock));
         reservation.insert();
         return reservation;
+    }
+
+    /**
+     * FR-017: only a booked reservation, on its arrival date, into a clean room.
+     */
+    public void checkIn(long reservationId) {
+        var reservation = lock(reservationId);
+        check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
+                "Only a booked reservation can be checked in.");
+        check(reservation.getArrivalDate().equals(LocalDate.now(clock)),
+                "Check-in is only possible on the arrival date.");
+        var cleaningStatus = dsl.select(ROOM.CLEANING_STATUS).from(ROOM)
+                .where(ROOM.ID.eq(reservation.getRoomId())).forUpdate().fetchSingle().value1();
+        check(CleaningStatus.CLEAN.name().equals(cleaningStatus), "The room is not clean yet.");
+        reservation.setStatus(ReservationStatus.CHECKED_IN.name());
+        reservation.update();
+    }
+
+    /**
+     * FR-018: check-out ends the stay and marks the room dirty for Housekeeping.
+     */
+    public void checkOut(long reservationId) {
+        var reservation = lock(reservationId);
+        check(ReservationStatus.CHECKED_IN.name().equals(reservation.getStatus()),
+                "Only a checked-in reservation can be checked out.");
+        reservation.setStatus(ReservationStatus.CHECKED_OUT.name());
+        reservation.update();
+        dsl.update(ROOM).set(ROOM.CLEANING_STATUS, CleaningStatus.DIRTY.name())
+                .where(ROOM.ID.eq(reservation.getRoomId())).execute();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Stay> findArrivals(LocalDate today) {
+        return findStays(RESERVATION.STATUS.eq(ReservationStatus.BOOKED.name())
+                .and(RESERVATION.ARRIVAL_DATE.eq(today)));
+    }
+
+    /**
+     * Checked-in stays departing today, plus overdue ones not yet checked out (FR-018).
+     */
+    @Transactional(readOnly = true)
+    public List<Stay> findDepartures(LocalDate today) {
+        return findStays(RESERVATION.STATUS.eq(ReservationStatus.CHECKED_IN.name())
+                .and(RESERVATION.DEPARTURE_DATE.le(today)));
+    }
+
+    /**
+     * FR-019 (data-model.md): OCCUPIED if a checked-in guest is in the room, else BOOKED if a booked
+     * reservation has a night today, else FREE. A checked-in guest stays OCCUPIED until check-out, also on or
+     * after the departure date.
+     */
+    @Transactional(readOnly = true)
+    public List<RoomStatus> roomOverview(LocalDate today) {
+        var occupied = dsl.select(RESERVATION.ROOM_ID).from(RESERVATION)
+                .where(RESERVATION.STATUS.eq(ReservationStatus.CHECKED_IN.name()))
+                .and(RESERVATION.ARRIVAL_DATE.le(today))
+                .fetchSet(RESERVATION.ROOM_ID);
+        var booked = dsl.select(RESERVATION.ROOM_ID).from(RESERVATION)
+                .where(AvailabilityService.blocks(today, today.plusDays(1)))
+                .fetchSet(RESERVATION.ROOM_ID);
+        return dsl.select(ROOM.ID, ROOM.ROOM_NUMBER, ROOM_TYPE.NAME, ROOM.CLEANING_STATUS)
+                .from(ROOM).join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
+                .orderBy(ROOM.ROOM_NUMBER)
+                .fetch(r -> new RoomStatus(r.value2(), r.value3(),
+                        occupied.contains(r.value1()) ? Occupancy.OCCUPIED
+                                : booked.contains(r.value1()) ? Occupancy.BOOKED : Occupancy.FREE,
+                        r.value4()));
+    }
+
+    private List<Stay> findStays(Condition condition) {
+        return dsl.select(RESERVATION.ID, RESERVATION.RESERVATION_NUMBER, RESERVATION.GUEST_NAME,
+                        ROOM.ROOM_NUMBER, RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE,
+                        RESERVATION.NUMBER_OF_GUESTS)
+                .from(RESERVATION).join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
+                .where(condition)
+                .orderBy(ROOM.ROOM_NUMBER)
+                .fetch(r -> new Stay(r.value1(), r.value2(), r.value3(), r.value4(), r.value5(), r.value6(),
+                        r.value7()));
+    }
+
+    private ReservationRecord lock(long reservationId) {
+        return dsl.selectFrom(RESERVATION).where(RESERVATION.ID.eq(reservationId)).forUpdate()
+                .fetchOptional()
+                .orElseThrow(() -> new BusinessRuleException("The reservation does not exist."));
     }
 
     private String newReservationNumber() {

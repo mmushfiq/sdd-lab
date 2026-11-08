@@ -58,7 +58,7 @@ class ManagerIT extends PlaywrightIT {
 
         // The Receptionist lands on their first menu entry and cannot open manager views
         logIn("it-anna", "secret123");
-        assertThat(page).hasURL(url("reception/reservations"));
+        assertThat(page).hasURL(url("reception/front-desk"));
         assertThat(page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Rooms"))).hasCount(0);
         open("manager/rooms");
         assertThat(page.getByText("IT-101")).hasCount(0);
