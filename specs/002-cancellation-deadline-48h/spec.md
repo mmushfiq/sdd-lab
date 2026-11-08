@@ -10,6 +10,15 @@
 
 **Changes**: Feature 001-hotel-reservation-system, FR-015 and User Story 7 (acceptance scenarios 3 and 4).
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: Which time zone is the hotel's local time, which every cancellation deadline is calculated and shown in? → A: Europe/Zurich
+- Q: Should Receptionists also see a reservation's last online cancellation time in their reservation view, or only guests on the lookup page and in the email? → A: Receptionists see it in the reservation details
+- Q: How exactly should the last cancellation time be written for guests and staff? → A: "Free online cancellation until 10 March 2030, 15:00 (Zurich time)"
+- Q: Once a booked reservation's deadline has passed, what should the lookup page show instead of the "Free online cancellation until …" text? → A: "Online cancellation was possible until 10 March 2030, 15:00 (Zurich time). Please call reception to cancel." and no cancel button
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - New bookings can be cancelled online until 48 hours before check-in (Priority: P1)
@@ -32,7 +41,7 @@ hours before check-in (succeeds); book another one and try to cancel it less tha
    after its last online cancellation time, **Then** the system rejects it and tells the Guest to call
    reception.
 3. **Given** a reservation made less than 48 hours before check-in, **When** the Guest looks it up,
-   **Then** the system shows that online cancellation is no longer possible.
+   **Then** the system shows that online cancellation is no longer possible (FR-005).
 
 ---
 
@@ -69,9 +78,12 @@ deadline that applies to it.
 1. **Given** a booked reservation, **When** the Guest looks it up, **Then** they see its last online
    cancellation time as date and time in the hotel's local time.
 2. **Given** a booked reservation whose last online cancellation time has passed, **When** the Guest looks
-   it up, **Then** they see the time and that online cancellation is no longer possible.
+   it up, **Then** they see "Online cancellation was possible until <time> (Zurich time). Please call
+   reception to cancel." and no cancel button.
 3. **Given** a reservation that is cancelled, checked in or checked out, **When** the Guest looks it up,
    **Then** no cancellation time is shown.
+4. **Given** a booked reservation, **When** a Receptionist opens its details, **Then** they see the same
+   last online cancellation time as the Guest.
 
 ---
 
@@ -123,7 +135,11 @@ online cancellation time as the lookup page.
   cancellation time; afterwards the system MUST reject the cancellation and tell the Guest to call
   reception.
 - **FR-005**: The guest lookup page MUST show the last online cancellation time of a booked reservation as
-  date and time in the hotel's local time, and say when online cancellation is no longer possible.
+  "Free online cancellation until <d MMMM yyyy>, <HH:mm> (Zurich time)", e.g. "Free online cancellation
+  until 10 March 2030, 15:00 (Zurich time)". The email (FR-006) and the reservation details (FR-009) use
+  the same text. Once the time has passed, the lookup page MUST instead show "Online cancellation was
+  possible until 10 March 2030, 15:00 (Zurich time). Please call reception to cancel." and no cancel
+  button.
 - **FR-006**: After a Guest books a room online, the system MUST send a confirmation email to the email
   used for booking. It MUST contain the reservation number, room type, arrival and departure date, number
   of guests, total price and the last online cancellation time. If the email cannot be sent, the booking
@@ -131,6 +147,8 @@ online cancellation time as the lookup page.
 - **FR-007**: Receptionist cancellations MUST NOT be limited by the last online cancellation time.
 - **FR-008**: When a Receptionist changes the dates of a reservation, its last online cancellation time
   MUST be recalculated from the new check-in using the rule that applied when it was booked.
+- **FR-009**: Receptionists MUST see the last online cancellation time of a booked reservation in its
+  reservation details, in the same format as the Guest.
 
 ### Key Entities
 
@@ -151,7 +169,8 @@ online cancellation time as the lookup page.
 ## Assumptions
 
 - "Booked before the change" means the reservation was created before this feature goes live.
-- The hotel has one local time zone; all deadlines are shown and enforced in it.
+- Hotel local time is Europe/Zurich; all deadlines are calculated, shown and enforced in it, including
+  across daylight saving changes.
 - The deadline depends on when a reservation was booked, not on who booked it (Guest online or
   Receptionist).
 - No-shows and the receptionist cancellation flow from 001 stay unchanged.
