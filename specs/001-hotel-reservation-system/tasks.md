@@ -28,8 +28,8 @@ implementation.
 
 **Purpose**: Dependencies and shared beans
 
-- [ ] T001 Add `spring-boot-starter-security` and `spring-boot-starter-security-test` (scope test) to `pom.xml` (research R1)
-- [ ] T002 [P] Create `Clock` bean (system default zone) in `main/core/ClockConfiguration.java` (research R5)
+- [X] T001 Add `spring-boot-starter-security` and `spring-boot-starter-security-test` (scope test) to `pom.xml` (research R1)
+- [X] T002 [P] Create `Clock` bean (system default zone) in `main/core/ClockConfiguration.java` (research R5)
 
 ---
 
@@ -39,16 +39,16 @@ implementation.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create `migration/V1__room_type_and_room.sql`: sequences; `room_type` (id BIGINT PK; name "VARCHAR(50) NOT NULL, UNIQUE"; capacity "INT NOT NULL, ≥ 1"; nightly_rate "DECIMAL(10,2) NOT NULL, > 0"); `room` (id BIGINT PK; room_number "VARCHAR(10) NOT NULL, UNIQUE"; room_type_id "NOT NULL, FK → room_type (no cascade)"; cleaning_status "VARCHAR(10) NOT NULL, `CLEAN` or `DIRTY`, default `CLEAN`")
-- [ ] T004 Create `migration/V2__staff_user.sql`: sequence; `staff_user` (id BIGINT PK; username "VARCHAR(50) NOT NULL, UNIQUE"; password_hash "VARCHAR(100) NOT NULL, `{bcrypt}…`"; role "VARCHAR(20) NOT NULL, `RECEPTIONIST`, `MANAGER` or `HOUSEKEEPING`"; active "BOOLEAN NOT NULL, default true"); insert Manager `manager` with `{bcrypt}` hash of `manager` (research R2)
-- [ ] T005 Run `./mvnw compile` to generate jOOQ classes into `ch.martinelli.edu.hrs.db` (depends on T003, T004)
-- [ ] T006 [P] Write `test/core/security/StaffUserDetailsServiceTest.java`: active user loads with role, inactive user is disabled, unknown user throws
-- [ ] T007 [P] Create `Role` enum and `StaffUserDetailsService` (jOOQ on `staff_user`, inactive → disabled) in `main/core/security/`
-- [ ] T008 Create `SecurityConfiguration` in `main/core/security/SecurityConfiguration.java`: `VaadinSecurityConfigurer.vaadin()` with `loginView(LoginView.class)`, delegating `PasswordEncoder` bean (research R1)
-- [ ] T009 Create `LoginView` (route `login`, `@AnonymousAllowed`) in `main/core/security/LoginView.java`; after login go to the role's first view: Receptionist → `reception/front-desk`, Manager → `manager/rooms`, Housekeeping → `housekeeping` (contracts/ui-routes.md)
-- [ ] T010 Create `MainLayout` in `main/core/ui/MainLayout.java`: app layout with side navigation from `MenuConfiguration.getMenuEntries()` and a logout button (research R9)
-- [ ] T011 [P] Write `test/core/security/LoginViewTest.java` (Browserless, extends `HrsBrowserlessTest`): login form shown to anonymous users
-- [ ] T012 Run `./mvnw verify` — must end green
+- [X] T003 Create `migration/V1__room_type_and_room.sql`: sequences; `room_type` (id BIGINT PK; name "VARCHAR(50) NOT NULL, UNIQUE"; capacity "INT NOT NULL, ≥ 1"; nightly_rate "DECIMAL(10,2) NOT NULL, > 0"); `room` (id BIGINT PK; room_number "VARCHAR(10) NOT NULL, UNIQUE"; room_type_id "NOT NULL, FK → room_type (no cascade)"; cleaning_status "VARCHAR(10) NOT NULL, `CLEAN` or `DIRTY`, default `CLEAN`")
+- [X] T004 Create `migration/V2__staff_user.sql`: sequence; `staff_user` (id BIGINT PK; username "VARCHAR(50) NOT NULL, UNIQUE"; password_hash "VARCHAR(100) NOT NULL, `{bcrypt}…`"; role "VARCHAR(20) NOT NULL, `RECEPTIONIST`, `MANAGER` or `HOUSEKEEPING`"; active "BOOLEAN NOT NULL, default true"); insert Manager `manager` with `{bcrypt}` hash of `manager` (research R2)
+- [X] T005 Run `./mvnw compile` to generate jOOQ classes into `ch.martinelli.edu.hrs.db` (depends on T003, T004)
+- [X] T006 [P] Write `test/core/security/StaffUserDetailsServiceTest.java`: active user loads with role, inactive user is disabled, unknown user throws
+- [X] T007 [P] Create `Role` enum and `StaffUserDetailsService` (jOOQ on `staff_user`, inactive → disabled) in `main/core/security/`
+- [X] T008 Create `SecurityConfiguration` in `main/core/security/SecurityConfiguration.java`: `VaadinSecurityConfigurer.vaadin()` with `loginView(LoginView.class)`, delegating `PasswordEncoder` bean (research R1)
+- [X] T009 Create `LoginView` (route `login`, `@AnonymousAllowed`) in `main/core/security/LoginView.java`; after login go to the role's first view: Receptionist → `reception/front-desk`, Manager → `manager/rooms`, Housekeeping → `housekeeping` (contracts/ui-routes.md)
+- [X] T010 Create `MainLayout` in `main/core/ui/MainLayout.java`: app layout with side navigation from `MenuConfiguration.getMenuEntries()` and a logout button (research R9)
+- [X] T011 [P] Write `test/core/security/LoginViewTest.java` (Browserless, extends `HrsBrowserlessTest`): login form shown to anonymous users
+- [X] T012 Run `./mvnw verify` — must end green
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -63,22 +63,22 @@ user who then sees only reception menus
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Write `test/room/RoomTypeServiceTest.java`: create, change rate, duplicate name rejected, delete of type used by a room rejected (US1 scenarios 1, 4)
-- [ ] T014 [P] [US1] Write `test/room/RoomServiceTest.java`: create room with type, new room is `CLEAN`, duplicate room number rejected (US1 scenarios 2, 3)
-- [ ] T015 [P] [US1] Write `test/staff/StaffUserServiceTest.java`: create user, duplicate username rejected, change role, reset password, deactivated user cannot authenticate (US1 scenarios 7–9)
-- [ ] T016 [P] [US1] Write `test/room/RoomTypeViewTest.java` and `test/room/RoomViewTest.java` (Browserless, `@WithMockUser(roles = "MANAGER")`): grid lists data, form creates/changes/deletes, error shown on rejected delete; access denied for `RECEPTIONIST` and `HOUSEKEEPING` (US1 scenario 6)
-- [ ] T017 [P] [US1] Write `test/staff/StaffUserViewTest.java` (Browserless, Manager): create, change role, reset password, deactivate; denied for other roles
-- [ ] T018 [P] [US1] Write `test/room/ManagerIT.java` (Playwright, extends `PlaywrightIT`): log in as `manager`, create room type and room, create Receptionist user, log in as that user and see only reception menu entries; clean up created data
+- [X] T013 [P] [US1] Write `test/room/RoomTypeServiceTest.java`: create, change rate, duplicate name rejected, delete of type used by a room rejected (US1 scenarios 1, 4)
+- [X] T014 [P] [US1] Write `test/room/RoomServiceTest.java`: create room with type, new room is `CLEAN`, duplicate room number rejected (US1 scenarios 2, 3)
+- [X] T015 [P] [US1] Write `test/staff/StaffUserServiceTest.java`: create user, duplicate username rejected, change role, reset password, deactivated user cannot authenticate (US1 scenarios 7–9)
+- [X] T016 [P] [US1] Write `test/room/RoomTypeViewTest.java` and `test/room/RoomViewTest.java` (Browserless, `@WithMockUser(roles = "MANAGER")`): grid lists data, form creates/changes/deletes, error shown on rejected delete; access denied for `RECEPTIONIST` and `HOUSEKEEPING` (US1 scenario 6)
+- [X] T017 [P] [US1] Write `test/staff/StaffUserViewTest.java` (Browserless, Manager): create, change role, reset password, deactivate; denied for other roles
+- [X] T018 [P] [US1] Write `test/room/ManagerIT.java` (Playwright, extends `PlaywrightIT`): log in as `manager`, create room type and room, create Receptionist user, log in as that user and see only reception menu entries; clean up created data
 
 ### Implementation for User Story 1
 
-- [ ] T019 [P] [US1] Implement `RoomTypeService` in `main/room/RoomTypeService.java` (jOOQ; user-facing messages for duplicate name and type in use)
-- [ ] T020 [P] [US1] Implement `CleaningStatus` enum and `RoomService` in `main/room/` (duplicate room number, delete blocked by FK → message, research R8)
-- [ ] T021 [P] [US1] Implement `StaffUserService` in `main/staff/StaffUserService.java` (password encoded with the `PasswordEncoder` bean)
-- [ ] T022 [US1] Implement `RoomTypeView` (route `manager/room-types`, `@RolesAllowed("MANAGER")`, `@Menu`, layout `MainLayout`) in `main/room/RoomTypeView.java` with `Binder` validation (research R11)
-- [ ] T023 [US1] Implement `RoomView` (route `manager/rooms`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/room/RoomView.java`
-- [ ] T024 [US1] Implement `StaffUserView` (route `manager/staff`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/staff/StaffUserView.java`
-- [ ] T025 [US1] Run `./mvnw verify` — must end green
+- [X] T019 [P] [US1] Implement `RoomTypeService` in `main/room/RoomTypeService.java` (jOOQ; user-facing messages for duplicate name and type in use)
+- [X] T020 [P] [US1] Implement `CleaningStatus` enum and `RoomService` in `main/room/` (duplicate room number, delete blocked by FK → message, research R8)
+- [X] T021 [P] [US1] Implement `StaffUserService` in `main/staff/StaffUserService.java` (password encoded with the `PasswordEncoder` bean)
+- [X] T022 [US1] Implement `RoomTypeView` (route `manager/room-types`, `@RolesAllowed("MANAGER")`, `@Menu`, layout `MainLayout`) in `main/room/RoomTypeView.java` with `Binder` validation (research R11)
+- [X] T023 [US1] Implement `RoomView` (route `manager/rooms`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/room/RoomView.java`
+- [X] T024 [US1] Implement `StaffUserView` (route `manager/staff`, `@RolesAllowed("MANAGER")`, `@Menu`) in `main/staff/StaffUserView.java`
+- [X] T025 [US1] Run `./mvnw verify` — must end green
 
 **Checkpoint**: User Story 1 works on its own
 
