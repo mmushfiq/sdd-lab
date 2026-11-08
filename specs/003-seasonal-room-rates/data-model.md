@@ -21,7 +21,7 @@ covers (FR-001). Column name and rules unchanged; only labels change (research R
 - Seasonal rates of the same room type MUST NOT overlap: checked in `SeasonalRateService.save` under a lock on
   the room type row (research R5). The message names the overlapped one:
   `Overlaps the seasonal rate "Summer" (1 July 2027 – 31 August 2027).`
-- Other messages: `Name is required.`, `Start date and end date are required.`,
+- Other messages: `Name is required.`, `Name can have at most 50 characters.`, `Start date and end date are required.`,
   `End date must not be before start date.`, `Nightly rate must be greater than 0.`, `Room type is required.`
 - Past dates are allowed. Index `seasonal_rate_room_type_dates (room_type_id, start_date)`.
 

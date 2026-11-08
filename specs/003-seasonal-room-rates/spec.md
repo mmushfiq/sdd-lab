@@ -43,8 +43,8 @@ them back.
 **Why this priority**: This is the core of the request: different prices in different periods without manual
 switching.
 
-**Independent Test**: Log in as Manager, add a seasonal rate for a period of a room type, then search as Guest
-for a stay inside the period (seasonal rate used) and one outside it (standard rate used).
+**Independent Test**: Log in as Manager, add a seasonal rate for a period of a room type and see it in the list;
+an overlapping one and one without a name are rejected. (That searches use it is tested in User Story 2.)
 
 **Acceptance Scenarios**:
 
@@ -83,8 +83,8 @@ the standard rate for the nights before the period plus the seasonal rate for th
    searched, **Then** the lower rate is used.
 4. **Given** a room is booked, **When** the reservation is saved, **Then** it records the rate of each night and
    the total price, and the booking confirmation and confirmation email show that total price.
-5. **Given** a booked stay of 30 June – 3 July with nights at 100, 150 and 150, **When** a Receptionist opens its
-   details or the Guest looks it up, **Then** they see "Price per night: 1 night × 100.00, 2 nights × 150.00" and
+5. **Given** a booked stay of 30 June – 3 July with nights at 100, 150 and 150, **When** a Receptionist finds it in the
+   list of found reservations or the Guest looks it up, **Then** they see "Price per night: 1 night × 100.00, 2 nights × 150.00" and
    "Total price: 400.00".
 
 ---
@@ -166,8 +166,8 @@ month's revenue counts only its own nights at their booked rate.
 - **FR-004**: The rate of a night MUST be the seasonal rate covering that night if one exists, otherwise the
   standard nightly rate of the room type.
 - **FR-005**: The total price of a stay shown in the search, booking confirmation, confirmation email, guest
-  lookup and reservation details MUST be the sum of the rates of its nights. The guest lookup and the reservation
-  details MUST also show the price per night, grouping consecutive nights with the same rate in date order, e.g.
+  lookup and list of found reservations MUST be the sum of the rates of its nights. The guest lookup and the Receptionist's
+  list of found reservations MUST also show the price per night, grouping consecutive nights with the same rate in date order, e.g.
   "Price per night: 2 nights × 140.00, 1 night × 180.00" ("1 night" singular), with money formatted as the total
   price is today.
 - **FR-006**: A reservation MUST record the rate of each of its nights at booking time (replaces "the nightly
