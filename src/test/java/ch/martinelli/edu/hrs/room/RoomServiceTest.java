@@ -113,6 +113,26 @@ class RoomServiceTest {
                 .isInstanceOf(BusinessRuleException.class).hasMessage("Room type is required.");
     }
 
+    @Test
+    void checkedOutRoomIsInCleaningListUntilMarkedCleaned() {
+        var room = roomService.save(room("T107"));
+        roomService.save(room("T108"));
+        var today = LocalDate.now(clock);
+        var reservation = reservationService.book(new BookingRequest(room.getId(), today, today.plusDays(1), 1,
+                "Test Guest", "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION));
+        reservationService.checkIn(reservation.getId());
+        reservationService.checkOut(reservation.getId());
+
+        assertThat(roomService.findDirtyRooms()).extracting(RoomRecord::getRoomNumber)
+                .contains("T107").doesNotContain("T108");
+
+        roomService.markCleaned(room.getId());
+
+        assertThat(roomService.findDirtyRooms()).extracting(RoomRecord::getRoomNumber).doesNotContain("T107");
+        assertThat(roomService.findAll()).filteredOn(r -> r.getRoomNumber().equals("T107"))
+                .extracting(RoomRecord::getCleaningStatus).containsExactly("CLEAN");
+    }
+
     private RoomRecord room(String number) {
         var room = new RoomRecord();
         room.setRoomNumber(number);

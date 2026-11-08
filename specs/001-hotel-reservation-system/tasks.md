@@ -165,15 +165,15 @@ offered
 
 ### Tests for User Story 5
 
-- [ ] T049 [P] [US5] Extend `test/room/RoomServiceTest.java`: `findDirtyRooms` and `markCleaned` (US5 scenarios 1, 2)
-- [ ] T050 [P] [US5] Write `test/housekeeping/CleaningListViewTest.java` (Browserless, `HOUSEKEEPING`): dirty rooms listed with room number and status only, no guest data (FR-024), mark cleaned removes the row; `HOUSEKEEPING` denied on `reception/reservations` and `manager/rooms` (US5 scenario 3)
-- [ ] T051 [P] [US5] Write `test/housekeeping/HousekeepingIT.java` (Playwright, tablet viewport 1024×768): checked-out room appears, mark cleaned
+- [X] T049 [P] [US5] Extend `test/room/RoomServiceTest.java`: `findDirtyRooms` and `markCleaned` (US5 scenarios 1, 2)
+- [X] T050 [P] [US5] Write `test/housekeeping/CleaningListViewTest.java` (Browserless, `HOUSEKEEPING`): dirty rooms listed with room number and status only, no guest data (FR-024), mark cleaned removes the row; `HOUSEKEEPING` denied on `reception/reservations` and `manager/rooms` (US5 scenario 3)
+- [X] T051 [P] [US5] Write `test/housekeeping/HousekeepingIT.java` (Playwright, tablet viewport 1024×768): checked-out room appears, mark cleaned
 
 ### Implementation for User Story 5
 
-- [ ] T052 [US5] Add `findDirtyRooms` and `markCleaned` to `main/room/RoomService.java`
-- [ ] T053 [US5] Implement `CleaningListView` (route `housekeeping`, `@RolesAllowed("HOUSEKEEPING")`, `@Menu`, poll every 30 s, refresh button, large touch targets) in `main/housekeeping/CleaningListView.java` (research R7)
-- [ ] T054 [US5] Run `./mvnw verify` — must end green
+- [X] T052 [US5] Add `findDirtyRooms` and `markCleaned` to `main/room/RoomService.java`
+- [X] T053 [US5] Implement `CleaningListView` (route `housekeeping`, `@RolesAllowed("HOUSEKEEPING")`, `@Menu`, poll every 30 s, refresh button, large touch targets) in `main/housekeeping/CleaningListView.java` (research R7)
+- [X] T054 [US5] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Check-out to clean room loop complete
 
@@ -339,7 +339,7 @@ Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T025
 - [X] T078 Configure a file-based H2 datasource for the running app in `src/main/resources/application.properties` (tests keep an in-memory database) per plan: Technical Context, Storage (partial)
 - [X] T079 Re-check form rules in the services and throw `BusinessRuleException` with a user-facing message: room type name required, capacity ≥ 1, nightly rate > 0 (`RoomTypeService`); room number and room type required (`RoomService`); username, role and password not blank (`StaffUserService`); add service tests per plan: research R11 (partial)
 - [X] T080 [P] Add tests for changing a room's number and type (`RoomServiceTest`) and for deleting a room type and a room through their views (`RoomTypeViewTest`, `RoomViewTest`) per FR-001, FR-002 (partial)
-- [ ] T081 Review the interim "No functions are available for your role yet." message in `LoginView` once Receptionist and Housekeeping have views (US4, US5); keep or remove per contracts/ui-routes.md (unrequested)
+- [X] T081 Review the interim "No functions are available for your role yet." message in `LoginView` once Receptionist and Housekeeping have views (US4, US5); keep or remove per contracts/ui-routes.md (unrequested)
 
 ---
 

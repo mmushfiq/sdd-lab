@@ -29,6 +29,19 @@ public class RoomService {
     }
 
     /**
+     * The cleaning list: all dirty rooms (FR-020).
+     */
+    @Transactional(readOnly = true)
+    public List<RoomRecord> findDirtyRooms() {
+        return dsl.selectFrom(ROOM).where(ROOM.CLEANING_STATUS.eq(CleaningStatus.DIRTY.name()))
+                .orderBy(ROOM.ROOM_NUMBER).fetch();
+    }
+
+    public void markCleaned(long id) {
+        dsl.update(ROOM).set(ROOM.CLEANING_STATUS, CleaningStatus.CLEAN.name()).where(ROOM.ID.eq(id)).execute();
+    }
+
+    /**
      * Inserts a new room (cleaning status clean) or updates an existing one.
      */
     public RoomRecord save(RoomRecord room) {
