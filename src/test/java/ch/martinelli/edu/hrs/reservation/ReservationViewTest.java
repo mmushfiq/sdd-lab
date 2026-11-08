@@ -86,6 +86,27 @@ class ReservationViewTest extends HrsBrowserlessTest {
     }
 
     @Test
+    void bookingUsesTheSearchedStayEvenIfFieldsChangedAfterwards() {
+        navigate(ReservationView.class);
+        search(today.plusDays(1), today.plusDays(3), 2);
+
+        test($(DatePicker.class).withLabel("Departure").single()).setValue(today.plusDays(9));
+        test($(IntegerField.class).withLabel("Guests").single()).clear();
+        test(grid()).select(rowOf("T801"));
+        test($(Button.class).withText("Book").single()).click();
+        test($(TextField.class).withLabel("Guest name").single()).setValue("Test Searched");
+        test($(EmailField.class).withLabel("Email").single()).setValue("guest@example.com");
+        test($(TextField.class).withLabel("Phone").single()).setValue("+41 79 000 00 00");
+        test($(Button.class).withText("Confirm booking").single()).click();
+
+        var stored = dsl.fetchSingle(RESERVATION, RESERVATION.GUEST_NAME.eq("Test Searched"));
+        assertThat(stored.getArrivalDate()).isEqualTo(today.plusDays(1));
+        assertThat(stored.getDepartureDate()).isEqualTo(today.plusDays(3));
+        assertThat(stored.getNumberOfGuests()).isEqualTo(2);
+        assertThat(stored.getTotalPrice()).isEqualByComparingTo("240.00");
+    }
+
+    @Test
     void bookingFormRequiresGuestDetails() {
         navigate(ReservationView.class);
         search(today.plusDays(1), today.plusDays(3), 2);

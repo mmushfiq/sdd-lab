@@ -347,4 +347,4 @@ Scope of this convergence run: Setup, Foundational and User Story 1 (T001–T025
 
 Scope of this convergence run: User Story 2 (T026–T038).
 
-- [ ] T082 Book with the dates and number of guests of the search that produced the selected room, not the current field values, in `main/reservation/ReservationView.java` (today a cleared Guests field fails with an error and changed dates book a stay other than the one shown); add a Browserless test per US2/AC2, FR-005 (partial)
+- [X] T082 Book with the dates and number of guests of the search that produced the selected room, not the current field values, in `main/reservation/ReservationView.java` (today a cleared Guests field fails with an error and changed dates book a stay other than the one shown); add a Browserless test per US2/AC2, FR-005 (partial)

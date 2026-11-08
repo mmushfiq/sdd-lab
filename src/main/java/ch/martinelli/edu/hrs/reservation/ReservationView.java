@@ -46,6 +46,11 @@ public class ReservationView extends VerticalLayout {
     private final IntegerField guests = new IntegerField("Guests");
     private final Grid<AvailableRoom> grid = new Grid<>();
     private final Paragraph noRoom = new Paragraph("No room is available for these dates and number of guests.");
+    // The stay the grid shows; booking uses it, not the fields, which may have changed since (US2/AC2)
+    private Search shownSearch;
+
+    private record Search(LocalDate arrival, LocalDate departure, int guests) {
+    }
 
     public ReservationView(AvailabilityService availabilityService, ReservationService reservationService,
                            Clock clock) {
@@ -76,19 +81,25 @@ public class ReservationView extends VerticalLayout {
     }
 
     private void search() {
+        show(new Search(arrival.getValue(), departure.getValue(), guests.getValue() == null ? 0 : guests.getValue()));
+    }
+
+    private void show(Search search) {
         try {
-            var rooms = availabilityService.search(arrival.getValue(), departure.getValue(),
-                    guests.getValue() == null ? 0 : guests.getValue());
+            var rooms = availabilityService.search(search.arrival(), search.departure(), search.guests());
             grid.setItems(rooms);
             noRoom.setVisible(rooms.isEmpty());
+            shownSearch = search;
         } catch (BusinessRuleException e) {
             grid.setItems();
             noRoom.setVisible(false);
+            shownSearch = null;
             showError(e.getMessage());
         }
     }
 
     private void openBookingDialog(AvailableRoom room) {
+        var stay = shownSearch;
         var dialog = new Dialog("Book room " + room.roomNumber());
         var guestName = new TextField("Guest name");
         guestName.setMaxLength(100);
@@ -113,13 +124,13 @@ public class ReservationView extends VerticalLayout {
                 return;
             }
             try {
-                var reservation = reservationService.book(new BookingRequest(room.roomId(), arrival.getValue(),
-                        departure.getValue(), guests.getValue(), guest.getGuestName(), guest.getGuestEmail(),
+                var reservation = reservationService.book(new BookingRequest(room.roomId(), stay.arrival(),
+                        stay.departure(), stay.guests(), guest.getGuestName(), guest.getGuestEmail(),
                         guest.getGuestPhone(), BookingSource.RECEPTION));
                 dialog.close();
                 Notification.show("Reservation " + reservation.getReservationNumber() + " booked.", 10000,
                         Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                search();
+                show(stay);
             } catch (BusinessRuleException e) {
                 showError(e.getMessage());
             }
