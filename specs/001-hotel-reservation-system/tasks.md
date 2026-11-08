@@ -209,17 +209,17 @@ offered
 
 ### Tests for User Story 7
 
-- [ ] T061 [P] [US7] Write `test/reservation/GuestReservationServiceTest.java`: lookup by number + email (email case-insensitive); wrong data gives the same "not found" message whether or not the number exists; cancel when arrival > today; arrival today rejected with "call reception"; non-`BOOKED` rejected (US7 scenarios 1–5)
-- [ ] T062 [P] [US7] Write `test/reservation/AnonymizationTest.java`: reservations with departure or cancellation > 12 months ago get name `Anonymized`, email and phone `NULL`, `anonymized = true`; dates, room, prices, status kept; younger ones untouched; anonymized reservation not found by guest lookup (FR-026, edge cases)
-- [ ] T063 [P] [US7] Write `test/guest/MyReservationViewTest.java` (Browserless, anonymous): lookup form, details shown, cancel button only when allowed
-- [ ] T064 [P] [US7] Write `test/guest/GuestCancelIT.java` (Playwright): book online, look up, cancel
+- [X] T061 [P] [US7] Write `test/reservation/GuestReservationServiceTest.java`: lookup by number + email (email case-insensitive); wrong data gives the same "not found" message whether or not the number exists; cancel when arrival > today; arrival today rejected with "call reception"; non-`BOOKED` rejected (US7 scenarios 1–5)
+- [X] T062 [P] [US7] Write `test/reservation/AnonymizationTest.java`: reservations with departure or cancellation > 12 months ago get name `Anonymized`, email and phone `NULL`, `anonymized = true`; dates, room, prices, status kept; younger ones untouched; anonymized reservation not found by guest lookup (FR-026, edge cases)
+- [X] T063 [P] [US7] Write `test/guest/MyReservationViewTest.java` (Browserless, anonymous): lookup form, details shown, cancel button only when allowed
+- [X] T064 [P] [US7] Write `test/guest/GuestCancelIT.java` (Playwright): book online, look up, cancel
 
 ### Implementation for User Story 7
 
-- [ ] T065 [US7] Add `findForGuest(number, email)` and `cancelByGuest` to `main/reservation/ReservationService.java`
-- [ ] T066 [US7] Add `anonymizeOlderThan(12 months)` to `ReservationService` and `AnonymizationJob` (`@Scheduled(cron = "0 0 3 * * *")`) in `main/reservation/AnonymizationJob.java`; add `@EnableScheduling` to `main/HrsApplication.java` (research R6)
-- [ ] T067 [US7] Implement `MyReservationView` (route `my-reservation`, `@AnonymousAllowed`) in `main/guest/MyReservationView.java`
-- [ ] T068 [US7] Run `./mvnw verify` — must end green
+- [X] T065 [US7] Add `findForGuest(number, email)` and `cancelByGuest` to `main/reservation/ReservationService.java`
+- [X] T066 [US7] Add `anonymizeOlderThan(12 months)` to `ReservationService` and `AnonymizationJob` (`@Scheduled(cron = "0 0 3 * * *")`) in `main/reservation/AnonymizationJob.java`; add `@EnableScheduling` to `main/HrsApplication.java` (research R6)
+- [X] T067 [US7] Implement `MyReservationView` (route `my-reservation`, `@AnonymousAllowed`) in `main/guest/MyReservationView.java`
+- [X] T068 [US7] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Guests can self-serve; guest data is anonymized on time
 
@@ -365,3 +365,11 @@ Scope of this convergence run: User Story 4 (T043–T048).
 Scope of this convergence run: User Story 6 (T055–T060).
 
 - [X] T085 Recalculate nightly rate and total in `ReservationService.change` only when the dates or the room change; a change of number of guests or guest details keeps the booked rate and total; add a service test per US1/AC5, US6/AC1 (contradicts)
+
+---
+
+## Phase 16: Convergence
+
+Scope of this convergence run: User Story 7 (T061–T068).
+
+- [X] T086 Link the public booking page (`main/guest/GuestBookingView.java`) and its booking confirmation to `my-reservation`, so a guest can find where to view or cancel their reservation; extend `GuestBookingViewTest` per FR-015, US7 (partial)

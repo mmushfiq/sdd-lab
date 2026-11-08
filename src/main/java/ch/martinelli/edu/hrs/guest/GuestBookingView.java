@@ -25,6 +25,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.validator.EmailValidator;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 import java.time.Clock;
@@ -81,7 +82,9 @@ public class GuestBookingView extends VerticalLayout {
         noRoom.setVisible(false);
         confirmation.setVisible(false);
 
-        add(new H1("Book a room"), confirmation, searchBar, noRoom, grid, book);
+        // Where a guest views or cancels a booking later (FR-015)
+        var myReservation = new RouterLink("View or cancel my reservation", MyReservationView.class);
+        add(new H1("Book a room"), myReservation, confirmation, searchBar, noRoom, grid, book);
     }
 
     private void search() {
@@ -132,7 +135,8 @@ public class GuestBookingView extends VerticalLayout {
                         stay.departure(), stay.guests(), guest.getGuestName(), guest.getGuestEmail(),
                         guest.getGuestPhone(), BookingSource.ONLINE));
                 confirmation.setText("Your room is booked. Your reservation number is "
-                        + reservation.getReservationNumber() + ".");
+                        + reservation.getReservationNumber() + ". Use it with your email under "
+                        + "\"View or cancel my reservation\".");
                 confirmation.setVisible(true);
             } catch (BusinessRuleException e) {
                 showError(e.getMessage());

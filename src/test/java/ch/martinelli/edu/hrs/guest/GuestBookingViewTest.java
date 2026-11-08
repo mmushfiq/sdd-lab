@@ -16,6 +16,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.RouterLink;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,8 +90,18 @@ class GuestBookingViewTest extends HrsBrowserlessTest {
         assertThat(stored.getStatus()).isEqualTo("BOOKED");
         assertThat(stored.getSource()).isEqualTo("ONLINE");
         assertThat($(Paragraph.class).withText("Your room is booked. Your reservation number is "
-                + stored.getReservationNumber() + ".").single().isVisible()).isTrue();
+                + stored.getReservationNumber() + ". Use it with your email under "
+                + "\"View or cancel my reservation\".").single().isVisible()).isTrue();
         assertThat(rowOf("T811")).isNegative();
+    }
+
+    @Test
+    void linksToMyReservation() {
+        navigate(GuestBookingView.class);
+
+        test($(RouterLink.class).withText("View or cancel my reservation").single()).click();
+
+        assertThat(getCurrentView()).isInstanceOf(MyReservationView.class);
     }
 
     @Test

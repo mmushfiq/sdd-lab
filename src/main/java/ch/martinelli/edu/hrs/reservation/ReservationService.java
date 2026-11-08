@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static ch.martinelli.edu.hrs.core.BusinessRuleException.check;
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
@@ -23,6 +24,9 @@ import static ch.martinelli.edu.hrs.db.Tables.ROOM_TYPE;
 @Service
 @Transactional
 public class ReservationService {
+
+    static final int ANONYMIZE_AFTER_MONTHS = 12;
+    public static final String NOT_FOUND = "No reservation was found for this reservation number and email.";
 
     private final DSLContext dsl;
     private final AvailabilityService availabilityService;
@@ -99,6 +103,68 @@ public class ReservationService {
         reservation.setStatus(ReservationStatus.CANCELLED.name());
         reservation.setCancelledAt(LocalDateTime.now(clock));
         reservation.update();
+    }
+
+    /**
+     * A guest's own reservation by reservation number and booking email (FR-015). Email case does not matter;
+     * an anonymized reservation has no email any more and cannot be found.
+     */
+    @Transactional(readOnly = true)
+    public Optional<GuestReservation> findForGuest(String reservationNumber, String email) {
+        if (reservationNumber == null || email == null) {
+            return Optional.empty();
+        }
+        var today = LocalDate.now(clock);
+        return dsl.select(RESERVATION.RESERVATION_NUMBER, RESERVATION.ARRIVAL_DATE, RESERVATION.DEPARTURE_DATE,
+                        ROOM_TYPE.NAME, RESERVATION.TOTAL_PRICE, RESERVATION.STATUS)
+                .from(RESERVATION)
+                .join(ROOM).on(ROOM.ID.eq(RESERVATION.ROOM_ID))
+                .join(ROOM_TYPE).on(ROOM_TYPE.ID.eq(ROOM.ROOM_TYPE_ID))
+                .where(guest(reservationNumber, email))
+                .fetchOptional(r -> {
+                    var status = ReservationStatus.valueOf(r.value6());
+                    return new GuestReservation(r.value1(), r.value2(), r.value3(), r.value4(), r.value5(), status,
+                            status == ReservationStatus.BOOKED && r.value2().isAfter(today));
+                });
+    }
+
+    /**
+     * FR-015: a guest can cancel online until the day before arrival; on the arrival day only reception can.
+     */
+    public void cancelByGuest(String reservationNumber, String email) {
+        check(reservationNumber != null && email != null, NOT_FOUND);
+        var reservation = dsl.selectFrom(RESERVATION).where(guest(reservationNumber, email)).forUpdate()
+                .fetchOptional()
+                .orElseThrow(() -> new BusinessRuleException(NOT_FOUND));
+        check(ReservationStatus.BOOKED.name().equals(reservation.getStatus()),
+                "Only a booked reservation can be cancelled.");
+        check(reservation.getArrivalDate().isAfter(LocalDate.now(clock)),
+                "Online cancellation is only possible until the day before arrival. Please call reception.");
+        reservation.setStatus(ReservationStatus.CANCELLED.name());
+        reservation.setCancelledAt(LocalDateTime.now(clock));
+        reservation.update();
+    }
+
+    /**
+     * FR-026: removes guest name, email and phone of reservations whose departure or cancellation is more than
+     * the given months ago; dates, room, prices and status stay for the reports. Returns how many were changed.
+     */
+    public int anonymizeOlderThan(int months) {
+        var cutoff = LocalDate.now(clock).minusMonths(months);
+        return dsl.update(RESERVATION)
+                .set(RESERVATION.GUEST_NAME, "Anonymized")
+                .setNull(RESERVATION.GUEST_EMAIL)
+                .setNull(RESERVATION.GUEST_PHONE)
+                .set(RESERVATION.ANONYMIZED, true)
+                .where(RESERVATION.ANONYMIZED.isFalse())
+                .and(RESERVATION.DEPARTURE_DATE.lt(cutoff)
+                        .or(RESERVATION.CANCELLED_AT.lt(cutoff.atStartOfDay())))
+                .execute();
+    }
+
+    private static Condition guest(String reservationNumber, String email) {
+        return RESERVATION.RESERVATION_NUMBER.eq(reservationNumber.trim().toUpperCase())
+                .and(RESERVATION.GUEST_EMAIL.equalIgnoreCase(email.trim()));
     }
 
     /**
