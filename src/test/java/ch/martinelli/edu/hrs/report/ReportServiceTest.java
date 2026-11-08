@@ -119,6 +119,29 @@ class ReportServiceTest {
                 BigDecimal.valueOf(100L * nightsInMonth));
     }
 
+    /**
+     * 003 US4/AC1, FR-009: each month counts only its own nights, each at its saved rate.
+     */
+    @Test
+    void stayAcrossSeasonAndMonthSplitsRevenuePerNight() {
+        var june30 = LocalDate.of(2029, 6, 30);
+        stay(dsl, roomA, june30, june30.plusDays(2), "CHECKED_OUT", "100.00", "ONLINE", june30.minusDays(20));
+        // The night of 1 July was booked at the seasonal rate
+        dsl.update(RESERVATION_NIGHT).set(RESERVATION_NIGHT.NIGHTLY_RATE, new BigDecimal("150.00"))
+                .where(RESERVATION_NIGHT.NIGHT_DATE.eq(june30.plusDays(1)))
+                .and(RESERVATION_NIGHT.RESERVATION_ID.in(dsl.select(RESERVATION.ID).from(RESERVATION)
+                        .where(RESERVATION.ROOM_ID.eq(roomA))))
+                .execute();
+
+        var june = reportService.monthlyReport(YearMonth.of(2029, 6));
+        var july = reportService.monthlyReport(YearMonth.of(2029, 7));
+
+        assertThat(june.revenue()).isEqualByComparingTo("100.00");
+        assertThat(june.occupiedNights()).isEqualTo(1);
+        assertThat(july.revenue()).isEqualByComparingTo("150.00");
+        assertThat(july.occupiedNights()).isEqualTo(1);
+    }
+
     private long room(String number, long typeId) {
         var room = new RoomRecord();
         room.setRoomNumber(number);

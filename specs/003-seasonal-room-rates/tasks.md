@@ -142,12 +142,12 @@ reservation already had.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T033 [US4] Add to `test/report/ReportServiceTest.java`: a checked-out stay 30 June – 2 July 2029 with night rates 100 and 150 → June revenue 100, July revenue 150, one room-night each (US4/AC1, FR-009)
+- [X] T033 [US4] Add to `test/report/ReportServiceTest.java`: a checked-out stay 30 June – 2 July 2029 with night rates 100 and 150 → June revenue 100, July revenue 150, one room-night each (US4/AC1, FR-009)
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] No production change expected beyond T027; if T033 fails, fix the cause in `main/report/ReportService.java`
-- [ ] T035 [US4] Run `./mvnw verify` — must end green
+- [X] T034 [US4] No production change expected beyond T027; if T033 fails, fix the cause in `main/report/ReportService.java`
+- [X] T035 [US4] Run `./mvnw verify` — must end green
 
 **Checkpoint**: All user stories functional
 
