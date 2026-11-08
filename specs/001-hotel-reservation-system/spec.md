@@ -206,9 +206,9 @@ see the room offered again.
    type, total price and status.
 2. **Given** wrong identification data, **When** the Guest looks up a reservation, **Then** no reservation
    data is shown and the message does not reveal whether the reservation number exists.
-3. **Given** a booked reservation whose arrival date is after today, **When** the Guest cancels it,
+3. *(Changed by 002-cancellation-deadline-48h, FR-002–FR-005.)* **Given** a booked reservation whose arrival date is after today, **When** the Guest cancels it,
    **Then** its status becomes cancelled and its nights are available again.
-4. **Given** a booked reservation whose arrival date is today, **When** the Guest tries to cancel it
+4. *(Changed by 002-cancellation-deadline-48h, FR-002–FR-005.)* **Given** a booked reservation whose arrival date is today, **When** the Guest tries to cancel it
    online, **Then** the system rejects it and tells the Guest to call reception.
 5. **Given** a reservation is checked in, checked out or cancelled, **When** the Guest tries to cancel it,
    **Then** the system rejects it.
@@ -294,7 +294,7 @@ and revenue with a manual count.
   dates, room, number of guests and guest details of a booked reservation, subject to FR-006 to FR-008.
 - **FR-014**: Receptionists MUST be able to cancel a booked reservation; cancelled reservations no longer
   block their nights.
-- **FR-015**: Guests MUST be able to view their own reservation online by entering its reservation number
+- **FR-015** *(changed by 002-cancellation-deadline-48h, FR-002–FR-005)*: Guests MUST be able to view their own reservation online by entering its reservation number
   and the booking email, without seeing any other guest's data, and MUST be able to cancel it online
   until the day before the arrival date.
 - **FR-016**: Only reservations with status booked MAY be changed or cancelled.

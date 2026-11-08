@@ -151,10 +151,10 @@ throw: booking saved and confirmation shown.
 
 **Purpose**: Keep feature 001 documents true and validate end to end
 
-- [ ] T032 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-015 and User Story 7 scenarios 3–4 as "Changed by 002-cancellation-deadline-48h (FR-002–FR-005)", without rewriting their text
-- [ ] T033 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` change the `my-reservation` row from "cancel until day before arrival" to "cancel until the online cancellation deadline (see 002)"
-- [ ] T034 Walk through `specs/002-cancellation-deadline-48h/quickstart.md` steps 2–7 by hand
-- [ ] T035 Run `./mvnw verify` — must end green
+- [X] T032 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-015 and User Story 7 scenarios 3–4 as "Changed by 002-cancellation-deadline-48h (FR-002–FR-005)", without rewriting their text
+- [X] T033 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` change the `my-reservation` row from "cancel until day before arrival" to "cancel until the online cancellation deadline (see 002)"
+- [X] T034 Walk through `specs/002-cancellation-deadline-48h/quickstart.md` steps 2–7 by hand
+- [X] T035 Run `./mvnw verify` — must end green
 
 ---
 

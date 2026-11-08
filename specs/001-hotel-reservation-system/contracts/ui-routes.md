@@ -6,7 +6,7 @@ on.
 | Route | View | Access | User stories | What it offers |
 |---|---|---|---|---|
 | `` (root) | `GuestBookingView` | anonymous | 3 | search by dates and guests, book a room, show reservation number |
-| `my-reservation` | `MyReservationView` | anonymous | 7 | look up by reservation number + email, cancel until day before arrival |
+| `my-reservation` | `MyReservationView` | anonymous | 7 | look up by reservation number + email, cancel until the online cancellation deadline (see 002) |
 | `login` | `LoginView` | anonymous | all staff | staff login; after login go to the role's first view |
 | `reception/reservations` | `ReservationView` | RECEPTIONIST | 2, 6 | search availability, create, find, change, cancel reservations |
 | `reception/front-desk` | `FrontDeskView` | RECEPTIONIST | 4 | today's arrivals and departures, check-in, check-out, room overview |

@@ -90,7 +90,7 @@ Then open <http://localhost:8080>.
 | 4    | Per feature: tasks, analyze       | `/speckit-tasks`, `/speckit-analyze`           | Done   |
 | 5    | Per feature: implement            | `/speckit-implement`                           | Done   |
 | 6    | Per feature: verify, converge     | `./mvnw verify`, `/speckit-converge`           | Done   |
-| 7    | Change requests                   | `/speckit-specify` … `/speckit-converge`       | Open   |
+| 7    | Change requests                   | `/speckit-specify` … `/speckit-converge`       | Done   |
 
 ---
 
