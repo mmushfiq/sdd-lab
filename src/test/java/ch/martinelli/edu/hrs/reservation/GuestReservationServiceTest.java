@@ -121,6 +121,33 @@ class GuestReservationServiceTest {
     }
 
     @Test
+    void oldBookingCanStillBeCancelledTheDayBeforeArrival() {
+        // A reservation from before 002 (V4 gave it 15 h); dates in hotel time so the test does not depend on
+        // the machine's time zone
+        var tomorrowInHotel = LocalDate.now(clock.withZone(CancellationDeadline.ZONE)).plusDays(1);
+        var reservation = oldBooking(tomorrowInHotel);
+
+        assertThat(reservationService.findForGuest(reservation.getReservationNumber(), "guest.online@example.com"))
+                .hasValueSatisfying(g -> assertThat(g.cancellable()).isTrue());
+        reservationService.cancelByGuest(reservation.getReservationNumber(), "guest.online@example.com");
+
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
+                .isEqualTo(ReservationStatus.CANCELLED.name());
+    }
+
+    @Test
+    void oldBookingCannotBeCancelledOnTheArrivalDate() {
+        var todayInHotel = LocalDate.now(clock.withZone(CancellationDeadline.ZONE));
+        var reservation = oldBooking(todayInHotel);
+
+        assertThatThrownBy(() -> reservationService.cancelByGuest(reservation.getReservationNumber(),
+                "guest.online@example.com"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage(CancellationDeadline.of(todayInHotel, 15).passedText())
+                .hasMessageContaining(", 00:00 (Zurich time)");
+    }
+
+    @Test
     void notBookedCannotBeCancelled() {
         var checkedIn = book(today);
         reservationService.checkIn(checkedIn.getId());
@@ -129,6 +156,19 @@ class GuestReservationServiceTest {
                 "guest.online@example.com"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Only a booked reservation can be cancelled.");
+    }
+
+    /**
+     * Books well ahead, then moves the row to the given arrival with the old 15-hour rule.
+     */
+    private ReservationRecord oldBooking(LocalDate arrival) {
+        var reservation = book(today.plusDays(30));
+        dsl.update(RESERVATION)
+                .set(RESERVATION.ARRIVAL_DATE, arrival)
+                .set(RESERVATION.DEPARTURE_DATE, arrival.plusDays(2))
+                .set(RESERVATION.CANCELLATION_HOURS_BEFORE, 15)
+                .where(RESERVATION.ID.eq(reservation.getId())).execute();
+        return reservation;
     }
 
     private int hoursBefore(long reservationId) {

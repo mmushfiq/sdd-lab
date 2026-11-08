@@ -90,14 +90,14 @@ cancelled online; on its arrival date it cannot.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T016 [P] [US2] Add to `test/reservation/GuestReservationServiceTest.java`: set `cancellation_hours_before = 15` on a booked row (via `DSLContext`); arrival tomorrow → `cancellable = true` and `cancelByGuest` succeeds; arrival today → rejected with `passedText()` showing today 00:00 (US2 scenarios 1–2, FR-003)
-- [ ] T017 [P] [US2] Add to `test/reservation/ReservationServiceTest.java`: `change()` moving the arrival by 7 days keeps `cancellation_hours_before` (15 stays 15, 48 stays 48) and the deadline moves 7 days (FR-008, edge case); `cancel()` by reception of a booked reservation arriving tomorrow with rule 48 succeeds (FR-007)
-- [ ] T018 [P] [US2] Write `test/reservation/CancellationRuleMigrationTest.java` (plain JUnit, own in-memory H2 `jdbc:h2:mem:v4test`): Flyway `target("3")` migrate, insert one `room_type`, `room` and `reservation` row, then migrate to latest; assert `cancellation_hours_before = 15` for that row and `48` for a row inserted afterwards without the column (FR-003, SC-002)
+- [X] T016 [P] [US2] Add to `test/reservation/GuestReservationServiceTest.java`: set `cancellation_hours_before = 15` on a booked row (via `DSLContext`); arrival tomorrow → `cancellable = true` and `cancelByGuest` succeeds; arrival today → rejected with `passedText()` showing today 00:00 (US2 scenarios 1–2, FR-003)
+- [X] T017 [P] [US2] Add to `test/reservation/ReservationServiceTest.java`: `change()` moving the arrival by 7 days keeps `cancellation_hours_before` (15 stays 15, 48 stays 48) and the deadline moves 7 days (FR-008, edge case); `cancel()` by reception of a booked reservation arriving tomorrow with rule 48 succeeds (FR-007)
+- [X] T018 [P] [US2] Write `test/reservation/CancellationRuleMigrationTest.java` (plain JUnit, own in-memory H2 `jdbc:h2:mem:v4test`): Flyway `target("3")` migrate, insert one `room_type`, `room` and `reservation` row, then migrate to latest; assert `cancellation_hours_before = 15` for that row and `48` for a row inserted afterwards without the column (FR-003, SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] No production change expected beyond T004 and T011; if T016/T017/T018 fail, fix the cause in `main/reservation/ReservationService.java`
-- [ ] T020 [US2] Run `./mvnw verify` — must end green
+- [X] T019 [US2] No production change expected beyond T004 and T011; if T016/T017/T018 fail, fix the cause in `main/reservation/ReservationService.java`
+- [X] T020 [US2] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Old and new rule both enforced
 

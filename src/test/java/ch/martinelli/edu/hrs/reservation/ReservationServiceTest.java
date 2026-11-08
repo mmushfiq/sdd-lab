@@ -213,6 +213,35 @@ class ReservationServiceTest {
         }
     }
 
+    @Test
+    void dateChangeKeepsTheCancellationRuleAndMovesTheDeadline() {
+        var newRule = reservationService.book(request(today.plusDays(10), today.plusDays(12)));
+        var oldRule = reservationService.book(request(today.plusDays(20), today.plusDays(22)));
+        dsl.update(RESERVATION).set(RESERVATION.CANCELLATION_HOURS_BEFORE, 15)
+                .where(RESERVATION.ID.eq(oldRule.getId())).execute();
+
+        reservationService.change(newRule.getId(), request(today.plusDays(17), today.plusDays(19)));
+        reservationService.change(oldRule.getId(), request(today.plusDays(27), today.plusDays(29)));
+
+        var changedNew = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(newRule.getId()));
+        var changedOld = dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(oldRule.getId()));
+        assertThat(changedNew.getCancellationHoursBefore()).isEqualTo(48);
+        assertThat(changedOld.getCancellationHoursBefore()).isEqualTo(15);
+        assertThat(CancellationDeadline.of(changedNew.getArrivalDate(), 48).deadline())
+                .isEqualTo(CancellationDeadline.of(today.plusDays(10), 48).deadline().plusDays(7));
+    }
+
+    @Test
+    void receptionCanCancelAfterTheOnlineDeadline() {
+        // Arrival tomorrow, rule 48: the online deadline has passed (FR-007)
+        var reservation = reservationService.book(request(today.plusDays(1), today.plusDays(3)));
+
+        reservationService.cancel(reservation.getId());
+
+        assertThat(dsl.fetchSingle(RESERVATION, RESERVATION.ID.eq(reservation.getId())).getStatus())
+                .isEqualTo(ReservationStatus.CANCELLED.name());
+    }
+
     private BookingRequest request(LocalDate arrival, LocalDate departure) {
         return new BookingRequest(roomId, arrival, departure, 2,
                 "Test Guest", "guest@example.com", "+41 79 000 00 00", BookingSource.RECEPTION);
