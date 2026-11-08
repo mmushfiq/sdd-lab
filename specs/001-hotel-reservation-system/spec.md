@@ -49,7 +49,7 @@ both in the room list.
    **Then** the system rejects it and says the room number is already used.
 4. **Given** a room type is used by a room, **When** the Manager tries to delete the room type, **Then**
    the system rejects it and says the room type is still in use.
-5. **Given** a reservation exists for a room, **When** the Manager changes the room type's nightly rate,
+5. *(Changed by 003-seasonal-room-rates, FR-001, FR-006.)* **Given** a reservation exists for a room, **When** the Manager changes the room type's nightly rate,
    **Then** the existing reservation keeps the rate it was booked with.
 6. **Given** a user is logged in as Receptionist or Housekeeping, **When** they try to open room
    management or staff user management, **Then** access is denied.
@@ -179,7 +179,7 @@ room offered again for those nights.
 
 **Acceptance Scenarios**:
 
-1. **Given** a booked reservation, **When** the Receptionist changes its dates or room to ones that are
+1. *(Changed by 003-seasonal-room-rates, FR-007.)* **Given** a booked reservation, **When** the Receptionist changes its dates or room to ones that are
    free, **Then** the reservation is updated and the total price is recalculated with the current rate.
 2. **Given** a booked reservation, **When** the Receptionist changes it to nights the room is already
    booked for, **Then** the change is rejected as a double booking.
@@ -201,7 +201,7 @@ see the room offered again.
 
 **Acceptance Scenarios**:
 
-1. **Given** a booked reservation, **When** the Guest enters the reservation number and the email used for
+1. *(Changed by 003-seasonal-room-rates, FR-005.)* **Given** a booked reservation, **When** the Guest enters the reservation number and the email used for
    the booking, **Then** they see dates, room
    type, total price and status.
 2. **Given** wrong identification data, **When** the Guest looks up a reservation, **Then** no reservation
@@ -261,7 +261,7 @@ and revenue with a manual count.
 
 **Rooms and rates**
 
-- **FR-001**: The Manager MUST be able to create, change and delete room types with name, capacity (number
+- **FR-001** *(changed by 003-seasonal-room-rates, FR-001–FR-003)*: The Manager MUST be able to create, change and delete room types with name, capacity (number
   of guests) and nightly rate.
 - **FR-002**: The Manager MUST be able to create, change and delete rooms with a unique room number and a
   room type.
@@ -280,7 +280,7 @@ and revenue with a manual count.
   overlapping nights, also when they are submitted at the same time.
 - **FR-008**: The system MUST reject searches and bookings where departure is not after arrival, arrival
   is in the past, arrival is more than one year ahead, or the stay is longer than 30 nights.
-- **FR-009**: A reservation MUST record the room, arrival and departure dates, number of guests, guest
+- **FR-009** *(changed by 003-seasonal-room-rates, FR-006)*: A reservation MUST record the room, arrival and departure dates, number of guests, guest
   name, email and phone, the nightly rate at booking time, the total price, a unique reservation number,
   a status and the booking source (online or reception).
 - **FR-010**: Reservation status MUST be one of booked, checked in, checked out, cancelled.
@@ -368,7 +368,7 @@ and revenue with a manual count.
 
 - One hotel with ten rooms; the Manager enters the rooms after go-live (no import).
 - Room types group rooms with the same capacity and nightly rate.
-- The nightly rate is the same for every night (no seasonal or weekend rates); total price = nights ×
+- *(Changed by 003-seasonal-room-rates, FR-004.)* The nightly rate is the same for every night (no seasonal or weekend rates); total price = nights ×
   nightly rate at booking time.
 - One reservation is for one room; a group needing two rooms makes two reservations.
 - Payment is settled at the hotel; the system records prices but no payments (vision: out of scope).

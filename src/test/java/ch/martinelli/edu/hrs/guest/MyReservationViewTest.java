@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 
 import static ch.martinelli.edu.hrs.db.Sequences.RESERVATION_SEQ;
 import static ch.martinelli.edu.hrs.db.Tables.RESERVATION;
+import static ch.martinelli.edu.hrs.db.Tables.RESERVATION_NIGHT;
 import static ch.martinelli.edu.hrs.room.RoomTypeServiceTest.roomType;
 import static ch.martinelli.edu.hrs.room.SeasonalRateServiceTest.rate;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -169,8 +170,8 @@ class MyReservationViewTest extends HrsBrowserlessTest {
     }
 
     /**
-     * 003 US3/AC2, FR-008: a reservation from before 003 has only its nightly rate; V5 gave it one night row per
-     * night at that rate (same statement as in V5__seasonal_rates.sql).
+     * 003 US3/AC2, FR-008: a reservation from before 003, with the night rows V5 gave it: one per night at its old
+     * nightly rate (the copy itself is tested in SeasonalRateMigrationTest).
      */
     @Test
     void reservationFromBeforeSeasonalRatesShowsItsOldRatePerNight() {
@@ -185,16 +186,17 @@ class MyReservationViewTest extends HrsBrowserlessTest {
                 .set(RESERVATION.GUEST_NAME, "Test Old Guest")
                 .set(RESERVATION.GUEST_EMAIL, "old@example.com")
                 .set(RESERVATION.GUEST_PHONE, "+41 79 000 00 00")
-                .set(RESERVATION.NIGHTLY_RATE, new BigDecimal("120.00"))
                 .set(RESERVATION.TOTAL_PRICE, new BigDecimal("240.00"))
                 .set(RESERVATION.STATUS, "BOOKED")
                 .set(RESERVATION.SOURCE, "ONLINE")
                 .set(RESERVATION.CREATED_AT, LocalDateTime.now(clock))
                 .execute();
-        dsl.execute("insert into reservation_night (reservation_id, night_date, nightly_rate) "
-                + "select r.id, dateadd(day, n.x, r.arrival_date), r.nightly_rate from reservation r "
-                + "join system_range(0, 29) n on n.x < datediff(day, r.arrival_date, r.departure_date) "
-                + "where r.id = " + id);
+        for (var night = today.plusDays(5); night.isBefore(today.plusDays(7)); night = night.plusDays(1)) {
+            dsl.insertInto(RESERVATION_NIGHT).set(RESERVATION_NIGHT.RESERVATION_ID, id)
+                    .set(RESERVATION_NIGHT.NIGHT_DATE, night)
+                    .set(RESERVATION_NIGHT.NIGHTLY_RATE, new BigDecimal("120.00"))
+                    .execute();
+        }
         navigate(MyReservationView.class);
 
         lookUp("OLDRATE1", "old@example.com");

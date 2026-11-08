@@ -13,6 +13,7 @@ on.
 | `housekeeping` | `CleaningListView` | HOUSEKEEPING | 5 | dirty rooms, mark cleaned (tablet layout) |
 | `manager/room-types` | `RoomTypeView` | MANAGER | 1 | create, change, delete room types |
 | `manager/rooms` | `RoomView` | MANAGER | 1 | create, change, delete rooms |
+| `manager/seasonal-rates` | `SeasonalRateView` | MANAGER | 003 US1 | create, change, delete seasonal rates |
 | `manager/staff` | `StaffUserView` | MANAGER | 1 | create users, change role, reset password, deactivate |
 | `manager/reports` | `ReportView` | MANAGER | 8 | month picker, occupancy %, revenue |
 

@@ -157,12 +157,12 @@ reservation already had.
 
 **Purpose**: Drop the old column, keep feature 001 documents true, validate end to end
 
-- [ ] T036 Create `src/main/resources/db/migration/V6__drop_reservation_nightly_rate.sql`: `alter table reservation drop column nightly_rate;` then `./mvnw compile` and remove every remaining `RESERVATION.NIGHTLY_RATE` / `getNightlyRate` / `setNightlyRate` use of the reservation in `main/` and `test/` (research R2)
-- [ ] T037 Update `test/reservation/CancellationRuleMigrationTest.java`: the reservation inserted after the full migration no longer names `nightly_rate` (keep it in the V3-era insert); `SeasonalRateMigrationTest` keeps its `target("4")`/`target("5")` steps
-- [ ] T038 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-001, FR-009, User Story 1 scenario 5, User Story 6 scenario 1, User Story 7 scenario 1 and the assumption "The nightly rate is the same for every night" as "Changed by 003-seasonal-room-rates", without rewriting their text
-- [ ] T039 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` add the row `manager/seasonal-rates` | `SeasonalRateView` | MANAGER | 003 US1 | create, change, delete seasonal rates
-- [ ] T040 Walk through `specs/003-seasonal-room-rates/quickstart.md` steps 2–7 and 9 by hand
-- [ ] T041 Run `./mvnw verify` — must end green
+- [X] T036 Create `src/main/resources/db/migration/V6__drop_reservation_nightly_rate.sql`: `alter table reservation drop column nightly_rate;` then `./mvnw compile` and remove every remaining `RESERVATION.NIGHTLY_RATE` / `getNightlyRate` / `setNightlyRate` use of the reservation in `main/` and `test/` (research R2)
+- [X] T037 Update `test/reservation/CancellationRuleMigrationTest.java`: the reservation inserted after the full migration no longer names `nightly_rate` (keep it in the V3-era insert); `SeasonalRateMigrationTest` keeps its `target("4")`/`target("5")` steps
+- [X] T038 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-001, FR-009, User Story 1 scenario 5, User Story 6 scenario 1, User Story 7 scenario 1 and the assumption "The nightly rate is the same for every night" as "Changed by 003-seasonal-room-rates", without rewriting their text
+- [X] T039 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` add the row `manager/seasonal-rates` | `SeasonalRateView` | MANAGER | 003 US1 | create, change, delete seasonal rates
+- [X] T040 Walk through `specs/003-seasonal-room-rates/quickstart.md` steps 2–7 and 9 by hand
+- [X] T041 Run `./mvnw verify` — must end green
 
 ---
 

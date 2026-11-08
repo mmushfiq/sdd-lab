@@ -23,10 +23,10 @@ class CancellationRuleMigrationTest {
             var statement = connection.createStatement();
             statement.execute("insert into room_type (id, name, capacity, nightly_rate) values (1, 'Double', 2, 100)");
             statement.execute("insert into room (id, room_number, room_type_id) values (1, '101', 1)");
-            statement.execute(reservation(1, "OLDRULE1"));
+            statement.execute(reservation(1, "OLDRULE1", true));
 
             migrate(connection, null);
-            statement.execute(reservation(2, "NEWRULE1"));
+            statement.execute(reservation(2, "NEWRULE1", false));
 
             var result = statement.executeQuery("select cancellation_hours_before from reservation order by id");
             result.next();
@@ -45,13 +45,14 @@ class CancellationRuleMigrationTest {
     }
 
     /**
-     * A reservation row without cancellation_hours_before, as V3-era code would insert it.
+     * A reservation row without cancellation_hours_before. V3-era code also wrote nightly_rate, which V6 dropped
+     * (003 research R2).
      */
-    private static String reservation(int id, String number) {
+    private static String reservation(int id, String number, boolean withNightlyRate) {
         return "insert into reservation (id, reservation_number, room_id, arrival_date, departure_date, "
-                + "number_of_guests, guest_name, guest_email, guest_phone, nightly_rate, total_price, status, "
-                + "source, created_at) values (" + id + ", '" + number + "', 1, date '2030-03-1" + id + "', "
-                + "date '2030-03-2" + id + "', 2, 'Guest', 'guest@example.com', '+41', 100, 200, 'BOOKED', "
-                + "'ONLINE', current_timestamp)";
+                + "number_of_guests, guest_name, guest_email, guest_phone, " + (withNightlyRate ? "nightly_rate, " : "")
+                + "total_price, status, source, created_at) values (" + id + ", '" + number + "', 1, "
+                + "date '2030-03-1" + id + "', date '2030-03-2" + id + "', 2, 'Guest', 'guest@example.com', '+41', "
+                + (withNightlyRate ? "100, " : "") + "200, 'BOOKED', 'ONLINE', current_timestamp)";
     }
 }
