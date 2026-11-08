@@ -82,8 +82,8 @@ deadline that applies to it.
    reception to cancel." and no cancel button.
 3. **Given** a reservation that is cancelled, checked in or checked out, **When** the Guest looks it up,
    **Then** no cancellation time is shown.
-4. **Given** a booked reservation, **When** a Receptionist opens its details, **Then** they see the same
-   last online cancellation time as the Guest.
+4. **Given** a booked reservation, **When** a Receptionist finds it, **Then** the list shows its last
+   online cancellation time (FR-009).
 
 ---
 
@@ -147,8 +147,9 @@ online cancellation time as the lookup page.
 - **FR-007**: Receptionist cancellations MUST NOT be limited by the last online cancellation time.
 - **FR-008**: When a Receptionist changes the dates of a reservation, its last online cancellation time
   MUST be recalculated from the new check-in using the rule that applied when it was booked.
-- **FR-009**: Receptionists MUST see the last online cancellation time of a booked reservation in its
-  reservation details, in the same format as the Guest.
+- **FR-009**: Receptionists MUST see the last online cancellation time of a booked reservation in the
+  list of found reservations: "Free online cancellation until <time> (Zurich time)" before the deadline,
+  "Online cancellation was possible until <time> (Zurich time)." after it.
 
 ### Key Entities
 

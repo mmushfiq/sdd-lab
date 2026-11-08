@@ -67,7 +67,7 @@ within 48 hours and try to cancel (rejected, "Please call reception to cancel.")
 
 - [ ] T008 [P] [US1] Update `test/reservation/GuestReservationServiceTest.java`: `book()` (online and reception source) stores `cancellation_hours_before = 48`; cancel of a reservation arriving in 5 days succeeds; a reservation arriving tomorrow or the day after has `cancellable = false` and `cancelByGuest` throws with `passedText()`; replace the old "until the day before arrival" assertions (US1 scenarios 1–3, FR-001, FR-002, FR-004)
 - [ ] T009 [P] [US1] Update `test/guest/MyReservationViewTest.java`: a reservation arriving tomorrow shows the paragraph `cancellation-deadline` with `passedText()` and no "Cancel reservation" button; one arriving in 5 days shows the button and can be cancelled (US1 scenarios 1, 3)
-- [ ] T010 [P] [US1] Update `test/guest/GuestCancelIT.java` (Playwright): book online with an arrival at least 3 days ahead, look up, cancel, see "Your reservation is cancelled."
+- [ ] T010 [P] [US1] Update `test/guest/GuestCancelIT.java` (Playwright): book online with an arrival at least 3 days ahead, look up, see `#cancellation-deadline` with "Free online cancellation until <arrival − 2 days>, 15:00 (Zurich time)", cancel, see "Your reservation is cancelled."
 
 ### Implementation for User Story 1
 
@@ -91,12 +91,13 @@ cancelled online; on its arrival date it cannot.
 ### Tests for User Story 2 ⚠️
 
 - [ ] T016 [P] [US2] Add to `test/reservation/GuestReservationServiceTest.java`: set `cancellation_hours_before = 15` on a booked row (via `DSLContext`); arrival tomorrow → `cancellable = true` and `cancelByGuest` succeeds; arrival today → rejected with `passedText()` showing today 00:00 (US2 scenarios 1–2, FR-003)
-- [ ] T017 [P] [US2] Add to `test/reservation/ReservationServiceTest.java`: `change()` moving the arrival by 7 days keeps `cancellation_hours_before` (15 stays 15, 48 stays 48) and the deadline moves 7 days (FR-008, edge case)
+- [ ] T017 [P] [US2] Add to `test/reservation/ReservationServiceTest.java`: `change()` moving the arrival by 7 days keeps `cancellation_hours_before` (15 stays 15, 48 stays 48) and the deadline moves 7 days (FR-008, edge case); `cancel()` by reception of a booked reservation arriving tomorrow with rule 48 succeeds (FR-007)
+- [ ] T018 [P] [US2] Write `test/reservation/CancellationRuleMigrationTest.java` (plain JUnit, own in-memory H2 `jdbc:h2:mem:v4test`): Flyway `target("3")` migrate, insert one `room_type`, `room` and `reservation` row, then migrate to latest; assert `cancellation_hours_before = 15` for that row and `48` for a row inserted afterwards without the column (FR-003, SC-002)
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] No production change expected beyond T004 and T011; if T016/T017 fail, fix the cause in `main/reservation/ReservationService.java`
-- [ ] T019 [US2] Run `./mvnw verify` — must end green
+- [ ] T019 [US2] No production change expected beyond T004 and T011; if T016/T017/T018 fail, fix the cause in `main/reservation/ReservationService.java`
+- [ ] T020 [US2] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Old and new rule both enforced
 
@@ -110,14 +111,14 @@ cancelled online; on its arrival date it cannot.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T020 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005)
-- [ ] T021 [P] [US3] Add to `test/reservation/ReservationViewTest.java` (Receptionist): found grid has column "Online cancellation" with `text()` for a booked future reservation, the first sentence of `passedText()` for a passed one, empty for a cancelled one (US3 scenario 4, FR-009)
+- [ ] T021 [P] [US3] Add to `test/guest/MyReservationViewTest.java`: booked, deadline not passed → `cancellation-deadline` shows `Free online cancellation until <d MMMM yyyy>, 15:00 (Zurich time)`; cancelled reservation → no `cancellation-deadline` paragraph and no button (US3 scenarios 1–3, FR-005)
+- [ ] T022 [P] [US3] Add to `test/reservation/ReservationViewTest.java` (Receptionist): found grid has column "Online cancellation" with `text()` for a booked future reservation, the first sentence of `passedText()` for a passed one, empty for a cancelled one (US3 scenario 4, FR-009)
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] In `main/guest/MyReservationView.java` show the `cancellation-deadline` paragraph with `text()` above the "Cancel reservation" button when cancellable; keep `passedText()` from T014 otherwise; nothing for non-booked
-- [ ] T023 [US3] In `main/reservation/ReservationView.java` add grid column "Online cancellation" after "Status": for `BOOKED` rows build `CancellationDeadline.of(arrivalDate, cancellationHoursBefore)` and show `text()` or `Online cancellation was possible until <time> (Zurich time).`; empty otherwise (contracts/ui-changes.md)
-- [ ] T024 [US3] Run `./mvnw verify` — must end green
+- [ ] T023 [US3] In `main/guest/MyReservationView.java` show the `cancellation-deadline` paragraph with `text()` above the "Cancel reservation" button when cancellable; keep `passedText()` from T014 otherwise; nothing for non-booked
+- [ ] T024 [US3] In `main/reservation/ReservationView.java` add grid column "Online cancellation" after "Status": for `BOOKED` rows build `CancellationDeadline.of(arrivalDate, cancellationHoursBefore)` and show `text()` or `Online cancellation was possible until <time> (Zurich time).`; empty otherwise (contracts/ui-changes.md)
+- [ ] T025 [US3] Run `./mvnw verify` — must end green
 
 **Checkpoint**: Deadline visible to Guest and Receptionist
 
@@ -132,15 +133,15 @@ throw: booking saved and confirmation shown.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T025 [P] [US4] Write `test/reservation/BookingConfirmationEmailTest.java` (`@SpringBootTest`, `@MockitoBean JavaMailSender`): message from `hrs.mail.from`, to the booking email, subject `Your reservation <number>`, body with reservation number, room type, arrival, departure, guests, total price and `text()` (contracts/confirmation-email.md); sender throws `MailSendException` → `send` returns normally (US4 scenarios 1–2)
-- [ ] T026 [P] [US4] Add to `test/guest/GuestBookingViewTest.java` (`@MockitoBean JavaMailSender`): online booking sends exactly one message; with the sender throwing, the reservation exists and the confirmation is shown (US4 scenarios 1–2, FR-006)
-- [ ] T027 [P] [US4] Add to `test/reservation/ReservationViewTest.java` (`@MockitoBean JavaMailSender`): a reception booking sends no message (US4 scenario 3)
+- [ ] T026 [P] [US4] Write `test/reservation/BookingConfirmationEmailTest.java` (`@SpringBootTest`, `@MockitoBean JavaMailSender`): message from `hrs.mail.from`, to the booking email, subject `Your reservation <number>`, body with reservation number, room type, arrival, departure, guests, total price and `text()` (contracts/confirmation-email.md); sender throws `MailSendException` → `send` returns normally (US4 scenarios 1–2)
+- [ ] T027 [P] [US4] Add to `test/guest/GuestBookingViewTest.java` (`@MockitoBean JavaMailSender`): online booking sends exactly one message; with the sender throwing, the reservation exists and the confirmation is shown (US4 scenarios 1–2, FR-006)
+- [ ] T028 [P] [US4] Add to `test/reservation/ReservationViewTest.java` (`@MockitoBean JavaMailSender`): a reception booking sends no message (US4 scenario 3)
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Create `main/reservation/BookingConfirmationEmail.java` (`@Service`, `JavaMailSender`, `@Value("${hrs.mail.from}")`): `send(ReservationRecord reservation, String roomTypeName)` builds the `SimpleMailMessage` per contracts/confirmation-email.md; catches `MailException` and logs a warning with the reservation number
-- [ ] T029 [US4] In `main/guest/GuestBookingView.java` inject `BookingConfirmationEmail` and call `send(reservation, room.roomTypeName())` after `reservationService.book(...)` returned and before showing the confirmation; `ReservationView` is not changed
-- [ ] T030 [US4] Run `./mvnw verify` — must end green
+- [ ] T029 [US4] Create `main/reservation/BookingConfirmationEmail.java` (`@Service`, `JavaMailSender`, `@Value("${hrs.mail.from}")`): `send(ReservationRecord reservation, String roomTypeName)` builds the `SimpleMailMessage` per contracts/confirmation-email.md; catches `MailException` and logs a warning with the reservation number
+- [ ] T030 [US4] In `main/guest/GuestBookingView.java` inject `BookingConfirmationEmail` and call `send(reservation, room.roomTypeName())` after `reservationService.book(...)` returned and before showing the confirmation; `ReservationView` is not changed
+- [ ] T031 [US4] Run `./mvnw verify` — must end green
 
 **Checkpoint**: All user stories functional
 
@@ -150,10 +151,10 @@ throw: booking saved and confirmation shown.
 
 **Purpose**: Keep feature 001 documents true and validate end to end
 
-- [ ] T031 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-015 and User Story 7 scenarios 3–4 as "Changed by 002-cancellation-deadline-48h (FR-002–FR-005)", without rewriting their text
-- [ ] T032 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` change the `my-reservation` row from "cancel until day before arrival" to "cancel until the online cancellation deadline (see 002)"
-- [ ] T033 Walk through `specs/002-cancellation-deadline-48h/quickstart.md` steps 2–7 by hand
-- [ ] T034 Run `./mvnw verify` — must end green
+- [ ] T032 [P] In `specs/001-hotel-reservation-system/spec.md` mark FR-015 and User Story 7 scenarios 3–4 as "Changed by 002-cancellation-deadline-48h (FR-002–FR-005)", without rewriting their text
+- [ ] T033 [P] In `specs/001-hotel-reservation-system/contracts/ui-routes.md` change the `my-reservation` row from "cancel until day before arrival" to "cancel until the online cancellation deadline (see 002)"
+- [ ] T034 Walk through `specs/002-cancellation-deadline-48h/quickstart.md` steps 2–7 by hand
+- [ ] T035 Run `./mvnw verify` — must end green
 
 ---
 
@@ -182,9 +183,9 @@ throw: booking saved and confirmation shown.
 ### Parallel Opportunities
 
 - T002, T003 together
-- T008, T009, T010 together; T016, T017 together; T020, T021 together; T025, T026, T027 together
-- US4 can run next to US2/US3 (different files except `ReservationViewTest`, which T021 and T027 both touch: do them one after the other)
-- T031, T032 together
+- T008, T009, T010 together; T016, T017, T018 together; T021, T022 together; T026, T027, T028 together
+- US4 can run next to US2/US3 (different files except `ReservationViewTest`, which T022 and T028 both touch: do them one after the other)
+- T032, T033 together
 
 ---
 
